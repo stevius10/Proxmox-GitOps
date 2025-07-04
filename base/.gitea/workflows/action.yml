@@ -1,0 +1,47 @@
+inputs:
+  ip:
+    required: true
+    type: string
+  id:
+    required: true
+    type: number
+  hostname:
+    required: true
+    type: string
+  cores:
+    required: true
+    type: number
+  memory:
+    required: true
+    type: number
+  swap:
+    required: true
+    type: number
+  disk:
+    required: true
+    type: string
+  boot:
+    required: true
+    type: string
+  mount:
+    required: true
+    type: string
+  terminate:
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps:
+
+    - uses: https://gitea.com/actions/checkout@v4
+      with:
+        repository: srv/base
+        ref: 'main'
+
+    - run: ansible-playbook default.yml -e "ip=${{ inputs.ip }}" -e "id=${{ inputs.id }}" -e "hostname=${{ inputs.hostname }}" -e "cores=${{ inputs.cores }}" -e "memory=${{ inputs.memory }}" -e "swap=${{ inputs.swap }}" -e "disk=${{ inputs.disk }}" -e "boot=${{ inputs.boot }}" -e "mount=${{ inputs.mount }}" -e "terminate=${{ inputs.terminate }}"
+      env:
+        PROXMOX_HOST: ${{ vars.PROXMOX_HOST }}
+        PROXMOX_USER: ${{ vars.PROXMOX_USER }}
+        PROXMOX_TOKEN: ${{ vars.PROXMOX_TOKEN }}
+        PROXMOX_SECRET: ${{ vars.PROXMOX_SECRET }}

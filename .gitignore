@@ -1,0 +1,8 @@
+.gh
+**/.git/
+
+/config/.gitea/
+/local/*.hash
+
+.DS_Store
+/.idea

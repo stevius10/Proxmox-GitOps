@@ -1,0 +1,12 @@
+on:
+  push:
+    branches: [ release, main, develop ]
+
+jobs:
+  include:
+    runs-on: shell
+    steps:
+      - id: init
+        uses: srv/config/.gitea/workflows@main
+        with:
+          repo: ${{ env.GITEA_REPOSITORY }}

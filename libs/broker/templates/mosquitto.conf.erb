@@ -1,0 +1,18 @@
+listener <%= @port %>
+
+persistence true
+persistence_location <%= @data_dir %>
+log_dest file <%= @log_dir %>/mosquitto.log
+password_file <%= @user_file %>
+allow_anonymous false
+
+autosave_interval 3600
+connection_messages true
+log_type error
+log_type warning
+
+max_connections 100
+max_queued_messages 250
+message_size_limit 8192
+
+max_inflight_messages 20

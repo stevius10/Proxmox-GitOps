@@ -1,0 +1,18 @@
+default_packages:
+  - vim
+  - wget
+  - sudo
+  - net-tools
+  - procps
+  - curl
+  - ansible-core
+  - ansible
+
+users:
+  - { name: "app", create_home: false }
+  - { name: "config", groups: ["root", "sudo"], create_home: true }
+  - { name: "user", shell: "/bin/bash", groups: ["root", "sudo"], create_home: true }
+
+ssh_users:
+  - config
+  - user

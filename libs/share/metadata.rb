@@ -1,0 +1,2 @@
+name 'share'
+depends 'config'

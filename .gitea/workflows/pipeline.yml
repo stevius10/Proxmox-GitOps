@@ -1,0 +1,76 @@
+on:
+  push:
+    branches: [ release, main, develop ]
+
+jobs:
+
+  init:
+    runs-on: [ "shell" ]
+    outputs:
+      ip: ${{ steps.config.outputs.ip }}
+      id: ${{ steps.config.outputs.id }}
+      hostname: ${{ steps.config.outputs.hostname }}
+      cores: ${{ steps.config.outputs.cores }}
+      memory: ${{ steps.config.outputs.memory }}
+      swap: ${{ steps.config.outputs.swap }}
+      disk: ${{ steps.config.outputs.disk }}
+      boot: ${{ steps.config.outputs.boot }}
+      mount: ${{ steps.config.outputs.mount }}
+      terminate: ${{ steps.config.outputs.terminate }}
+
+    steps:
+      - name: Checkout repository
+        uses: https://gitea.com/actions/checkout@v4
+      - id: config
+        name: Set configuration
+        run: |
+          source config.env
+          echo "ip=$IP" >> $GITEA_OUTPUT
+          echo "id=$ID" >> $GITEA_OUTPUT
+          echo "hostname=$HOSTNAME" >> $GITEA_OUTPUT
+          echo "cores=$CORES" >> $GITEA_OUTPUT
+          echo "memory=$MEMORY" >> $GITEA_OUTPUT
+          echo "swap=$SWAP" >> $GITEA_OUTPUT
+          echo "disk=$DISK" >> $GITEA_OUTPUT
+          echo "boot=$BOOT" >> $GITEA_OUTPUT
+          echo "mount=$MOUNT" >> $GITEA_OUTPUT
+          echo "terminate=$TERMINATE" >> $GITEA_OUTPUT
+
+  base:
+    runs-on: [ "shell" ]
+    needs: init
+    steps:
+      - id: init
+        uses: srv/base/.gitea/workflows@main
+        with:
+          ip: ${{ needs.init.outputs.ip }}
+          id: ${{ needs.init.outputs.id }}
+          hostname: ${{ needs.init.outputs.hostname }}
+          cores: ${{ needs.init.outputs.cores }}
+          memory: ${{ needs.init.outputs.memory }}
+          swap: ${{ needs.init.outputs.swap }}
+          disk: ${{ needs.init.outputs.disk }}
+          boot: ${{ needs.init.outputs.boot }}
+          mount: ${{ needs.init.outputs.mount }}
+          terminate: ${{ needs.init.outputs.terminate }}
+    if: ${{ gitea.ref == 'refs/heads/release' }}
+
+  share:
+    runs-on: [ "shell" ]
+    needs: [init]
+    steps:
+      - name: Checkout repository
+        uses: https://gitea.com/actions/checkout@v4
+      - name: Configure container
+        run: tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} MOUNT=${{ needs.init.outputs.mount }} cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=[".","./libs"] -o share'
+
+  config:
+    runs-on: [ "shell" ]
+    needs: [init]
+    steps:
+      - name: Checkout repository
+        uses: https://gitea.com/actions/checkout@v4
+        with: 
+          path: 'gitops'
+      - name: Configure container
+        run: cd gitops && tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} PWD=$(pwd) cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=. $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o config'

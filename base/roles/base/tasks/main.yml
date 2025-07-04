@@ -1,0 +1,141 @@
+- name: Basic system configuration
+  block:
+    - name: Update system
+      apt:
+        update_cache: true
+        upgrade: full
+        cache_valid_time: 3600
+        autoclean: true
+        autoremove: true
+
+    - name: Install default applications
+      apt:
+        name: "{{ default_packages }}"
+        state: present
+
+    - name: Create standard users
+      user:
+        name: "{{ item.name }}"
+        shell: "{{ item.shell | default('/bin/bash') }}"
+        groups: "{{ item.groups | default(omit) }}"
+        create_home: yes
+        state: present
+      loop: "{{ users }}"
+      register: created_users
+
+    - name: Configure Sudo
+      ansible.builtin.lineinfile:
+        path: "/etc/sudoers.d/{{ item }}"
+        regexp: "^#?{{ item }}"
+        line: "{{ item }} ALL=(ALL:ALL) NOPASSWD: ALL"
+        validate: 'visudo -cf %s'
+        owner: root
+        group: root
+        mode: '0440'
+        state: present
+        create: yes
+      loop: "{{ ssh_users }}"
+
+- name: Install configuration management
+  block:
+    - name: Get latest Cinc version
+      ansible.builtin.uri:
+        url: https://downloads.cinc.sh/files/stable/cinc/
+        return_content: yes
+      register: cinc_versions
+      changed_when: false
+
+    - name: Extract version
+      ansible.builtin.set_fact:
+        cinc_version: "{{ cinc_versions.content | regex_findall('href=\"(\\d+\\.\\d+\\.\\d+)/\"') | sort | last }}"
+
+    - name: Download
+      ansible.builtin.get_url:
+        url: "https://downloads.cinc.sh/files/stable/cinc/{{ cinc_version }}/debian/12/cinc_{{ cinc_version }}-1_{{ arch | default('amd64') }}.deb"
+        dest: /tmp/cinc.deb
+        validate_certs: no
+
+    - name: Install Cinc
+      ansible.builtin.apt:
+        deb: /tmp/cinc.deb
+        state: present
+
+- name: System Preparation
+  block:
+    - name: Create application directory
+      file:
+        path: "/app"
+        state: directory
+        owner: app
+        group: app
+        mode: 0755
+
+- name: SSH configuration
+  notify: Restart SSH
+  when: (configure_ssh | default(true) | bool)
+  block:
+    - name: Set authorized key
+      ansible.posix.authorized_key:
+        user: "{{ item }}"
+        key: "{{ public_key }}"
+        state: present
+        exclusive: no
+      loop: "{{ ssh_users }}"
+
+    - name: Disable password authentication
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        backup: yes
+        state: present
+
+    - name: Disable SSH root login
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PermitRootLogin"
+        line: "PermitRootLogin no"
+        backup: yes
+        state: present
+
+- name: SSH key management
+  block:
+    - name: Private key
+      copy:
+        content: "{{ private_key }}\n"
+        dest: "/app/id_rsa"
+        owner: app
+        group: app
+        mode: 0600
+
+    - name: Public key
+      copy:
+        content: "{{ public_key }}\n"
+        dest: "/app/id_rsa.pub"
+        owner: app
+        group: app
+        mode: 0640
+
+    - name: Create shared key directory
+      file:
+        path: "/share/.ssh"
+        state: directory
+        owner: app
+        group: app
+        recurse: yes
+
+    - name: Shared private key
+      copy:
+        content: "{{ private_key }}\n"
+        dest: "/share/.ssh/{{ id }}"
+        owner: app
+        group: app
+        mode: 0600
+
+    - name: Shared public key
+      copy:
+        content: "{{ public_key }}\n"
+        dest: "/share/.ssh/{{ id }}.pub"
+        owner: app
+        group: app
+        mode: 0640

@@ -1,0 +1,12 @@
+[global]
+security = user
+passdb backend = tdbsam
+map to guest = bad user
+usershare allow guests = no
+
+<% @share.each do |name, config| %>
+  [<%= name %>]
+  path = <%= config['path'] || "/share/#{name}" %>
+  valid users = <%= node['git']['app']['user'] %>
+  read only = no
+<% end %>

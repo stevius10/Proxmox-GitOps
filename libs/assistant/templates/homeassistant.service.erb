@@ -1,0 +1,14 @@
+[Unit]
+Description=Home Assistant
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=<%= @config_dir %>
+Environment="PATH=<%= @venv_dir %>/bin:/usr/local/bin:/usr/bin:/usr/local/bin/uv"
+ExecStart=<%= @venv_dir %>/bin/python3 -m homeassistant --config <%= @config_dir %>
+Restart=always
+RestartForceExitStatus=100
+
+[Install]
+WantedBy=multi-user.target

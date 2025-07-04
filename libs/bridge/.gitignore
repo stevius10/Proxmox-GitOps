@@ -1,0 +1,8 @@
+.gh
+**/.git/
+
+/config/.gitea/
+/run/.build/
+
+.DS_Store
+/.idea

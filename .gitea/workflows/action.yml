@@ -1,0 +1,60 @@
+inputs:
+  repo: { required: true }
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout repository
+      uses: https://gitea.com/actions/checkout@v4
+      with:
+        repository: "${{ inputs.repo }}"
+        ref: main
+        path: repo
+
+    - name: Configure container
+      run: |
+        source repo/config.env
+        echo "ip=$IP" >> $GITEA_ENV
+        echo "id=$ID" >> $GITEA_ENV
+        echo "hostname=$HOSTNAME" >> $GITEA_ENV
+        echo "cores=$CORES" >> $GITEA_ENV
+        echo "memory=$MEMORY" >> $GITEA_ENV
+        echo "swap=$SWAP" >> $GITEA_ENV
+        echo "disk=$DISK" >> $GITEA_ENV
+        echo "boot=$BOOT" >> $GITEA_ENV
+        echo "mount=$MOUNT" >> $GITEA_ENV
+        echo "terminate=$TERMINATE" >> $GITEA_ENV
+      shell: bash
+
+    - name: Base configuration
+      uses: srv/base/.gitea/workflows@main
+      with:
+        ip: ${{ env.ip }}
+        id: ${{ env.id }}
+        hostname: ${{ env.hostname }}
+        cores: ${{ env.cores }}
+        memory: ${{ env.memory }}
+        swap: ${{ env.swap }}
+        disk: ${{ env.disk }}
+        boot: ${{ env.boot }}
+        mount: ${{ env.mount }}
+        terminate: ${{ env.terminate }}
+      if: ${{ gitea.ref == 'refs/heads/release' }}
+
+    - name: Checkout repository
+      uses: https://gitea.com/actions/checkout@v4
+      with:
+        repository: "${{ inputs.repo }}"
+        ref: main
+        path: repo
+
+    - name: Checkout libraries
+      uses: https://gitea.com/actions/checkout@v4
+      with:
+        repository: 'srv/libraries'
+        ref: 'main'
+        path: 'repo/libraries'
+
+    - name: Configure container
+      run: |
+        tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ env.id }} config@${{ env.ip }} 'tar xz -C ~ && sudo env IP=${{ env.ip }} PWD=$(pwd) HOST=${{ vars.HOST }} cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=. -o repo'
+      shell: bash

@@ -1,49 +1,26 @@
-app_user = node['app']['user']
-app_group = node['app']['group']
-app_home = "/home/#{app_user}"
-bridge_dir = node['bridge']['dir']
-data_dir = "#{bridge_dir}/data"
-config_dir = "#{bridge_dir}/config"
-service_name = 'zigbee2mqtt'
-cache_dir = '/tmp/chef_cache'
-
 %w[unzip curl].each do |pkg|
   package pkg do
     action :install
   end
 end
 
-directory cache_dir do
-  owner 'root'
-  group 'root'
+directory node['bridge']['dir'] do
+  owner node['app']['user']
+  group node['app']['group']
   mode '0755'
   action :create
 end
 
-directory app_home do
-  owner app_user
-  group app_group
+directory node['bridge']['dir'] do
+  owner node['app']['user']
+  group node['app']['group']
   mode '0755'
   action :create
 end
 
-directory bridge_dir do
-  owner app_user
-  group app_group
-  mode '0755'
-  action :create
-end
-
-directory data_dir do
-  owner app_user
-  group app_group
-  mode '0755'
-  action :create
-end
-
-directory config_dir do
-  owner app_user
-  group app_group
+directory node['bridge']['dir'] do
+  owner node['app']['user']
+  group node['app']['group']
   mode '0755'
   action :create
 end
@@ -84,105 +61,91 @@ ruby_block 'fetch_version' do
   action :run
 end
 
-version_file = "#{bridge_dir}/.version"
-cache_file = "#{cache_dir}/zigbee2mqtt.zip"
-
-remote_file cache_file do
+remote_file "/tmp/zigbee2mqtt.zip" do
   source lazy { "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{node.run_state['bridge_version']}.zip" }
-  owner app_user
-  group app_group
+  owner node['app']['user']
+  group node['app']['group']
   mode '0644'
-  not_if { ::File.exist?(version_file) && ::File.read(version_file).strip == node.run_state['bridge_version'] }
-  notifies :stop, "service[#{service_name}]", :immediately
+  not_if { ::File.exist?("#{node['bridge']['dir']}/.version") && ::File.read("#{node['bridge']['dir']}/.version").strip == node.run_state['bridge_version'] }
+  notifies :stop, "service['zigbee2mqtt']", :immediately
   notifies :run, 'execute[backup_current]', :immediately
   notifies :run, 'execute[extract_archive]', :immediately
   notifies :run, 'execute[install_deps]', :delayed
   notifies :run, 'execute[build_app]', :delayed
-  notifies :create, "file[#{version_file}]", :delayed
-  notifies :start, "service[#{service_name}]", :delayed
+  notifies :create, "file[#{"#{node['bridge']['dir']}/.version"}]", :delayed
+  notifies :start, "service['zigbee2mqtt']", :delayed
 end
 
 execute 'backup_current' do
-  command "tar -czf #{bridge_dir}/backup_$(date +%Y%m%d%H%M%S).tar.gz -C #{bridge_dir} . && find #{bridge_dir} -name 'backup_*.tar.gz' -type f | head -n -3 | xargs rm -f || true"
-  user app_user
-  group app_group
-  cwd bridge_dir
-  only_if { ::Dir.exist?("#{bridge_dir}/node_modules") }
+  command "tar -czf #{node['bridge']['dir']}/backup_$(date +%Y%m%d%H%M%S).tar.gz -C #{node['bridge']['dir']} . && find #{node['bridge']['dir']} -name 'backup_*.tar.gz' -type f | head -n -3 | xargs rm -f || true"
+  user node['app']['user']
+  group node['app']['group']
+  cwd node['bridge']['dir']
+  only_if { ::Dir.exist?("#{node['bridge']['dir']}/node_modules") }
   action :nothing
 end
 
 execute 'extract_archive' do
-  command lazy { "unzip -o #{cache_file} -d #{bridge_dir} && mv #{bridge_dir}/zigbee2mqtt-#{node.run_state['bridge_version']}/* #{bridge_dir}/ && rm -rf #{bridge_dir}/zigbee2mqtt-#{node.run_state['bridge_version']}" }
-  user app_user
-  group app_group
-  only_if { ::File.exist?(cache_file) }
+  command lazy { "unzip -o #{"/tmp/zigbee2mqtt.zip"} -d #{node['bridge']['dir']} && mv #{node['bridge']['dir']}/zigbee2mqtt-#{node.run_state['bridge_version']}/* #{node['bridge']['dir']}/ && rm -rf #{node['bridge']['dir']}/zigbee2mqtt-#{node.run_state['bridge_version']}" }
+  user node['app']['user']
+  group node['app']['group']
+  only_if { ::File.exist?("/tmp/zigbee2mqtt.zip") }
   action :nothing
 end
 
 execute 'install_deps' do
   command 'pnpm install --frozen-lockfile'
-  user app_user
-  group app_group
-  cwd bridge_dir
-  environment('HOME' => app_home)
+  user node['app']['user']
+  group node['app']['group']
+  cwd node['bridge']['dir']
+  environment('HOME' => "/home/#{node['app']['user']}")
   action :nothing
 end
 
 execute 'build_app' do
   command 'pnpm build'
-  user app_user
-  group app_group
-  cwd bridge_dir
-  environment('HOME' => app_home)
+  user node['app']['user']
+  group node['app']['group']
+  cwd node['bridge']['dir']
+  environment('HOME' => "/home/#{node['app']['user']}")
   action :nothing
 end
 
-file version_file do
+file "#{node['bridge']['dir']}/.version" do
   content lazy { node.run_state['bridge_version'].to_s }
-  owner app_user
-  group app_group
+  owner node['app']['user']
+  group node['app']['group']
   mode '0644'
   action :nothing
 end
 
-template "#{config_dir}/configuration.yaml" do
+template "#{node['bridge']['dir']}/configuration.yaml" do
   source 'configuration.yaml.erb'
-  owner app_user
-  group app_group
+  owner node['app']['user']
+  group node['app']['group']
   mode '0644'
   variables(
     port: node['bridge']['port'],
     serial: node['bridge']['serial'],
-    data_dir: data_dir,
-    mqtt_host: Env.get(node, 'mqtt'),
+    app_dir: node['bridge']['dir'],
+    mqtt_host: Env.get(node, 'broker'),
     mqtt_user: Env.get(node, 'login'),
     mqtt_password: Env.get(node, 'password')
   )
-  notifies :restart, "service[#{service_name}]", :delayed
+  notifies :restart, "service['zigbee2mqtt']", :delayed
 end
 
-file "/etc/systemd/system/#{service_name}.service" do
-  content <<~EOF
-    [Unit]
-    Description=Zigbee2MQTT Bridge
-    After=network.target
-
-    [Service]
-    Type=simple
-    User=#{app_user}
-    Group=#{app_group}
-    WorkingDirectory=#{bridge_dir}
-    Environment=NODE_ENV=production
-    ExecStart=/usr/bin/node #{bridge_dir}/index.js
-    Restart=always
-    RestartSec=10
-
-    [Install]
-    WantedBy=multi-user.target
-  EOF
-  owner 'root'
-  group 'root'
-  mode '0644'
+template "/etc/systemd/system/'zigbee2mqtt'.service" do
+  source 'zigbee2mqtt.service.erb'
+  owner  'root'
+  group  'root'
+  mode   '0644'
+  variables(
+    service_name: service_name,
+    app_user:     node['app']['user'],
+    app_group:    node['app']['group'],
+    app_dir:      node['bridge']['dir']
+  )
   notifies :run, 'execute[reload_systemd]', :immediately
 end
 
@@ -192,12 +155,12 @@ execute 'reload_systemd' do
 end
 
 execute 'enable_service' do
-  command "systemctl enable #{service_name}"
-  not_if "systemctl is-enabled #{service_name}"
+  command "systemctl enable 'zigbee2mqtt'"
+  not_if "systemctl is-enabled 'zigbee2mqtt'"
   action :run
 end
 
 service service_name do
   action :start
-  only_if { ::File.exist?("#{bridge_dir}/index.js") }
+  only_if { ::File.exist?("#{node['bridge']['dir']}/index.js") }
 end

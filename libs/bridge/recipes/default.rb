@@ -134,7 +134,7 @@ template "/etc/systemd/system/zigbee2mqtt.service.erb" do
   variables(
     app_user:     node['app']['user'],
     app_group:    node['app']['group'],
-    app_dir:      node['bridge']['dir']
+    bridge_dir: node['bridge']['dir']
   )
   notifies :run, 'execute[reload_systemd]', :immediately
 end

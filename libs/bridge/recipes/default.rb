@@ -11,21 +11,7 @@ directory node['bridge']['dir'] do
   action :create
 end
 
-directory node['bridge']['dir'] do
-  owner node['app']['user']
-  group node['app']['group']
-  mode '0755'
-  action :create
-end
-
-directory node['bridge']['dir'] do
-  owner node['app']['user']
-  group node['app']['group']
-  mode '0755'
-  action :create
-end
-
-execute 'setup_nodesource' do
+execute 'setup_node' do
   command 'curl -fsSL https://deb.nodesource.com/setup_current.x | bash -'
   not_if 'dpkg -l | grep -q nodejs'
   action :run
@@ -61,19 +47,24 @@ ruby_block 'fetch_version' do
   action :run
 end
 
+service 'zigbee2mqtt' do
+  supports restart: true, start: true, stop: true, status: true
+  action :nothing
+end
+
 remote_file "/tmp/zigbee2mqtt.zip" do
   source lazy { "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{node.run_state['bridge_version']}.zip" }
   owner node['app']['user']
   group node['app']['group']
   mode '0644'
   not_if { ::File.exist?("#{node['bridge']['dir']}/.version") && ::File.read("#{node['bridge']['dir']}/.version").strip == node.run_state['bridge_version'] }
-  notifies :stop, "service['zigbee2mqtt']", :immediately
+  notifies :stop, "service[zigbee2mqtt]", :immediately
   notifies :run, 'execute[backup_current]', :immediately
   notifies :run, 'execute[extract_archive]', :immediately
   notifies :run, 'execute[install_deps]', :delayed
   notifies :run, 'execute[build_app]', :delayed
   notifies :create, "file[#{"#{node['bridge']['dir']}/.version"}]", :delayed
-  notifies :start, "service['zigbee2mqtt']", :delayed
+  notifies :start, "service[zigbee2mqtt]", :delayed
 end
 
 execute 'backup_current' do
@@ -128,23 +119,22 @@ template "#{node['bridge']['dir']}/configuration.yaml" do
     port: node['bridge']['port'],
     serial: node['bridge']['serial'],
     app_dir: node['bridge']['dir'],
-    mqtt_host: Env.get(node, 'broker'),
-    mqtt_user: Env.get(node, 'login'),
-    mqtt_password: Env.get(node, 'password')
+    broker_host: Env.get(node, 'broker'),
+    broker_user: Env.get(node, 'login'),
+    broker_password: Env.get(node, 'password')
   )
-  notifies :restart, "service['zigbee2mqtt']", :delayed
+  notifies :restart, "service[zigbee2mqtt]", :delayed
 end
 
-template "/etc/systemd/system/'zigbee2mqtt'.service" do
+template "/etc/systemd/system/zigbee2mqtt.service.erb" do
   source 'zigbee2mqtt.service.erb'
   owner  'root'
   group  'root'
   mode   '0644'
   variables(
-    service_name: service_name,
-    app_user:     node['app']['user'],
-    app_group:    node['app']['group'],
-    app_dir:      node['bridge']['dir']
+    app_user: node['app']['user'],
+    app_group: node['app']['group'],
+    bridge_dir: node['bridge']['dir']
   )
   notifies :run, 'execute[reload_systemd]', :immediately
 end
@@ -155,12 +145,12 @@ execute 'reload_systemd' do
 end
 
 execute 'enable_service' do
-  command "systemctl enable 'zigbee2mqtt'"
-  not_if "systemctl is-enabled 'zigbee2mqtt'"
+  command "systemctl enable zigbee2mqtt"
+  not_if "systemctl is-enabled zigbee2mqtt"
   action :run
 end
 
-service service_name do
+service 'zigbee2mqtt' do
   action :start
   only_if { ::File.exist?("#{node['bridge']['dir']}/index.js") }
 end

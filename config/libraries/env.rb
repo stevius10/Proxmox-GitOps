@@ -10,7 +10,7 @@ module Env
   end
 
   def self.get(node, key)
-    node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key) || Chef::Log.warn("Failed: Get '#{key}': #{e.message}")
+    node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key) || Chef::Log.warn("Failed: Get '#{key}'")
   end
 
   def self.get_variable(node, key)
@@ -23,6 +23,10 @@ module Env
     response = request(node, key, { name: key, value: value.to_s }.to_json)
     raise "Failed: Set '#{key}': #{response.code}" unless %w[201 204 409 422].include?(response.code)
     true
+  end
+
+  class << self
+    alias_method :set, :set_variable
   end
 
   private_class_method def self.request(node, key, value = nil)

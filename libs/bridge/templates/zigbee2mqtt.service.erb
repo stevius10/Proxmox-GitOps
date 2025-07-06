@@ -1,0 +1,16 @@
+[Unit]
+Description=Zigbee2MQTT Bridge
+After=network.target
+
+[Service]
+Type=simple
+User=<%= @app_user %>
+Group=<%= @app_group %>
+WorkingDirectory=<%= @bridge_dir %>
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node <%= @bridge_dir %>/index.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

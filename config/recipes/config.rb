@@ -24,17 +24,31 @@ end
 
 ruby_block 'add_key' do
   block do
-    require 'net/http'; require 'uri'
-    api = URI("#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys")
-    http, req = Net::HTTP.new(api.host, api.port), Net::HTTP::Post.new(api.request_uri)
-    req['Content-Type'] = 'application/json'
-    req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
-    req.body = { title: "gitops", key: ::File.read( "/share/.ssh/#{node['id']}.pub") }.to_json
-    response = http.request(req)
-    code = response.code.to_i
-    raise "HTTP #{code}: #{response.body}" if code != 201 && code != 422
+    require 'net/http'
+    require 'uri'
+    require 'json'
+
+    check_api = URI("#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys")
+    check_req = Net::HTTP::Get.new(check_api.request_uri)
+    check_req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
+    check_response = Net::HTTP.new(check_api.host, check_api.port).request(check_req)
+
+    existing_keys = JSON.parse(check_response.body) rescue []
+    key_content = ::File.read("/share/.ssh/#{node['id']}.pub").strip
+
+    unless existing_keys.any? { |k| k['key'] && k['key'].strip == key_content }
+      api = URI("#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys")
+      http, req = Net::HTTP.new(api.host, api.port), Net::HTTP::Post.new(api.request_uri)
+      req['Content-Type'] = 'application/json'
+      req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
+      req.body = { title: "gitops", key: key_content }.to_json
+      response = http.request(req)
+      code = response.code.to_i
+      raise "HTTP #{code}: #{response.body}" if code != 201 && code != 422
+    end
   end
   action :run
+  only_if { ::File.exist?("/share/.ssh/#{node['id']}.pub") }
 end
 
 directory "/home/#{node['git']['app']['user']}/.ssh" do
@@ -55,7 +69,8 @@ file "/home/#{node['git']['app']['user']}/.ssh/config" do
   owner node['git']['app']['user']
   group node['git']['app']['user']
   mode '0600'
-  action :create
+  action :create_if_missing
+  not_if { ::File.exist?("/home/#{node['git']['app']['user']}/.ssh/config") }
 end
 
 execute 'test_connection' do

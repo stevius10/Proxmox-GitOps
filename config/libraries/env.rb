@@ -10,9 +10,7 @@ module Env
   end
 
   def self.get(node, key)
-    node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key)
-  rescue StandardError => e
-    Chef::Log.warn("Failed: Get '#{key}': #{e.message}")
+    node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key) || Chef::Log.warn("Failed: Get '#{key}': #{e.message}")
   end
 
   def self.get_variable(node, key)

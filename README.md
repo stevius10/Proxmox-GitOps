@@ -20,7 +20,7 @@ The system is based on **automation**: Components are deployed recursively as co
 
 - Configure **credentials and Proxmox API token** in [`local/.config.json`](local/.config.json) as `config.json`
 - Run `local/run.sh` for Docker
-- Accept the [`Pull Request`](http://localhost:8080/srv/config/pulls/1) to deploy on Proxmox VE
+- Accept the [`Pull Request`](http://localhost:8080/srv/proxmoxgitops/pulls/1) to deploy on Proxmox VE
 
 ### Requirements
 

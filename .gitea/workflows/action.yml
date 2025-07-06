@@ -7,7 +7,7 @@ runs:
       uses: https://gitea.com/actions/checkout@v4
       with:
         repository: "${{ inputs.repo }}"
-        ref: main
+        ref: "${{ env.GITEA_REF_NAME }}"
         path: repo
 
     - name: Configure container
@@ -44,7 +44,7 @@ runs:
       uses: https://gitea.com/actions/checkout@v4
       with:
         repository: "${{ inputs.repo }}"
-        ref: main
+        ref: "${{ env.GITEA_REF_NAME }}"
         path: repo
 
     - name: Checkout libraries
@@ -55,6 +55,5 @@ runs:
         path: 'repo/libraries'
 
     - name: Configure container
-      run: |
-        tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ env.id }} config@${{ env.ip }} 'tar xz -C ~ && sudo env IP=${{ env.ip }} PWD=$(pwd) HOST=${{ vars.HOST }} cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=. -o repo'
+      run: tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ env.id }} config@${{ env.ip }} 'tar xz -C ~ && env IP=${{ env.ip }} PWD=$(pwd) HOST=${{ vars.HOST }} LOGIN="${{ vars.LOGIN }}" PASSWORD="${{ vars.PASSWORD }}" cinc-client -l info --local-mode --chef-license accept --config-option node_path=/tmp --config-option cookbook_path=. -o repo'
       shell: bash

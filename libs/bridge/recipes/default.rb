@@ -154,7 +154,7 @@ template "#{config_dir}/configuration.yaml" do
     port: node['bridge']['port'],
     serial: node['bridge']['serial'],
     data_dir: data_dir,
-    mqtt_host: Env.get(node, 'mqtt_host'),
+    mqtt_host: Env.get(node, 'mqtt'),
     mqtt_user: Env.get(node, 'login'),
     mqtt_password: Env.get(node, 'password')
   )

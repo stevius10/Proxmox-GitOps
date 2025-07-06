@@ -5,9 +5,6 @@ default['app']['group']             = 'app'
 
 default['broker']['port']           = 1883
 
-default['broker']['user']           = Env.get(node, 'login')
-default['broker']['password']       = Env.get(node, 'password')
-
 default['broker']['dir']['data']    = '/app/broker/data'
 default['broker']['dir']['log']     = '/app/broker/logs'
 default['broker']['file']['config'] = '/app/broker/mosquitto.conf'

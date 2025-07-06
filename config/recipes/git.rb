@@ -7,7 +7,7 @@ if !node['git']['version'] && node['git']['version'].to_s.empty?
       if latest
         node.run_state['gitea_version'] = latest[1].sub(/^v/, '')
       else
-        raise 'Konnte neueste Gitea-Version nicht ermitteln'
+        raise 'latest'
       end
     end
     action :run
@@ -31,7 +31,7 @@ template "#{node['git']['install_dir']}/app.ini" do
   owner node['git']['app']['user']
   group node['git']['app']['group']
   mode '0644'
-  action :create
+  action :create_if_missing
 end
 
 template '/etc/systemd/system/gitea.service' do

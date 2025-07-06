@@ -62,7 +62,7 @@ jobs:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
       - name: Configure container
-        run: tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} MOUNT=${{ needs.init.outputs.mount }} cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=[".","./libs"] -o share'
+        run: tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} MOUNT=${{ needs.init.outputs.mount }} cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=[".","./libs"] $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o share'
 
   config:
     runs-on: [ "shell" ]
@@ -70,7 +70,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
-        with: 
+        with:
           path: 'gitops'
       - name: Configure container
         run: cd gitops && tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} PWD=$(pwd) cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=. $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o config'

@@ -10,3 +10,4 @@ jobs:
         uses: srv/config/.gitea/workflows@main
         with:
           repo: ${{ env.GITEA_REPOSITORY }}
+          ref: main

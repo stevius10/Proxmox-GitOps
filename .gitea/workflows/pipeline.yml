@@ -71,6 +71,6 @@ jobs:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
         with:
-          path: 'gitops'
+          path: 'config'
       - name: Configure container
-        run: cd gitops && tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} PWD=$(pwd) cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=. $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o config'
+        run: tar cz ./config | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} PWD="$(pwd)/config" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=. $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o config'

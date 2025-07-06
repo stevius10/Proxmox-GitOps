@@ -1,3 +1,5 @@
+Env.set(node, 'broker', node['ip'])
+
 %w[mosquitto].each do |pkg|
   package pkg do
     action :install
@@ -68,5 +70,3 @@ end
 service 'mosquitto' do
   action [:enable, :start]
 end
-
-Env.set(node, 'mqtt', node['host'])

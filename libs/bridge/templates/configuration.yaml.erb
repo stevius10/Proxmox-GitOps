@@ -2,9 +2,9 @@ homeassistant: true
 permit_join: true
 mqtt:
   base_topic: zigbee2mqtt
-  server: '<%= @mqtt_server %>'
-  user: '<%= @mqtt_user %>'
-  password: '<%= @mqtt_password %>'
+  server: '<%= @broker_host %>'
+  user: '<%= @broker_user %>'
+  password: '<%= @broker_password %>'
 serial:
 
   port: <%= @serial %>

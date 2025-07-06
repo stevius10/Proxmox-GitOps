@@ -119,9 +119,9 @@ template "#{node['bridge']['dir']}/configuration.yaml" do
     port: node['bridge']['port'],
     serial: node['bridge']['serial'],
     app_dir: node['bridge']['dir'],
-    mqtt_host: Env.get(node, 'broker'),
-    mqtt_user: Env.get(node, 'login'),
-    mqtt_password: Env.get(node, 'password')
+    broker_host: Env.get(node, 'broker'),
+    broker_user: Env.get(node, 'login'),
+    broker_password: Env.get(node, 'password')
   )
   notifies :restart, "service[zigbee2mqtt]", :delayed
 end
@@ -132,8 +132,8 @@ template "/etc/systemd/system/zigbee2mqtt.service.erb" do
   group  'root'
   mode   '0644'
   variables(
-    app_user:     node['app']['user'],
-    app_group:    node['app']['group'],
+    app_user: node['app']['user'],
+    app_group: node['app']['group'],
     bridge_dir: node['bridge']['dir']
   )
   notifies :run, 'execute[reload_systemd]', :immediately

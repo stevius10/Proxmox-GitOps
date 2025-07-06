@@ -16,7 +16,7 @@ module Env
   def self.get_variable(node, key)
     response = request(node, key)
     raise "Failed: Get '#{key}': #{response.code}" unless response.is_a?(Net::HTTPOK)
-    JSON.parse(response.body).dig('data', 'value')
+    JSON.parse(response.body)['data']
   end
 
   def self.set_variable(node, key, value)

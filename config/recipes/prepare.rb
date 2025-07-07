@@ -43,7 +43,7 @@ execute 'install_ansible' do
 end
 
 execute 'install_ansible_collection' do
-  command 'C_ALL=C.UTF-8 ansible-galaxy collection install community.general'
+  command 'LC_ALL=C.UTF-8 ansible-galaxy collection install community.general'
   user 'root'
   not_if "ansible-galaxy collection list | grep community.general"
 end

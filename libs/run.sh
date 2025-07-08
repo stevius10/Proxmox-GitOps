@@ -22,4 +22,4 @@ if [[ -z "$CONTAINER_ID" ]]; then
   sleep "$DOCKER_INIT_WAIT"
 fi
 
-docker exec "$CONTAINER_ID" cinc-client -l info --local-mode --config-option cookbook_path=/tmp --chef-license accept --config-option node_path=/tmp $( [ -f /tmp/$COOKBOOK/config.json ] && echo "-j /tmp/$COOKBOOK/config.json" ) -o "$COOKBOOK"
+docker exec "$CONTAINER_ID" cinc-client -l debug --local-mode --config-option cookbook_path=/tmp --chef-license accept --config-option node_path=/tmp $( [ -f /tmp/$COOKBOOK/config.json ] && echo "-j /tmp/$COOKBOOK/config.json" ) -o "$COOKBOOK"

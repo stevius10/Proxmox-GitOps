@@ -18,10 +18,10 @@ ruby_block 'fetch_proxmox_containers' do
     require 'openssl'
     require 'json'
 
-    proxmox_host   = Env.get(node, 'host')
-    proxmox_user   = Env.get(node, 'user')
-    proxmox_token  = Env.get(node, 'token')
-    proxmox_secret = Env.get(node, 'secret')
+    proxmox_host   = Env.get(node, 'proxmox_host')
+    proxmox_user   = Env.get(node, 'proxmox_user')
+    proxmox_token  = Env.get(node, 'proxmox_token')
+    proxmox_secret = Env.get(node, 'proxmox_secret')
 
     def fetch_data(uri, user, token, secret)
       http = Net::HTTP.new(uri.hostname, uri.port)

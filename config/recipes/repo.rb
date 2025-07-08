@@ -1,3 +1,8 @@
+file ".gitmodules" do
+  content ''
+  action :create
+end
+
 node['git']['repositories'].each do |repo_name|
   src = (repo_name == "./") ? ENV['PWD'] : File.expand_path(repo_name, ENV['PWD'])
   name = File.basename(src)
@@ -94,15 +99,12 @@ node['git']['repositories'].each do |repo_name|
       sub_name = File.basename(File.expand_path(path, ENV['PWD']))
       repo_url = "#{node['git']['endpoint'].split('/api/v1').first}/#{node['git']['repo']['org']}/#{sub_name}.git"
 
-      execute "git_submodule_add_#{sub_name}_to_#{name}" do
+      execute "git_submodule_#{sub_name}" do
         cwd dst
         user node['git']['app']['user']
         environment 'HOME' => "/home/#{node['git']['app']['user']}"
         command <<-EOH
           if ! git config --file .gitmodules --get-regexp path | grep -q "^submodule\\.#{sub_name}\\.path"; then
-            if git ls-files --stage #{path} | grep -q -v "160000"; then
-              git rm -r --cached #{path}
-            fi
             git submodule add #{repo_url} #{path}
           fi
         EOH
@@ -110,7 +112,7 @@ node['git']['repositories'].each do |repo_name|
       end
     end
 
-    execute "git_submodule_update_#{name}" do
+    execute "git_submodules_#{name}" do
       command "git submodule update --init --recursive"
       cwd dst
       user node['git']['app']['user']
@@ -120,6 +122,7 @@ node['git']['repositories'].each do |repo_name|
     end
   end
 
+  # bei ./ muss in dir config gewechselt werden
   ruby_block "git_desired_state_#{name}" do
     block do
       require 'fileutils'

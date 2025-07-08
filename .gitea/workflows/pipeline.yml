@@ -76,4 +76,4 @@ jobs:
           path: 'config'
           submodules: true
       - name: Configure container
-        run: tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} PWD="$(pwd)" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="config" $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o config'
+        run: tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} PWD="$(pwd)/config" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="config" $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o config'

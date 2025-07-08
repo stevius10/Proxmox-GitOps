@@ -1,5 +1,9 @@
-node['git']['repositories'].each do |repo_name|
+file ".gitmodules" do
+  content ''
+  action :create
+end
 
+node['git']['repositories'].each do |repo_name|
   src = (repo_name == "./") ? ENV['PWD'] : File.expand_path(repo_name, ENV['PWD'])
   name = File.basename(src)
   dst = File.join(node['git']['workspace'], name)
@@ -41,7 +45,6 @@ node['git']['repositories'].each do |repo_name|
     end
     action :run
   end
-
 
   execute "git_config_#{name}" do
     command <<-EOH
@@ -89,6 +92,37 @@ node['git']['repositories'].each do |repo_name|
     only_if { node.run_state["#{name}_repo_exists"] }
   end
 
+  if repo_name == "./"
+    submodules = node['git']['repositories'].reject { |r| r == "./" }
+
+    submodules.each do |path|
+      sub_name = File.basename(File.expand_path(path, ENV['PWD']))
+      repo_url = "#{node['git']['endpoint'].split('/api/v1').first}/#{node['git']['repo']['org']}/#{sub_name}.git"
+
+      execute "git_submodule_#{sub_name}" do
+        cwd dst
+        user node['git']['app']['user']
+        environment 'HOME' => "/home/#{node['git']['app']['user']}"
+        command <<-EOH
+          if ! git config --file .gitmodules --get-regexp path | grep -q "^submodule\\.#{sub_name}\\.path"; then
+            git submodule add #{repo_url} #{path}
+          fi
+        EOH
+        only_if { ::Dir.exist?("#{dst}/.git") }
+      end
+    end
+
+    execute "git_submodules_#{name}" do
+      command "git submodule update --init --recursive"
+      cwd dst
+      user node['git']['app']['user']
+      environment 'HOME' => "/home/#{node['git']['app']['user']}"
+      action :run
+      only_if { ::Dir.exist?("#{dst}/.git") }
+    end
+  end
+
+  # bei ./ muss in dir config gewechselt werden
   ruby_block "git_desired_state_#{name}" do
     block do
       require 'fileutils'
@@ -102,8 +136,8 @@ node['git']['repositories'].each do |repo_name|
           FileUtils.cp(src_entry, dst_entry, verbose: true)
         end
       end
-    action :run
     end
+    action :run
   end
 
   execute "git_push_#{name}" do
@@ -124,8 +158,7 @@ node['git']['repositories'].each do |repo_name|
             -o force-push
         fi
       fi
-  EOH
+    EOH
     action :run
   end
-
 end

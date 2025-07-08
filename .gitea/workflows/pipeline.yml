@@ -61,6 +61,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
+        with:
+          submodules: true
       - name: Configure container
         run: tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} MOUNT=${{ needs.init.outputs.mount }} cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=[".","./libs"] $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o share'
 
@@ -72,5 +74,6 @@ jobs:
         uses: https://gitea.com/actions/checkout@v4
         with:
           path: 'config'
+          submodules: true
       - name: Configure container
-        run: tar cz ./config | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} PWD="$(pwd)/config" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=. $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o config'
+        run: tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} PWD="$(pwd)/config" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="config" $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o config'

@@ -126,7 +126,7 @@ template "#{node['bridge']['dir']}/configuration.yaml" do
   notifies :restart, "service[zigbee2mqtt]", :delayed
 end
 
-template "/etc/systemd/system/zigbee2mqtt.service.erb" do
+template "/etc/systemd/system/zigbee2mqtt.service" do
   source 'zigbee2mqtt.service.erb'
   owner  'root'
   group  'root'

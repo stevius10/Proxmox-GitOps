@@ -139,3 +139,14 @@
         owner: app
         group: app
         mode: 0640
+
+- name: Customization
+  block:
+    - name: Copy bash configuration
+      copy:
+        src: .bashrc
+        dest: "/home/{{ item }}/.bashrc"
+        owner: "{{ item }}"
+        group: "{{ item }}"
+        mode: '0644'
+      loop: "{{ ssh_users }}"

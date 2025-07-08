@@ -22,4 +22,4 @@ default['runner']['install_dir']    = '/app/runner'
 default['runner']['cache_dir']      = '/app/runner/.cache'
 default['runner']['labels']         = 'shell'
 
-default['git']['repositories']      = [ "./", "./base", "./config/libraries", "./libs/share", "./libs/broker", "./libs/bridge", "./libs/assistant" ]
+default['git']['repositories']      = [ "./base", "./config/libraries", "./libs/share", "./libs/broker", "./libs/bridge", "./libs/assistant", "./libs/proxy",  "./" ]

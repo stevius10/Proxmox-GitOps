@@ -4,35 +4,55 @@ require 'json'
 require 'active_support/core_ext/object/blank'
 
 module Env
+  class AuthError < StandardError; end
+  class RequestError < StandardError; end
 
-  def self.creds(node, var_name_login="login", var_name_password="password")
-    [ENV[var_name_login.to_s.upcase] || node.dig(var_name_login.to_sym), ENV[var_name_password.to_s.upcase] ||  node.dig(var_name_password.to_sym)]
+  def self.creds(node, login_key = 'login', password_key = 'password')
+    Chef::Log.info(login = ENV[login_key.upcase] || node[login_key.to_sym])
+    Chef::Log.info(pass = ENV[password_key.upcase] || node[password_key.to_sym])
+    raise AuthError, "Auth failed – node: #{node[login_key.to_sym].inspect}, env: #{ENV[login_key.upcase].inspect}" if login.blank? || pass.blank?
+    [login, pass]
   end
 
   def self.get(node, key)
-    node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key) || Chef::Log.warn("Failed: Get '#{key}'")
+    Chef::Log.info(result = node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key))
+    result
+  rescue StandardError => e
+    Chef::Log.warn("#{e.message} – node: #{node[key].inspect}, env: #{ENV[key.to_s.upcase].inspect}")
+    raise
   end
 
   def self.get_variable(node, key)
-    response = request(node, key)
-    raise "Failed: Get '#{key}': #{response.code}" unless response.is_a?(Net::HTTPOK)
-    JSON.parse(response.body)['data']
+    resp = request(node, key)
+    raise RequestError, "Failed: Get '#{key}' from #{host(node)} – status #{resp.code}" unless resp.is_a?(Net::HTTPOK)
+    JSON.parse(resp.body)['data']
   end
 
   def self.set_variable(node, key, value)
-    response = request(node, key, { name: key, value: value.to_s }.to_json)
-    raise "Failed: Set '#{key}': #{response.code}" unless %w[201 204 409 422].include?(response.code)
+    resp = request(node, key, { name: key, value: value.to_s }.to_json)
+    raise RequestError, "Failed: Set '#{key}' on #{host(node)} – status #{resp.code}" unless %w[201 204 409 422].include?(resp.code)
     true
+  rescue StandardError => e
+    Chef::Log.warn("#{e.message} – node: #{node[key].inspect}, env: #{ENV[key.to_s.upcase].inspect}")
+    raise
   end
 
   class << self
     alias_method :set, :set_variable
   end
 
-  private_class_method def self.request(node, key, value = nil)
-    (request = (value ? Net::HTTP::Post : Net::HTTP::Get).new(URI.parse("http://#{get(node, 'host')}:8080/api/v1/orgs/srv/actions/variables/#{key}"))).basic_auth(*creds(node))
-    (request.content_type = 'application/json' and request.body = value) if value
-    Net::HTTP.new(request.uri.host, request.uri.port).request(request)
+  private_class_method def self.host(node)
+    node['host'].to_s.presence || ENV['HOST'].to_s
   end
 
+  private_class_method def self.request(node, key, body = nil)
+    uri = URI.parse("http://#{host(node)}:8080/api/v1/orgs/srv/actions/variables/#{key}")
+    req = body ? Net::HTTP::Post.new(uri) : Net::HTTP::Get.new(uri)
+    req.basic_auth(*creds(node))
+    if body
+      req['Content-Type'] = 'application/json'
+      req.body = body
+    end
+    Net::HTTP.start(uri.host, uri.port) { |http| http.request(req) }
+  end
 end

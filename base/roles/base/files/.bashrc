@@ -1,6 +1,6 @@
 # Basic
 
-alias ls='ls -lhA --color=auto --group-directories-first'
+alias ls='ls -lhA --group-directories-first'
 alias python='python3'
 alias py='python'
 alias pip='pip3'
@@ -16,9 +16,6 @@ alias mkdir='mkdir -pv'
 
 alias redo='sudo "$(fc -ln -1)"'
 
-export LS_COLORS="${LS_COLORS:-}"
-alias grep='grep --color=auto'
-
 # Applications
 
 alias vi="vim -c 'startinsert'"
@@ -27,12 +24,7 @@ alias vim="vim -c 'startinsert'"
 alias clone='git clone --recurse-submodules'
 alias reset='git reset --mixed HEAD~1'
 alias deploy='git add --all && git commit --allow-empty-message -m "" && git push'
-alias release='git add --all \
-  && git commit --allow-empty-message --allow-empty -m "[skip ci]" 2>/dev/null || true \
-  && git push origin HEAD \
-  && git push origin HEAD:release \
-  && git commit --allow-empty-message -m "" \
-  && git push origin HEAD:release'
+alias release='git add --all && git commit --allow-empty-message --allow-empty -m "[skip ci]" 2>/dev/null || true && git push origin HEAD && git push origin HEAD:release && git commit --allow-empty-message -m "" && git push origin HEAD:release'
 
 alias venv='python3 -m venv .venv && source .venv/bin/activate'
 

@@ -11,7 +11,7 @@ default['git']['workspace']         = '/share/workspace'
 
 default['git']['port']['http']      = 8080
 default['git']['port']['ssh']       = 2222
-default['git']['endpoint']          = "http://localhost:#{node['git']['port']['http']}/api/v1"
+default['git']['endpoint']          = "http://#{node['host']}:#{node['git']['port']['http']}/api/v1"
 
 default['git']['repo']['branch']    = "main"
 default['git']['repo']['release']   = "release"

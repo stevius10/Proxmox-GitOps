@@ -28,7 +28,7 @@ The system is based on **automation**: Components are deployed recursively as co
 - Proxmox VE
 - Proxmox API token
 
-<img src="docs/repositories.png" alt="Repositories" align="right" height="478" style="margin-left: 20px; margin-bottom: 10px;" />
+<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 10px;" />
 
 ### Core Concepts
 
@@ -50,7 +50,7 @@ The system is based on **automation**: Components are deployed recursively as co
 ### Pipeline Workflow
 
 <p align="center">
-  <img src="./docs/pipeline.png" alt="Pipeline"/>
+  <img src="./docs/recursion.png" alt="Pipeline"/>
 </p>
 
 Stages include:

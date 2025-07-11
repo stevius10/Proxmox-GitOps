@@ -63,7 +63,7 @@ end
     cwd path_source_repo
     user node['git']['app']['user']
     action :run
-    only_if { ::Dir.exist?("#{path_destination_repo}/.git") }
+    only_if { ::Dir.exist?("#{path_source_repo}/.git") && node.run_state["#{name_repo}_repo_exists"] }
   end
 
   template "#{path_source_repo}/.git/config" do
@@ -73,7 +73,7 @@ end
     mode '0644'
     variables(repo: name_repo, git_user: node['git']['app']['user'])
     action :create
-    only_if { ::Dir.exist?("#{path_source_repo}/.git") }
+    only_if { ::Dir.exist?("#{path_source_repo}/.git") && node.run_state["#{name_repo}_repo_exists"] }
   end
 
   execute "git_overwrite_#{name_repo}" do
@@ -81,12 +81,11 @@ end
     user node['git']['app']['user']
     environment 'HOME' => path_home
     command <<-EOH
-      git checkout -b #{name_repo}/snapshot && git add -A && git commit -am "last running configuration [skip ci]" || true
-      git fetch --all && git checkout main && git reset --hard origin/main && git branch -f release origin/main
-      git cherry-pick snapshot
+      git fetch --all --prune && git checkout -B snapshot/latest && git add -A && git commit -am "recent configuration [skip ci]" || true
+      git push -f origin snapshot/latest && git checkout main && git reset --hard origin/main && git branch -f release origin/main
     EOH
     action :run
-    only_if { ::Dir.exist?("#{path_destination_repo}/.git") && node.run_state["#{name_repo}_repo_exists"] }
+    only_if { ::Dir.exist?("#{path_source_repo}/.git") && node.run_state["#{name_repo}_repo_exists"] }
   end
 
   ruby_block 'create_workspace' do

@@ -8,6 +8,6 @@
     url = ssh://<%= node['git']['app']['user'] %>@<%= node['git']['repo']['ssh'] %>/<%= @repo %>.git
     fetch = +refs/heads/*:refs/remotes/origin/*
 
-[branch "<%= node['git']['repo']['branch'] %>"]
+[branch "main"]
     remote = origin
-    merge = refs/heads/<%= node['git']['repo']['branch'] %>
+    merge = refs/heads/main %>

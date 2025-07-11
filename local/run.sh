@@ -13,7 +13,7 @@ CINC_ARGS=()
 
 DOCKER_IMAGE_NAME="${DOCKER_IMAGE_NAME:-"$PROJECT_NAME"}"
 DOCKER_CONTAINER_NAME="${DOCKER_CONTAINER_NAME:-"$PROJECT_NAME"}"
-DOCKER_INIT_WAIT="${DOCKER_INIT_WAIT:-5}"
+DOCKER_INIT_WAIT="${DOCKER_INIT_WAIT:-3}"
 export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/arm64}"
 
 DOCKERFILE_PATH="${DEVELOP_DIR}/Dockerfile"
@@ -22,6 +22,14 @@ DOCKERFILE_HASH=$(md5sum "${DOCKERFILE_PATH}" | awk '{print $1}')
 
 STORED_HASH_FILE="${DEVELOP_DIR}/.${DOCKER_IMAGE_NAME}.hash"
 STORED_HASH=$(cat "${STORED_HASH_FILE}" 2>/dev/null || true)
+
+if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER_NAME}$"; then
+    log "remove" "wait"
+    docker stop "${DOCKER_CONTAINER_NAME}" >/dev/null
+    sleep 1
+    docker rm -f "${DOCKER_CONTAINER_NAME}" >/dev/null
+    sleep "${DOCKER_INIT_WAIT}"
+fi
 
 BUILD_NEEDED=false
 if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "${STORED_HASH}" != "${DOCKERFILE_HASH}" ]]; then
@@ -48,7 +56,7 @@ if [[ -z "${CONTAINER_ID}" ]]; then
         --tmpfs /tmp --tmpfs /run \
         -p 8080:8080 -p 80:80 -p 2222:2222 \
         -w "/${PROJECT_NAME}" \
-        -v "${PROJECT_DIR}:/${PROJECT_NAME}" -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+        -v "${PROJECT_DIR}:/${PROJECT_NAME}:ro" -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
         --name "${DOCKER_CONTAINER_NAME}" "${DOCKER_IMAGE_NAME}") || fail "container_start_failed"
     log "container" "started:${CONTAINER_ID}"
     log "container" "init_wait:${DOCKER_INIT_WAIT}s"

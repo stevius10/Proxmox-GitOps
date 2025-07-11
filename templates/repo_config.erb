@@ -1,0 +1,13 @@
+[core]
+    repositoryformatversion = 0
+    filemode = true
+    bare = false
+    logallrefupdates = true
+
+[remote "origin"]
+    url = ssh://<%= node['git']['app']['user'] %>@<%= node['git']['repo']['ssh'] %>/<%= @repo %>.git
+    fetch = +refs/heads/*:refs/remotes/origin/*
+
+[branch "<%= node['git']['repo']['branch'] %>"]
+    remote = origin
+    merge = refs/heads/<%= node['git']['repo']['branch'] %>

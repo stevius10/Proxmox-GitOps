@@ -68,7 +68,7 @@ fi
 log "exec" "start"
 docker exec "${CONTAINER_ID}" bash -c '
     set -e
-    env MOUNT=share cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o share
+    # env MOUNT=share cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o share
     cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o config
 ' _ "${COOKBOOK_PATH}" "${CINC_ARGS[@]}" || fail "exec_failed"
 

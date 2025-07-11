@@ -41,7 +41,7 @@ The system is based on **automation**: Components are deployed recursively as co
 
 - **Self-Managed Infrastructure:** The system provisions, configures, and verifies itself recursively
 - **Container Provisioning:** Managed by Ansible using the Proxmox API for container lifecycle management
-- **Container Configuration:** Managed by cookbooks s for application-level setup
+- **Container Configuration:** Managed by cookbooks for application-level setup
 - **CI/CD Orchestration:** Execution is handled by a Runner automatically installed inside the container
 - **Environment Management:** Environment variables are initially loaded from `config.json` and recursively propagated into the GitOps system
 - **Modularity:** Distinct components and modular reusable workflows managed within Gitea, facilitating extension

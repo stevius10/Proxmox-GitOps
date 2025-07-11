@@ -1,14 +1,50 @@
+ruby_block 'proxmox_lxc_device_passthrough' do
+  block do
+    require 'net/http'
+    require 'openssl'
+    require 'json'
+
+    proxmox_host   = Env.get(node, 'proxmox_host')
+    proxmox_user   = Env.get(node, 'proxmox_user')
+    proxmox_token  = Env.get(node, 'proxmox_token')
+    proxmox_secret = Env.get(node, 'proxmox_secret')
+
+    uri = URI("https://#{proxmox_host}:8006/api2/json/nodes/pve/lxc/#{ENV['ID']}/config")
+    http = Net::HTTP.new(uri.hostname, uri.port)
+    http.use_ssl = true
+    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+    req = Net::HTTP::Put.new(uri.request_uri)
+    req['Authorization'] = "PVEAPIToken=#{proxmox_user}!#{proxmox_token}=#{proxmox_secret}"
+    req['Content-Type'] = 'application/json'
+    req.body = { dev0: node['bridge']['serial'] }.to_json
+
+    res = http.request(req)
+    raise "#{res.code}: #{res.body}" unless res.is_a?(Net::HTTPSuccess)
+  end
+  action :run
+end
+
+group 'dialout' do
+  action :modify
+  members [node['app']['user']]
+  append true
+end
+
 %w[unzip curl].each do |pkg|
   package pkg do
     action :install
   end
 end
 
-directory node['bridge']['dir'] do
-  owner node['app']['user']
-  group node['app']['group']
-  mode '0755'
-  action :create
+[ node['bridge']['dir'], node['bridge']['data_dir'] ].each do |dir|
+  directory dir do
+    owner node['app']['user']
+    group node['app']['group']
+    mode '0755'
+    recursive true
+    action :create
+  end
 end
 
 execute 'setup_node' do
@@ -134,7 +170,7 @@ template "/etc/systemd/system/zigbee2mqtt.service" do
   variables(
     app_user: node['app']['user'],
     app_group: node['app']['group'],
-    bridge_dir: node['bridge']['dir']
+    data_dir: node['bridge']['data_dir']
   )
   notifies :run, 'execute[reload_systemd]', :immediately
 end

@@ -1,0 +1,15 @@
+[Unit]
+Description=Gitea (Git Server)
+After=network.target
+
+[Service]
+Type=simple
+User=<%= node['git']['app']['user'] %>
+Group=<%= node['git']['app']['group'] %>
+WorkingDirectory=<%= node['git']['data_dir'] %>
+ExecStart=<%= node['git']['install_dir'] %>/gitea web --config <%= node['git']['install_dir'] %>/app.ini
+Restart=on-failure
+Environment=USER=<%= node['git']['app']['user'] %> HOME=/home/<%= node['git']['app']['user'] %>
+
+[Install]
+WantedBy=multi-user.target

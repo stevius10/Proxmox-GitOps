@@ -12,14 +12,25 @@ ruby_block 'wait_for_startup' do
   action :run
 end
 
+reset_user = "#{node['git']['install_dir']}/gitea admin user list --config #{node['git']['install_dir']}/app.ini | awk '{print $2}' | grep '^#{Env.get(node, 'login')}'"
+
 execute 'create_user' do
   command "#{node['git']['install_dir']}/gitea admin user create --config #{node['git']['install_dir']}/app.ini " +
-          "--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')} " +
-          "--email #{Env.get(node, 'email')} --admin --must-change-password=false"
+            "--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')} " +
+            "--email #{Env.get(node, 'email')} --admin --must-change-password=false"
   environment 'GITEA_WORK_DIR' => node['git']['data_dir']
   user node['git']['app']['user']
+  not_if reset_user
   action :run
-  ignore_failure true
+end
+
+execute 'reset_user' do
+  command "#{node['git']['install_dir']}/gitea admin user change-password --config #{node['git']['install_dir']}/app.ini " +
+            "--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')}"
+  environment 'GITEA_WORK_DIR' => node['git']['data_dir']
+  user node['git']['app']['user']
+  only_if reset_user
+  action :nothing
 end
 
 ruby_block 'add_key' do
@@ -28,23 +39,24 @@ ruby_block 'add_key' do
     require 'uri'
     require 'json'
 
-    check_api = URI("#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys")
+    key_path = "/share/.ssh/#{node['id']}.pub"
+    key_content = ::File.read(key_path).strip
+
+    api_url = "#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys"
+    check_api = URI(api_url)
     check_req = Net::HTTP::Get.new(check_api.request_uri)
     check_req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
     check_response = Net::HTTP.new(check_api.host, check_api.port).request(check_req)
 
     existing_keys = JSON.parse(check_response.body) rescue []
-    key_content = ::File.read("/share/.ssh/#{node['id']}.pub").strip
 
     unless existing_keys.any? { |k| k['key'] && k['key'].strip == key_content }
-      api = URI("#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys")
-      http, req = Net::HTTP.new(api.host, api.port), Net::HTTP::Post.new(api.request_uri)
+      req = Net::HTTP::Post.new(check_api.request_uri)
       req['Content-Type'] = 'application/json'
       req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
       req.body = { title: "gitops", key: key_content }.to_json
-      response = http.request(req)
-      code = response.code.to_i
-      raise "HTTP #{code}: #{response.body}" if code != 201 && code != 422
+      response = Net::HTTP.new(check_api.host, check_api.port).request(req)
+      raise "HTTP #{response.code}: #{response.body}" unless response.code.to_i.between?(200, 299) || response.code.to_i == 422
     end
   end
   action :run
@@ -80,13 +92,22 @@ execute 'test_connection' do
   live_stream true
 end
 
+execute 'secure_git' do
+  command <<-SH
+    git config --global --add safe.directory "*" && \
+    git config --system --add safe.directory "*"
+  SH
+  environment 'HOME' => "/home/#{node['git']['app']['user']}"
+  action :run
+end
+
 execute 'configure_git' do
   command <<-SH
-    git config --global user.email "#{Env.get(node, 'email')}" && \
-    git config --global user.name "#{Env.get(node, 'login')}" && \
-    git config --global --add safe.directory "*" && \
-    sudo git config --system --add safe.directory "*"
+    git config --global user.name "#{Env.get(node, 'login')}"
+    git config --global user.email "#{Env.get(node, 'email')}"
+    git config --global core.excludesfile #{ENV['PWD']}/.gitignore
   SH
+  user node['git']['app']['user']
   environment 'HOME' => "/home/#{node['git']['app']['user']}"
   action :run
 end

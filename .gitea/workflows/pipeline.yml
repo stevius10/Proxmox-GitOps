@@ -97,5 +97,7 @@ jobs:
           git -C config submodule update --init --recursive
           tar -c config -cz . | \
             ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${ID}" "config@${IP}" \
-              'sudo tar xz -C /tmp && sudo env IP="'"${IP}"'" ID="'"${ID}"'" HOST="'"${HOST}"'" LOGIN="'"${LOGIN}"'" PASSWORD="'"${PASSWORD}"'" PWD="/tmp/config" \
-               cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="/tmp/config" -o config'
+              'sudo tar xz -C /tmp && sudo env \
+                 IP="'"${IP}"'" ID="'"${ID}"'" HOST="'"${HOST}"'" LOGIN="'"${LOGIN}"'" PASSWORD="'"${PASSWORD}"'" PWD="/tmp/config" \
+               cinc-client -l info --local-mode --chef-license accept --config-option \
+                 cookbook_path="/tmp/config" $( [ -f /tmp/config/local/config.json ] && echo "-j /tmp/config/local/config.json" ) -o config'

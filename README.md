@@ -1,4 +1,5 @@
 # Proxmox GitOps Container Automation
+[![Build Status](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml)
 
 ## Overview
 
@@ -22,6 +23,8 @@ The system is based on **automation**: Components are deployed recursively as co
 - Run `local/run.sh` for Docker
 - Accept the [`Pull Request`](http://localhost:8080/srv/proxmoxgitops/pulls/1) to deploy on Proxmox VE
 
+<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 10px;" />
+
 ### Requirements
 
 - Docker
@@ -30,7 +33,6 @@ The system is based on **automation**: Components are deployed recursively as co
 - see [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations 
 
 ### Core Concepts
-<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 10px;" />
 
 #### Self-Replication
 - During configuration, the codebase is pushed into a Gitea instance running inside the container

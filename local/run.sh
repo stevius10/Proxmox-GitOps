@@ -31,15 +31,6 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER_NAME}$"; th
     sleep "${DOCKER_INIT_WAIT}"
 fi
 
-BUILD_NEEDED=false
-if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "${STORED_HASH}" != "${DOCKERFILE_HASH}" ]]; then
-    BUILD_NEEDED=true
-    log "image" "build_required"
-    docker build -t "${DOCKER_IMAGE_NAME}" -f "${DOCKERFILE_PATH}" "${PROJECT_DIR}" || fail "build_failed"
-    echo "${DOCKERFILE_HASH}" > "${STORED_HASH_FILE}"
-    log "image" "build_complete"
-fi
-
 CONTAINER_ID=$(docker ps -aq --filter "name=^/${DOCKER_CONTAINER_NAME}$")
 if [[ -n "${CONTAINER_ID}" ]]; then
     if [[ "${BUILD_NEEDED}" == "true" || -z "$(docker ps -q --filter "id=${CONTAINER_ID}")" ]]; then
@@ -50,13 +41,20 @@ if [[ -n "${CONTAINER_ID}" ]]; then
     fi
 fi
 
+BUILD_NEEDED=false
+if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "${STORED_HASH}" != "${DOCKERFILE_HASH}" ]]; then
+    BUILD_NEEDED=true
+    log "image" "build_required"
+    docker build --build-arg TARGETARCH="$(arch=\"$(uname -m)\"; case \"$arch\" in aarch64|arm64) echo arm64 ;; x86_64) echo amd64 ;; *) echo unknown ;; esac)" \
+    -t "${DOCKER_IMAGE_NAME}" -f "${DOCKERFILE_PATH}" "${PROJECT_DIR}" || fail "build_failed"
+    echo "${DOCKERFILE_HASH}" > "${STORED_HASH_FILE}"
+    log "image" "build_complete"
+fi
+
 if [[ -z "${CONTAINER_ID}" ]]; then
     log "container" "start"
-    CONTAINER_ID=$(docker run -d --privileged --cgroupns=host \
-        --tmpfs /tmp --tmpfs /run \
-        -p 8080:8080 -p 80:80 -p 2222:2222 \
-        -w "/${PROJECT_NAME}" \
-        -v "${PROJECT_DIR}:/${PROJECT_NAME}:ro" -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+    CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp -p 8080:8080 -p 80:80 -p 2222:2222 \
+        -w "/${PROJECT_NAME}" -v "${PROJECT_DIR}:/${PROJECT_NAME}:ro" -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
         --name "${DOCKER_CONTAINER_NAME}" "${DOCKER_IMAGE_NAME}") || fail "container_start_failed"
     log "container" "started:${CONTAINER_ID}"
     log "container" "init_wait:${DOCKER_INIT_WAIT}s"
@@ -68,7 +66,7 @@ fi
 log "exec" "start"
 docker exec "${CONTAINER_ID}" bash -c '
     set -e
-    # env MOUNT=share cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o share
+    env MOUNT=share cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o share
     cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o config
 ' _ "${COOKBOOK_PATH}" "${CINC_ARGS[@]}" || fail "exec_failed"
 

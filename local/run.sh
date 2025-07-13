@@ -45,8 +45,8 @@ BUILD_NEEDED=false
 if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "${STORED_HASH}" != "${DOCKERFILE_HASH}" ]]; then
     BUILD_NEEDED=true
     log "image" "build_required"
-    docker build --build-arg TARGETARCH="$(arch=\"$(uname -m)\"; case \"$arch\" in aarch64|arm64) echo arm64 ;; x86_64) echo amd64 ;; *) echo unknown ;; esac)" \
-    -t "${DOCKER_IMAGE_NAME}" -f "${DOCKERFILE_PATH}" "${PROJECT_DIR}" || fail "build_failed"
+    TARGETARCH="$(uname -m | awk '{if ($1 ~ /^(aarch64|arm64)$/) print "arm64"; else if ($1 == "x86_64") print "amd64"; else print "unknown"}')"
+    docker build --build-arg TARGETARCH="$TARGETARCH" -t "${DOCKER_IMAGE_NAME}" -f "${DOCKERFILE_PATH}" "${PROJECT_DIR}" || fail "build_failed"
     echo "${DOCKERFILE_HASH}" > "${STORED_HASH_FILE}"
     log "image" "build_complete"
 fi

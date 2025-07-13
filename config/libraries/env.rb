@@ -42,7 +42,8 @@ module Env
   end
 
   private_class_method def self.host(node)
-    node['host'].to_s.presence || ENV['HOST'].to_s
+    Chef::Log.info(result = node['host'].to_s.presence || ENV['HOST'].presence || '127.0.0.1')
+    result
   end
 
   private_class_method def self.request(node, key, body = nil)

@@ -1,4 +1,5 @@
 # Proxmox GitOps Container Automation
+[![Build Status](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml)
 
 ## Overview
 
@@ -29,8 +30,10 @@ The system is based on **automation**: Components are deployed recursively as co
 - Proxmox API token
 - see [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations 
 
+<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 20px;" />
+
+
 ### Core Concepts
-<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 10px;" />
 
 #### Self-Replication
 - During configuration, the codebase is pushed into a Gitea instance running inside the container

@@ -30,7 +30,8 @@ The system is based on **automation**: Components are deployed recursively as co
 - Proxmox API token
 - see [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations 
 
-<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 10px;" />
+<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 20px;" />
+
 
 ### Core Concepts
 

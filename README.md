@@ -23,14 +23,14 @@ The system is based on **automation**: Components are deployed recursively as co
 - Run `local/run.sh` for Docker
 - Accept the [`Pull Request`](http://localhost:8080/srv/proxmoxgitops/pulls/1) to deploy on Proxmox VE
 
-<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 10px;" />
-
 ### Requirements
 
 - Docker
 - Proxmox VE
 - Proxmox API token
 - see [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations 
+
+<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 10px;" />
 
 ### Core Concepts
 

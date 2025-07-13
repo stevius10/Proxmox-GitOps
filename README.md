@@ -24,13 +24,13 @@ The system is based on **automation**: Components are deployed recursively as co
 
 ### Requirements
 
-- Docker Desktop
+- Docker
 - Proxmox VE
 - Proxmox API token
-
-<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 10px;" />
+- see [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations 
 
 ### Core Concepts
+<img src="docs/repositories.png" alt="Repositories" align="right" style="margin-left: 20px; margin-bottom: 10px;" />
 
 #### Self-Replication
 - During configuration, the codebase is pushed into a Gitea instance running inside the container

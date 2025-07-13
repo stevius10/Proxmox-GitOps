@@ -18,12 +18,11 @@ jobs:
       boot: ${{ steps.config.outputs.boot }}
       mount: ${{ steps.config.outputs.mount }}
       terminate: ${{ steps.config.outputs.terminate }}
-
     steps:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
-      - id: config
-        name: Set configuration
+      - name: Set configuration
+        id: config
         run: |
           source config.env
           echo "ip=$IP" >> $GITEA_OUTPUT
@@ -63,9 +62,20 @@ jobs:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
         with:
+          path: 'config'
           submodules: true
       - name: Configure container
-        run: tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'tar xz -C ~ && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} MOUNT=${{ needs.init.outputs.mount }} cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path=[".","./libs"] $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o share'
+        env:
+          IP: ${{ needs.init.outputs.ip }}
+          ID: ${{ needs.init.outputs.id }}
+          MOUNT: ${{ needs.init.outputs.mount }}
+          LOGIN: ${{ vars.LOGIN }}
+          PASSWORD: ${{ vars.PASSWORD }}
+        run: |
+          tar -c config -cz . | \
+          ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${ID}" "config@${IP}" \
+            'sudo tar xz -C /tmp && sudo env IP="'"${IP}"'" ID="'"${ID}"'" MOUNT="'"${MOUNT}"'" LOGIN="'"${LOGIN}"'" PASSWORD="'"${PASSWORD}"'" \
+             cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="[\"'"/tmp/config"'\", \"'"/tmp/config/libs"'\"]" -o share'
 
   config:
     runs-on: [ "shell" ]
@@ -77,4 +87,15 @@ jobs:
           path: 'config'
           submodules: true
       - name: Configure container
-        run: git -C config submodule update --init --recursive && tar -c config -cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ needs.init.outputs.id }} config@${{ needs.init.outputs.ip }} 'sudo tar xz -C /tmp && sudo env IP=${{ needs.init.outputs.ip }} ID=${{ needs.init.outputs.id }} PWD="/tmp/config" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="/tmp/config" $( [ -f ./local/config.json ] && echo "-j ./local/config.json" ) -o config'
+        env:
+          IP: ${{ needs.init.outputs.ip }}
+          ID: ${{ needs.init.outputs.id }}
+          HOST: ${{ vars.HOST }}
+          LOGIN: ${{ vars.LOGIN }}
+          PASSWORD: ${{ vars.PASSWORD }}
+        run: |
+          git -C config submodule update --init --recursive
+          tar -c config -cz . | \
+            ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${ID}" "config@${IP}" \
+              'sudo tar xz -C /tmp && sudo env IP="'"${IP}"'" ID="'"${ID}"'" HOST="'"${HOST}"'" LOGIN="'"${LOGIN}"'" PASSWORD="'"${PASSWORD}"'" PWD="/tmp/config" \
+               cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="/tmp/config" -o config'

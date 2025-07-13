@@ -35,10 +35,10 @@ jobs:
           echo "boot=$BOOT" >> $GITHUB_OUTPUT
           echo "mount=$MOUNT" >> $GITHUB_OUTPUT
           echo "terminate=$TERMINATE" >> $GITHUB_OUTPUT
-      # - name: build
-      #   run: |
-      #     docker build --build-arg TARGETARCH=amd64 -t proxmox-image -f local/Dockerfile .
-      #     docker run -d --name proxmox-container -v ${{ github.workspace }}:/workspace -w /workspace proxmox-image
+      - name: build
+        run: |
+          docker build --build-arg TARGETARCH=amd64 -t proxmox-image -f local/Dockerfile .
+          docker run -d --name proxmox-container -v ${{ github.workspace }}:/workspace -w /workspace proxmox-image
 
   deploy:
     runs-on: ubuntu-latest

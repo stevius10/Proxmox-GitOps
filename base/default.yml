@@ -30,14 +30,12 @@
       ansible.builtin.file:
         path: "{{ ssh_keys_dir }}"
         state: directory
-      tags: base
 
     - name: Generate key
       community.crypto.openssh_keypair:
         path: "{{ ssh_keys_dir }}/{{ id }}"
         type: ed25519
         force: false
-      tags: base
 
     - name: Check container exists
       community.general.proxmox_vm_info:

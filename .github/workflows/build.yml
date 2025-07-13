@@ -53,20 +53,20 @@ jobs:
         run: |
           sudo apt update -y && sudo apt install -y systemd ansible python3 python3-pip curl wget
           sudo python3 -m pip install --upgrade ansible --break-system-packages --ignore-installed ansible-core resolvelib
-          ssh-keygen -t ed25519 -f "${ID}" -N '' && PRIVATE=$(cat "${ID}") && PUBLIC=$(cat "${ID}.pub")
+          ssh-keygen -t ed25519 -f "${ID}" -N ''
           cat <<EOF > base.yml
           - hosts: localhost
             gather_facts: false
             connection: local
+            become: true
             tasks:
               - name: Apply base configuration
                 ansible.builtin.include_role:
                   name: base
-                tags: base
           EOF
-          sudo env ANSIBLE_ROLES_PATH="$(pwd)/base/roles" ansible-playbook -i localhost, -c local -e "ip=${IP} id=${ID}" \
+          sudo env ANSIBLE_ROLES_PATH="$(pwd)/base/roles" ansible-playbook -i localhost, -c local --become -e "ip=${IP} id=${ID}" \
             -e "arch=$(arch=\"$(uname -m)\"; case \"$arch\" in aarch64|arm64) echo arm64 ;; x86_64) echo amd64 ;; *) echo amd64 ;; esac)" \
-            -e "configure_ssh=0" -e "private_key='$(<"${ID}")\n' -e "public_key='$(<"${ID}.pub")\n' base.yml
+            -e "configure_ssh=0" -e "private_key='$(cat ./${ID})\n'" -e "public_key='$(cat ./${ID}.pub)\n'" base.yml
       - name: Mock config.json
         run: |
           cat <<EOF > ./local/config.json

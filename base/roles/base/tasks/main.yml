@@ -138,7 +138,7 @@
         dest: "/share/.ssh/{{ id }}.pub"
         owner: app
         group: app
-        mode: 0640
+        mode: 0644
 
 - name: Customization
   block:

@@ -1,4 +1,4 @@
-default['host']                     = ENV['IP'] || "127.0.0.1"
+default['host']                     = ENV['IP'].to_s.presence ? ENV['IP'] : "127.0.0.1"
 default['id']                       = ENV['ID']
 default['key']                      = ENV['KEY'].to_s.presence ? ENV['KEY'] : "/share/.ssh/#{node['id']}"
 

@@ -15,6 +15,7 @@ execute 'git_global_config' do
 end
 
 (node['git']['repositories'].sort_by { |r| r == "./" ? 1 : 0 }).each do |repo_path_relative|
+
   path_source_repo = (repo_path_relative == "./") ? path_source : File.expand_path(repo_path_relative, path_source)
   name_repo = File.basename(path_source_repo)
   path_destination_repo = (repo_path_relative == "./") ? path_destination : File.expand_path(name_repo, path_destination)
@@ -59,33 +60,37 @@ end
   end
 
   execute "git_init_#{name_repo}" do
-    command "git init -b main"
-    cwd path_source_repo
+    command "(rm -rf /tmp/#{name_repo} || true) && cp -rp #{path_source_repo} . && cd /tmp/#{name_repo} && git init -b main"
+    cwd "/tmp"
     user node['git']['app']['user']
     action :run
-    only_if { ::Dir.exist?("#{path_source_repo}/.git") && node.run_state["#{name_repo}_repo_exists"] }
+    only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
-  template "#{path_source_repo}/.git/config" do
+  template "/tmp/#{name_repo}/.git/config" do
     source 'repo_config.erb'
     owner node['git']['app']['user']
     group node['git']['app']['group']
     mode '0644'
     variables(repo: name_repo, git_user: node['git']['app']['user'])
     action :create
-    only_if { ::Dir.exist?("#{path_source_repo}/.git") && node.run_state["#{name_repo}_repo_exists"] }
+    only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
   execute "git_overwrite_#{name_repo}" do
-    cwd path_source_repo
+    cwd "/tmp/#{name_repo}"
     user node['git']['app']['user']
     environment 'HOME' => path_home
     command <<-EOH
-      git fetch --all --prune && git checkout -B snapshot/latest && git add -A && git commit -am "recent configuration [skip ci]" || true
-      git push -f origin snapshot/latest && git checkout main && git reset --hard origin/main && git branch -f release origin/main
+      SNAPSHOT_BRANCH="snapshot/$(date -u +%H%M-%d%m%y)" && git fetch origin
+      git show-ref --verify --quiet refs/heads/main && git branch -m "$SNAPSHOT_BRANCH" || git checkout --orphan "$SNAPSHOT_BRANCH"
+      git add -A && git commit -m "recent configuration [skip ci]" && git push -f origin "$SNAPSHOT_BRANCH"
+      # (git ls-remote --heads origin main | grep -q "refs/heads/main") && (git branch -D main 2>/dev/null || true) && git checkout -B main origin/main || git checkout --orphan main      
+      # git merge --allow-unrelated-histories -s ours origin/main -m "[skip ci]" || true
+      # git rm -rf . 2>/dev/null && git commit --allow-empty -m "init main [skip ci]" && git push -f origin main && git branch -f release origin/main
     EOH
     action :run
-    only_if { ::Dir.exist?("#{path_source_repo}/.git") && node.run_state["#{name_repo}_repo_exists"] }
+    only_if { ::Dir.exist?("/tmp/#{name_repo}") && node.run_state["#{name_repo}_repo_exists"] }
   end
 
   ruby_block 'create_workspace' do
@@ -125,14 +130,14 @@ end
 
   execute "git_create_#{name_repo}" do
     command <<-EOH
-      git commit --allow-empty -m 'initial commit [skip ci]' && git push -u origin HEAD:main &&
+      git commit --allow-empty -m 'initial commit [skip ci]' && git push -f origin HEAD:main &&
       (git ls-remote --exit-code origin release >/dev/null 2>&1 && git push -f origin HEAD:release || git push -u origin HEAD:release)
     EOH
     cwd path_destination_repo
     user node['git']['app']['user']
     environment 'HOME' => path_home
     action :run
-    only_if { node.run_state["#{name_repo}_repo_created"]  }
+    # only_if { node.run_state["#{name_repo}_repo_created"]  }
   end
 
   if repo_path_relative == "./"
@@ -169,7 +174,6 @@ end
           if ! git config --file .gitmodules --get-regexp path | grep -q "^submodule\\.#{module_name}\\.path"; then
             git submodule add #{submodule_url} #{module_path_relative}
           fi
-          # git config submodule.#{module_name}.url #{submodule_url} || true
         EOH
         only_if { ::Dir.exist?("#{path_destination_repo}/.git") }
       end
@@ -194,8 +198,8 @@ end
           -o force-push
       fi
     fi
-    rm -rf #{path_destination_repo}
-  EOH
+    rm -rf #{path_destination_repo} || true
+    EOH
     action :run
   end
 

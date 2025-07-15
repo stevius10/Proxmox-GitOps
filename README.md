@@ -73,8 +73,8 @@ end
 file '/var/www/html/index.html' do
   content "<h1>Hello from #{Env.get(node, 'login')}</h1>"
   mode '0644'
-    owner 'root'
-    group 'root'
+  owner 'app' # see base/roles/base/tasks/main.yml
+  group 'app' # each container is configured identically 
 end
 ```
 

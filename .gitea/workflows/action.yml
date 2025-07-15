@@ -7,10 +7,11 @@ runs:
       uses: https://gitea.com/actions/checkout@v4
       with:
         repository: "${{ inputs.repo }}"
-        ref: "${{ env.GITEA_REF_NAME }}"
+        ref: "${{ gitea.ref_name }}"
         path: repo
 
     - name: Configure container
+      id: init
       run: |
         source repo/config.env
         echo "ip=$IP" >> $GITEA_ENV
@@ -44,7 +45,7 @@ runs:
       uses: https://gitea.com/actions/checkout@v4
       with:
         repository: "${{ inputs.repo }}"
-        ref: "${{ env.GITEA_REF_NAME }}"
+        ref: "${{ gitea.ref_name }}"
         path: repo
 
     - name: Checkout libraries
@@ -56,8 +57,6 @@ runs:
 
     - name: Configure container
       env:
-        IP: ${{ needs.init.outputs.ip }}
-        ID: ${{ needs.init.outputs.id }}
         LOGIN: ${{ vars.LOGIN }}
         PASSWORD: ${{ vars.PASSWORD }}
       run: |

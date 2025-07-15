@@ -54,7 +54,7 @@ fi
 if [[ -z "${CONTAINER_ID}" ]]; then
     log "container" "start"
     CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp -p 8080:8080 -p 80:80 -p 2222:2222 \
-        -w "/${PROJECT_NAME}" -v "${PROJECT_DIR}:/${PROJECT_NAME}:ro" -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+        --tmpfs "/${PROJECT_NAME}/.git" -w "/${PROJECT_NAME}" -v "${PROJECT_DIR}:/${PROJECT_NAME}:ro" -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
         --name "${DOCKER_CONTAINER_NAME}" "${DOCKER_IMAGE_NAME}") || fail "container_start_failed"
     log "container" "started:${CONTAINER_ID}"
     log "container" "init_wait:${DOCKER_INIT_WAIT}s"
@@ -66,8 +66,16 @@ fi
 log "exec" "start"
 docker exec "${CONTAINER_ID}" bash -c '
     set -e
-    env MOUNT=share cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o share
+    # env MOUNT=share cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o share
     cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o config
 ' _ "${COOKBOOK_PATH}" "${CINC_ARGS[@]}" || fail "exec_failed"
 
-log "exec" "complete"
+while true; do
+    log "rerun" "Proceed to refresh repositories"
+    read -r
+    docker exec "${CONTAINER_ID}" bash -c '
+        set -e
+        cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o config::repo
+    ' _ "${COOKBOOK_PATH}" "${CINC_ARGS[@]}" || log "error" "exec_failed"
+    log "exec" "config::repo complete"
+done

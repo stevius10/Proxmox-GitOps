@@ -74,14 +74,6 @@
   notify: Restart SSH
   when: (configure_ssh | default(true) | bool)
   block:
-    - name: Set authorized key
-      ansible.posix.authorized_key:
-        user: "{{ item }}"
-        key: "{{ public_key }}"
-        state: present
-        exclusive: no
-      loop: "{{ ssh_users }}"
-
     - name: Disable password authentication
       ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
@@ -100,21 +92,10 @@
 
 - name: SSH key management
   block:
-    - name: Private key
-      copy:
-        content: "{{ private_key }}\n"
-        dest: "/app/id_rsa"
-        owner: app
-        group: app
-        mode: 0600
-
-    - name: Public key
-      copy:
-        content: "{{ public_key }}\n"
-        dest: "/app/id_rsa.pub"
-        owner: app
-        group: app
-        mode: 0640
+    - name: Key passing
+      ansible.builtin.set_fact:
+        private_key: "{{ private_key ~ (private_key.endswith('\n') | ternary('', '\n')) }}"
+        public_key: "{{ public_key ~ (public_key.endswith('\n') | ternary('', '\n')) }}"
 
     - name: Create shared key directory
       file:
@@ -124,21 +105,53 @@
         group: app
         recurse: yes
 
+    - name: Private key
+      copy:
+        content: "{{ private_key }}"
+        dest: "/app/id_rsa"
+        owner: app
+        group: app
+        mode: 0600
+
+    - name: Public key
+      copy:
+        content: "{{ public_key }}"
+        dest: "/app/id_rsa.pub"
+        owner: app
+        group: app
+        mode: 0644
+
+    - name: Verify key
+      shell: ssh-keygen -y -f /app/id_rsa | diff - /app/id_rsa.pub
+      register: verify
+      changed_when: false
+      failed_when: verify.rc != 0
+
+    - name: Set authorized key
+      ansible.posix.authorized_key:
+        user: "{{ item }}"
+        key: "{{ public_key }}"
+        state: present
+        exclusive: no
+      loop: "{{ ssh_users }}"
+
     - name: Shared private key
       copy:
-        content: "{{ private_key }}\n"
+        src: /app/id_rsa
         dest: "/share/.ssh/{{ id }}"
+        remote_src: true
         owner: app
         group: app
         mode: 0600
 
     - name: Shared public key
       copy:
-        content: "{{ public_key }}\n"
+        src: /app/id_rsa.pub
         dest: "/share/.ssh/{{ id }}.pub"
+        remote_src: true
         owner: app
         group: app
-        mode: 0640
+        mode: 0644
 
 - name: Customization
   block:

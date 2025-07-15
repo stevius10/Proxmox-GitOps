@@ -1,4 +1,4 @@
-default['host']                     = ENV['IP'] || "127.0.0.1"
+default['host']                     = ENV['IP'].to_s.presence ? ENV['IP'] : "127.0.0.1"
 default['id']                       = ENV['ID']
 default['key']                      = ENV['KEY'].to_s.presence ? ENV['KEY'] : "/share/.ssh/#{node['id']}"
 
@@ -18,7 +18,7 @@ default['git']['repo']['org']       = 'srv'
 default['git']['repo']['ssh']       = "#{node['host']}:#{node['git']['port']['ssh']}/#{node['git']['repo']['org']}"
 
 default['runner']['install_dir']    = '/app/runner'
-default['runner']['cache_dir']      = '/app/runner/.cache'
+default['runner']['cache_dir']      = '/tmp'
 default['runner']['labels']         = 'shell'
 
 default['git']['repositories']      = [ "./", "./base", "./config/libraries", "./libs/share", "./libs/broker", "./libs/bridge", "./libs/assistant", "./libs/proxy" ]

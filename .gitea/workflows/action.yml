@@ -56,11 +56,8 @@ runs:
         path: 'repo/libraries'
 
     - name: Configure container
-      env:
-        LOGIN: ${{ vars.LOGIN }}
-        PASSWORD: ${{ vars.PASSWORD }}
       run: |
         tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ env.id }} config@${{ env.ip }} \
-          'sudo tar xz -C /tmp && sudo env IP=$IP ID=$ID LOGIN="$LOGIN" PASSWORD="$PASSWORD" PWD="$(pwd)" \
+          'sudo tar xz -C /tmp && sudo IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} PWD="$(pwd)" \
              cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="/tmp" -o repo'
       shell: bash

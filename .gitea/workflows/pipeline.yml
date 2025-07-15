@@ -57,7 +57,7 @@ jobs:
 
   share:
     runs-on: [ "shell" ]
-    needs: [init]
+    needs: init
     steps:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
@@ -66,15 +66,15 @@ jobs:
           submodules: true
       - name: Configure container
         env:
-          IP: ${{ needs.init.outputs.ip }}
-          ID: ${{ needs.init.outputs.id }}
-          MOUNT: ${{ needs.init.outputs.mount }}
-          LOGIN: ${{ vars.LOGIN }}
-          PASSWORD: ${{ vars.PASSWORD }}
+          ip: ${{ needs.init.outputs.ip }}
+          id: ${{ needs.init.outputs.id }}
+          mount: ${{ needs.init.outputs.mount }}
+          login: ${{ vars.LOGIN }}
+          password: ${{ vars.PASSWORD }}
         run: |
           tar -c config -cz . | \
-          ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${ID}" "config@${IP}" \
-            'sudo tar xz -C /tmp && sudo env IP="'"${IP}"'" ID="'"${ID}"'" MOUNT="'"${MOUNT}"'" LOGIN="'"${LOGIN}"'" PASSWORD="'"${PASSWORD}"'" \
+          ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" \
+            'sudo tar xz -C /tmp && sudo env IP="'"${ip}"'" ID="'"${id}"'" MOUNT="'"${mount}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
              cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="[\"'"/tmp/config"'\", \"'"/tmp/config/libs"'\"]" -o share'
     if: ${{ gitea.ref == 'refs/heads/release' }}
 
@@ -89,15 +89,15 @@ jobs:
           submodules: true
       - name: Configure container
         env:
-          IP: ${{ needs.init.outputs.ip }}
-          ID: ${{ needs.init.outputs.id }}
-          LOGIN: ${{ vars.LOGIN }}
-          PASSWORD: ${{ vars.PASSWORD }}
+          ip: ${{ needs.init.outputs.ip }}
+          id: ${{ needs.init.outputs.id }}
+          login: ${{ vars.LOGIN }}
+          password: ${{ vars.PASSWORD }}
         run: |
           git -C config submodule update --init --recursive
           tar -c config -cz . | \
-            ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${ID}" "config@${IP}" \
+            ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" \
               'sudo tar xz -C /tmp && sudo env \
-                 IP="'"${IP}"'" ID="'"${ID}"'" LOGIN="'"${LOGIN}"'" PASSWORD="'"${PASSWORD}"'" PWD="/tmp/config" \
+                 IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" PWD="/tmp/config" \
                cinc-client -l info --local-mode --chef-license accept --config-option \
                  cookbook_path="/tmp/config" $( [ -f /tmp/config/local/config.json ] && echo "-j /tmp/config/local/config.json" ) -o config'

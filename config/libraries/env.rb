@@ -12,19 +12,19 @@ module Env
   def self.get(node, key)
     Chef::Log.info(val = node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key)); val
   rescue => e
-    Chef::Log.war"[#{__method__}] #{e.message} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}"
+    Chef::Log.warn"[#{__method__}] #{e.message} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}"
   end
 
   def self.get_variable(node, key)
     JSON.parse(request(node, key).body)['data']
   rescue => e
-    Chef::Log.war"[#{__method__}] #{e.message} failed get '#{key}' on #{host(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}"
+    Chef::Log.warn"[#{__method__}] #{e.message} failed get '#{key}' on #{host(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}"
   end
 
   def self.set_variable(node, key, val)
     request(node, key, { name: key, value: val.to_s }.to_json)
   rescue => e
-    Chef::Log.war"[#{__method__}] #{e.message} failed set '#{key}' on #{host(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}"
+    Chef::Log.warn"[#{__method__}] #{e.message} failed set '#{key}' on #{host(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}"
     raise
   end
 
@@ -43,7 +43,7 @@ module Env
     req['Content-Type'] = 'application/json' and req.body = body if body
     Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }
   rescue => e
-    Chef::Log.war"[#{__method__}] #{e.message} fail '#{key}' on #{host(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect} #{body}"
+    Chef::Log.warn"[#{__method__}] #{e.message} fail '#{key}' on #{host(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect} #{body}"
   end
 
 end

@@ -114,7 +114,7 @@
         dest: "/app/id_rsa.pub"
         owner: app
         group: app
-        mode: 0640
+        mode: 0644
 
     - name: Create shared key directory
       file:

@@ -60,9 +60,12 @@ end
   end
 
   execute "git_init_#{name_repo}" do
-    command "(rm -rf /tmp/#{name_repo} || true) && cp -rp #{path_source_repo} . && cd /tmp/#{name_repo} && git init -b main"
+    command <<-EOH
+      (rm -rf /tmp/#{name_repo} || true) && cp -rp #{path_source_repo} /tmp/#{name_repo} && \
+      chown -R #{node['git']['app']['user']}:#{node['git']['app']['group']} /tmp/#{name_repo} && \
+      cd /tmp/#{name_repo} && rm -rf /tmp/#{name_repo}/.git && sudo -u #{node['git']['app']['user']} HOME=#{path_home} git init -b main
+    EOH
     cwd "/tmp"
-    user node['git']['app']['user']
     action :run
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -85,9 +88,6 @@ end
       SNAPSHOT_BRANCH="snapshot/$(date -u +%H%M-%d%m%y)" && git fetch origin
       git show-ref --verify --quiet refs/heads/main && git branch -m "$SNAPSHOT_BRANCH" || git checkout --orphan "$SNAPSHOT_BRANCH"
       git add -A && git commit -m "recent configuration [skip ci]" && git push -f origin "$SNAPSHOT_BRANCH"
-      # (git ls-remote --heads origin main | grep -q "refs/heads/main") && (git branch -D main 2>/dev/null || true) && git checkout -B main origin/main || git checkout --orphan main      
-      # git merge --allow-unrelated-histories -s ours origin/main -m "[skip ci]" || true
-      # git rm -rf . 2>/dev/null && git commit --allow-empty -m "init main [skip ci]" && git push -f origin main && git branch -f release origin/main
     EOH
     action :run
     only_if { ::Dir.exist?("/tmp/#{name_repo}") && node.run_state["#{name_repo}_repo_exists"] }

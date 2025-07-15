@@ -1,26 +1,29 @@
 require 'find'
 require 'fileutils'
 
-path_source = ENV['PWD']
-path_destination = node['git']['workspace']
-path_home = "/home/#{node['git']['app']['user']}"
+path_backup = "/tmp/backup"
 
-execute 'git_global_config' do
+home = "/home/#{node['git']['app']['user']}"
+execute 'repo_prepare' do
   command <<-EOH
     git config --global user.name "#{Env.get(node, 'login')}"
     git config --global user.email "#{Env.get(node, 'email')}"
   EOH
   user node['git']['app']['user']
-  environment 'HOME' => path_home
+  environment 'HOME' => home
 end
 
-(node['git']['repositories'].sort_by { |r| r == "./" ? 1 : 0 }).each do |repo_path_relative|
+path_source = ENV['PWD']
+path_target = node['git']['workspace']
 
-  path_source_repo = (repo_path_relative == "./") ? path_source : File.expand_path(repo_path_relative, path_source)
-  name_repo = File.basename(path_source_repo)
-  path_destination_repo = (repo_path_relative == "./") ? path_destination : File.expand_path(name_repo, path_destination)
+(node['git']['repositories'].sort_by { |r| r == "./" ? 1 : 0 }).each do |repo_files|
 
-  directory path_destination_repo do
+  path_repo_source = (repo_files == "./") ? path_source : File.expand_path(repo_files, path_source)
+  name_repo = File.basename(path_repo_source)
+  path_repo_backup = "#{path_backup}/#{name_repo}"
+  path_repo_target = (repo_files == "./") ? path_target : File.expand_path(name_repo, path_target)
+
+  directory path_repo_target do
     owner     node['git']['app']['user']
     group     node['git']['app']['group']
     mode      '0755'
@@ -28,7 +31,7 @@ end
     action    :create
   end
 
-  ruby_block "git_repo_#{name_repo}" do
+  ruby_block "repo_create_#{name_repo}" do
     block do
       require 'net/http'
       require 'uri'
@@ -59,18 +62,17 @@ end
     action :run
   end
 
-  execute "git_init_#{name_repo}" do
+  execute "repo_backup_init_#{name_repo}" do
     command <<-EOH
-      (rm -rf /tmp/#{name_repo} || true) && cp -rp #{path_source_repo} /tmp/#{name_repo} && \
-      chown -R #{node['git']['app']['user']}:#{node['git']['app']['group']} /tmp/#{name_repo} && \
-      cd /tmp/#{name_repo} && rm -rf /tmp/#{name_repo}/.git && sudo -u #{node['git']['app']['user']} HOME=#{path_home} git init -b main
+      (rm -rf #{path_repo_backup} || true) && mkdir -p #{path_backup} && cp -rp #{path_repo_source} #{path_repo_backup} && \
+      chown -R #{node['git']['app']['user']}:#{node['git']['app']['group']} #{path_repo_backup} && \
+      cd #{path_repo_backup} && rm -rf #{path_repo_backup}/.git && sudo -u #{node['git']['app']['user']} HOME=#{home} git init -b main
     EOH
-    cwd "/tmp"
     action :run
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
-  template "/tmp/#{name_repo}/.git/config" do
+  template "#{path_repo_backup}/.git/config" do
     source 'repo_config.erb'
     owner node['git']['app']['user']
     group node['git']['app']['group']
@@ -80,46 +82,46 @@ end
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
-  execute "git_overwrite_#{name_repo}" do
-    cwd "/tmp/#{name_repo}"
+  execute "repo_backup_put_#{path_repo_backup}" do
+    cwd path_repo_backup
     user node['git']['app']['user']
-    environment 'HOME' => path_home
+    environment 'HOME' => home
     command <<-EOH
-      SNAPSHOT_BRANCH="snapshot/$(date -u +%H%M-%d%m%y)" && git fetch origin
-      git show-ref --verify --quiet refs/heads/main && git branch -m "$SNAPSHOT_BRANCH" || git checkout --orphan "$SNAPSHOT_BRANCH"
-      git add -A && git commit -m "recent configuration [skip ci]" && git push -f origin "$SNAPSHOT_BRANCH"
+      BACKUP_BRANCH_NAME="backup/$(date -u +%H%M-%d%m%y)" && git fetch origin
+      git show-ref --verify --quiet refs/heads/main && git branch -m "$BACKUP_BRANCH_NAME" || git checkout --orphan "$BACKUP_BRANCH_NAME"
+      git add -A && git commit -m "recent configuration [skip ci]" && git push -f origin "$BACKUP_BRANCH_NAME"
     EOH
     action :run
-    only_if { ::Dir.exist?("/tmp/#{name_repo}") && node.run_state["#{name_repo}_repo_exists"] }
+    only_if { ::Dir.exist?("#{path_repo_backup}") && node.run_state["#{name_repo}_repo_exists"] }
   end
 
-  ruby_block 'create_workspace' do
+  ruby_block "repo_target_files_#{path_repo_backup}" do
     block do
       require 'fileutils'
-      Find.find(path_source_repo) do |path_source_repository|
-        next if path_source_repository =~ /(^|\/)\.git(\/|$)/ || File.basename(path_source_repository) == '.gitmodules'
-        path_source_repository_relative = path_source_repository.sub(/^#{Regexp.escape(path_source_repo)}\/?/, '')
-        path_destination_repository = File.join(path_destination_repo, path_source_repository_relative)
-        if File.directory?(path_source_repository)
-          FileUtils.mkdir_p(path_destination_repository)
+      Find.find(path_repo_source) do |path_repo_source_files|
+        next if path_repo_source_files =~ /(^|\/)\.git(\/|$)/ || File.basename(path_repo_source_files) == '.gitmodules'
+        path_repo_source_files_relative = path_repo_source_files.sub(/^#{Regexp.escape(path_repo_source)}\/?/, '')
+        path_repo_target_files = File.join(path_repo_target, path_repo_source_files_relative)
+        if File.directory?(path_repo_source_files)
+          FileUtils.mkdir_p(path_repo_target_files)
         else
-          FileUtils.mkdir_p(File.dirname(path_destination_repository))
-          FileUtils.cp(path_source_repository, path_destination_repository, verbose: true)
+          FileUtils.mkdir_p(File.dirname(path_repo_target_files))
+          FileUtils.cp(path_repo_source_files, path_repo_target_files, verbose: true)
         end
       end
-      FileUtils.chown_R(node['git']['app']['user'], node['git']['app']['group'], path_destination_repo)
+      FileUtils.chown_R(node['git']['app']['user'], node['git']['app']['group'], path_repo_target)
     end
     action :run
   end
 
-  execute "git_init_#{name_repo}" do
+  execute "repo_target_init_#{name_repo}" do
     command "git init -b main"
-    cwd path_destination_repo
+    cwd path_repo_target
     user node['git']['app']['user']
     action :run
   end
 
-  template "#{path_destination_repo}/.git/config" do
+  template "#{path_repo_target}/.git/config" do
     source 'repo_config.erb'
     owner node['git']['app']['user']
     group node['git']['app']['group']
@@ -128,62 +130,62 @@ end
     action :create
   end
 
-  execute "git_create_#{name_repo}" do
+  execute "repo_target_empty_#{path_repo_backup}" do
     command <<-EOH
       git commit --allow-empty -m 'initial commit [skip ci]' && git push -f origin HEAD:main &&
       (git ls-remote --exit-code origin release >/dev/null 2>&1 && git push -f origin HEAD:release || git push -u origin HEAD:release)
     EOH
-    cwd path_destination_repo
+    cwd path_repo_target
     user node['git']['app']['user']
-    environment 'HOME' => path_home
+    environment 'HOME' => home
     action :run
     # only_if { node.run_state["#{name_repo}_repo_created"]  }
   end
 
-  if repo_path_relative == "./"
+  if repo_files == "./"
     submodules = node['git']['repositories'].reject { |r| r == "./" }
 
-    ruby_block 'set_gitmodules' do
+    ruby_block 'repo_meta_submodules_file' do
       block do
-        path_destination_gitmodules = File.join(path_destination, '.gitmodules')
-        if File.exist?(path_destination_gitmodules)
-          gitmodules = File.read(path_destination_gitmodules).gsub(/(url\s*=\s*http:\/\/)([^:\/\s]+)/) do
+        path_target_gitmodules = File.join(path_target, '.gitmodules')
+        if File.exist?(path_target_gitmodules)
+          gitmodules = File.read(path_target_gitmodules).gsub(/(url\s*=\s*http:\/\/)([^:\/\s]+)/) do
             "#{$1}#{node['ip']}"
           end
-          File.write(path_destination_gitmodules, gitmodules)
+          File.write(path_target_gitmodules, gitmodules)
         end
       end
       action :run
     end
 
-    submodules.each do |submodule_path_relative|
-      module_path_relative = submodule_path_relative.sub(%r{^\./}, '')
-      module_name = File.basename(module_path_relative)
+    submodules.each do |submodule|
+      path_module = submodule.sub(%r{^\./}, '')
+      module_name = File.basename(path_module)
       submodule_url = "#{node['git']['endpoint'].split('/api/v1').first}/#{node['git']['repo']['org']}/#{module_name}.git"
 
-      directory File.join(path_destination_repo, module_path_relative) do
+      directory File.join(path_repo_target, path_module) do
         recursive true
         action :delete
       end
 
-      execute "git_submodule_#{module_name}" do
-        cwd path_destination_repo
+      execute "repo_meta_submodules_refs" do
+        cwd path_repo_target
         user node['git']['app']['user']
-        environment 'HOME' => path_home
+        environment 'HOME' => home
         command <<-EOH
           if ! git config --file .gitmodules --get-regexp path | grep -q "^submodule\\.#{module_name}\\.path"; then
-            git submodule add #{submodule_url} #{module_path_relative}
+            git submodule add #{submodule_url} #{path_module}
           fi
         EOH
-        only_if { ::Dir.exist?("#{path_destination_repo}/.git") }
+        only_if { ::Dir.exist?("#{path_repo_target}/.git") }
       end
     end
   end
 
-  execute "git_push_#{name_repo}" do
-    cwd path_destination_repo
+  execute "repo_push_#{name_repo}" do
+    cwd path_repo_target
     user node['git']['app']['user']
-    environment 'HOME' => path_home
+    environment 'HOME' => home
     command <<-EOH
     git add --all
     if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -198,7 +200,7 @@ end
           -o force-push
       fi
     fi
-    rm -rf #{path_destination_repo} || true
+    rm -rf #{path_repo_target} || true
     EOH
     action :run
   end

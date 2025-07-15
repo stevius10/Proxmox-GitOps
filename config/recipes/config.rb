@@ -75,7 +75,6 @@ file "/home/#{node['git']['app']['user']}/.ssh/config" do
     Host #{node['host']}
       HostName #{node['host']}
       IdentityFile #{node['key']}
-      Port #{node['git']['port']['ssh']}
       StrictHostKeyChecking no
   CONF
   owner node['git']['app']['user']
@@ -106,7 +105,6 @@ execute 'configure_git' do
     git config --global user.name "#{Env.get(node, 'login')}"
     git config --global user.email "#{Env.get(node, 'email')}"
     git config --global core.excludesfile #{ENV['PWD']}/.gitignore
-    git config --global core.sshCommand "ssh -i #{node['key']} -o StrictHostKeyChecking=no -p #{node['git']['port']['ssh']}"
   SH
   user node['git']['app']['user']
   environment 'HOME' => "/home/#{node['git']['app']['user']}"

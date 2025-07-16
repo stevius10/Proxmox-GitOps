@@ -1,5 +1,3 @@
-require 'Env'
-
 ruby_block 'proxmox_lxc_device_passthrough' do
   block do
     require 'net/http'
@@ -22,7 +20,6 @@ ruby_block 'proxmox_lxc_device_passthrough' do
     req.body = { dev0: node['bridge']['serial'] }.to_json
 
     res = http.request(req)
-    raise "#{res.code}: #{res.body}" unless res.is_a?(Net::HTTPSuccess)
   end
   action :run
 end

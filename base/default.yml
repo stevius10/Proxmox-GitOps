@@ -67,7 +67,7 @@
         force: yes
       delegate_to: localhost
       ignore_errors: yes
-      when: container_exists and (terminate | bool == true)
+      when: container_exists
 
     - name: Remove container
       community.general.proxmox:
@@ -82,7 +82,7 @@
       delegate_to: localhost
       ignore_errors: yes
       register: removal
-      when: container_exists and (terminate | bool == true)
+      when: container_exists
 
     - name: Wait (removal)
       wait_for:
@@ -90,7 +90,7 @@
         state: absent
         timeout: 30
       delegate_to: localhost
-      when: container_exists and (terminate | bool == true)
+      when: container_exists
 
     - name: Set Mounts
       set_fact:
@@ -150,11 +150,11 @@
       register: ssh_config_test
       failed_when: false
       changed_when: false
-      when: container_exists and (terminate | bool == false)
+      when: container_exists
 
     - name: Set SSH user
       set_fact:
-        ssh_user: "{{ 'config' if (container_exists and (terminate | bool == false) and (ssh_config_test.rc | default(1)) == 0) else 'root' }}"
+        ssh_user: "{{ 'config' if (container_exists and (ssh_config_test.rc | default(1)) == 0) else 'root' }}"
 
     - name: Add container
       add_host:

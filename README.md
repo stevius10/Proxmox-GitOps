@@ -87,7 +87,7 @@ end
 The container can be tested locally running `local/run.sh [container]`
 
 <p align="center">
-  <img src="./docs/development.svg" alt="Local Development"/>
+  <img src="./docs/development.png" alt="Local Development"/>
 </p>
 
 

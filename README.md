@@ -1,4 +1,4 @@
-# Proxmox GitOps Container Automation
+te# Proxmox GitOps Container Automation
 [![Build Status](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml)
 
 ## Overview
@@ -39,8 +39,6 @@ MEMORY=2048
 SWAP=512
 DISK=local-lvm:8
 BOOT=yes
-MOUNT=
-TERMINATE=true
 ```
 
 - Define generic pipeline in `gitea/workflows`:
@@ -64,6 +62,8 @@ jobs:
 - Add your cookbook to the container definition root:
 ```ruby
 # ./libs/apache/recipes/default.rb
+require 'Env'
+
 package 'apache2'
 
 service 'apache2' do
@@ -83,6 +83,13 @@ end
 - a) **Deploy**: Push to the `release` branch of a new repository
 
 - b) **Add to Meta-/Mono-Repository**: Add path to [repositories](config/attributes/default.rb#L24) and redeploy Proxmox-GitOps
+
+The container can be tested locally running `local/run.sh [container]`
+
+<p align="center">
+  <img src="./docs/development.svg" alt="Local Development"/>
+</p>
+
 
 ### Requirements
 

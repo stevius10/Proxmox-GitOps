@@ -26,9 +26,6 @@ inputs:
   mount:
     required: true
     type: string
-  terminate:
-    required: true
-    type: string
 
 runs:
   using: "composite"
@@ -42,7 +39,7 @@ runs:
         ansible-playbook default.yml -e "ip=${{ inputs.ip }}" -e "id=${{ inputs.id }}" \
           -e "hostname=${{ inputs.hostname }}" -e "cores=${{ inputs.cores }}" -e "memory=${{ inputs.memory }}" \
           -e "swap=${{ inputs.swap }}" -e "disk=${{ inputs.disk }}" -e "boot=${{ inputs.boot }}" \
-          -e "mount=${{ inputs.mount }}" -e "terminate=${{ inputs.terminate }}"
+          -e "mount=${{ inputs.mount }}"
       env:
         PROXMOX_HOST: ${{ vars.PROXMOX_HOST }}
         PROXMOX_USER: ${{ vars.PROXMOX_USER }}

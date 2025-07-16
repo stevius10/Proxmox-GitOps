@@ -17,7 +17,6 @@ jobs:
       disk: ${{ steps.config.outputs.disk }}
       boot: ${{ steps.config.outputs.boot }}
       mount: ${{ steps.config.outputs.mount }}
-      terminate: ${{ steps.config.outputs.terminate }}
     steps:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
@@ -34,7 +33,6 @@ jobs:
           echo "disk=$DISK" >> $GITEA_OUTPUT
           echo "boot=$BOOT" >> $GITEA_OUTPUT
           echo "mount=$MOUNT" >> $GITEA_OUTPUT
-          echo "terminate=$TERMINATE" >> $GITEA_OUTPUT
 
   base:
     runs-on: [ "shell" ]
@@ -52,7 +50,6 @@ jobs:
           disk: ${{ needs.init.outputs.disk }}
           boot: ${{ needs.init.outputs.boot }}
           mount: ${{ needs.init.outputs.mount }}
-          terminate: ${{ needs.init.outputs.terminate }}
     if: ${{ gitea.ref == 'refs/heads/release' }}
 
   share:

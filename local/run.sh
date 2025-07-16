@@ -10,14 +10,13 @@ DEVELOP_DIR="./local"
 
 COOKBOOK_OVERRIDE="$1"
 RECIPE="${COOKBOOK_OVERRIDE:-config}"
-[[ "$RECIPE" != *"::"* ]] && RECIPE+=""
 
-CONFIG_FILE="${DEVELOP_DIR}/config.json"
 COOKBOOK_PATH="['/tmp/config','/tmp/config/libs']"
-[[ -n "${COOKBOOK_OVERRIDE}" ]] && CONFIG_FILE="./libs/${COOKBOOK_OVERRIDE}/config.json"
 
-CINC_ARGS=()
-[[ -f "${CONFIG_FILE}" ]] && CINC_ARGS+=("-j" "${CONFIG_FILE}")
+[[ -f "${DEVELOP_DIR}/config.json" ]] && CONFIG_FILE=("${DEVELOP_DIR}/config.json")
+[[ -n "${COOKBOOK_OVERRIDE}" ]] && [[ -f "./libs/${COOKBOOK_OVERRIDE}/config.json" ]] && CONFIG_FILE="./libs/${COOKBOOK_OVERRIDE}/config.json"
+
+CONFIG_FILE="-j $CONFIG_FILE"
 
 DOCKER_IMAGE_NAME="${DOCKER_IMAGE_NAME:-$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')}"
 DOCKER_CONTAINER_NAME="${DOCKER_CONTAINER_NAME:-"$PROJECT_NAME"}"
@@ -58,32 +57,17 @@ CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp  \
     -v "$PROJECT_DIR:/tmp/config:ro" --tmpfs "/tmp/config/.git" \
     -v /sys/fs/cgroup:/sys/fs/cgroup:rw -w /tmp/config \
     $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-e RUBYLIB=/tmp/config/config/libraries" ) \
-    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "--network=host -p 8080:8080 -p 80:80 -p 8123:8123" || echo "-p 8080:8080 -p 80:80 -p 2222:2222" ) \
+    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-p :80 -p :8080 -p :8123" || echo "-p 80:80 -p 8080:8080 -p 2222:2222" ) \
     --name "$DOCKER_CONTAINER_NAME" "$DOCKER_IMAGE_NAME") || fail "container_start_failed"
 log "container" "started:${CONTAINER_ID}"
-log "container" "init_wait:${DOCKER_WAIT}s"
 sleep "$DOCKER_WAIT"
 
-log "exec" "start:${RECIPE}"
-docker exec "$CONTAINER_ID" bash -c "
-    set -e
-    cinc-client -l debug --local-mode \
-      --config-option node_path=/tmp/nodes \
-      --config-option cookbook_path=\"${COOKBOOK_PATH}\" \
-      ${CINC_ARGS[*]} \
-      --chef-license accept -o \"${RECIPE}\"
-" || fail "exec_failed"
+cmd="cinc-client -l debug --local-mode --config-option node_path=/tmp/nodes \
+  --config-option cookbook_path=${COOKBOOK_PATH} ${CONFIG_FILE} --chef-license accept -o ${RECIPE}"
+docker exec "$CONTAINER_ID" bash -c "$cmd" || log "error" "exec_failed"
 
+[[ -z "${COOKBOOK_OVERRIDE}" ]] && cmd+="::repo"
 while true; do
-    log "rerun" "$RECIPE"
-    read -r
-    docker exec "$CONTAINER_ID" bash -c "
-        set -e
-        cinc-client -l debug --local-mode \
-          --config-option node_path=/tmp/nodes \
-          --config-option cookbook_path=\"${COOKBOOK_PATH}\" \
-          ${CINC_ARGS[*]} \
-          --chef-license accept -o \"${RECIPE}\"
-    " || log "error" "exec_failed"
-    log "exec" "$RECIPE complete"
+    log "rerun" "$RECIPE" && read -r
+    docker exec "$CONTAINER_ID" bash -c "$cmd" || log "error" "exec_failed"
 done

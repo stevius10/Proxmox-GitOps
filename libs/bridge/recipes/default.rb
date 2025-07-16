@@ -1,3 +1,5 @@
+require 'Env'
+
 ruby_block 'proxmox_lxc_device_passthrough' do
   block do
     require 'net/http'

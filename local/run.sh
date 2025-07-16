@@ -4,78 +4,70 @@ set -eo pipefail
 log() { echo "[$PROJECT_NAME:$1] $2"; }
 fail() { log "error" "$1"; exit 1; }
 
-PROJECT_NAME="$(basename "${PWD}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
+PROJECT_NAME="$(basename "$(pwd)${1:+/config/libs/$1}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
 PROJECT_DIR="$(pwd)"
 DEVELOP_DIR="./local"
-CONFIG_FILE="${DEVELOP_DIR}/config.json"
-COOKBOOK_PATH="['.', './libs']"
-CINC_ARGS=()
 
-DOCKER_IMAGE_NAME="${DOCKER_IMAGE_NAME:-"$PROJECT_NAME"}"
+COOKBOOK_OVERRIDE="$1"
+RECIPE="${COOKBOOK_OVERRIDE:-config}"
+
+COOKBOOK_PATH="['/tmp/config','/tmp/config/libs']"
+
+[[ -f "${DEVELOP_DIR}/config.json" ]] && CONFIG_FILE=("${DEVELOP_DIR}/config.json")
+[[ -n "${COOKBOOK_OVERRIDE}" ]] && [[ -f "./libs/${COOKBOOK_OVERRIDE}/config.json" ]] && CONFIG_FILE="./libs/${COOKBOOK_OVERRIDE}/config.json"
+
+CONFIG_FILE="-j $CONFIG_FILE"
+
+DOCKER_IMAGE_NAME="${DOCKER_IMAGE_NAME:-$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')}"
 DOCKER_CONTAINER_NAME="${DOCKER_CONTAINER_NAME:-"$PROJECT_NAME"}"
-DOCKER_INIT_WAIT="${DOCKER_INIT_WAIT:-3}"
-export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/arm64}"
+DOCKER_WAIT="${DOCKER_WAIT:-3}"
+UNAME_ARCH="$(uname -m)"
+case "$UNAME_ARCH" in
+  aarch64|arm64) TARGETARCH="arm64" ;;
+  x86_64) TARGETARCH="amd64" ;;
+  *) TARGETARCH="unknown" ;;
+esac
+export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/${TARGETARCH}}"
 
 DOCKERFILE_PATH="${DEVELOP_DIR}/Dockerfile"
 [[ -f "${DOCKERFILE_PATH}" ]] || fail "dockerfile_missing:${DOCKERFILE_PATH}"
 DOCKERFILE_HASH=$(md5sum "${DOCKERFILE_PATH}" | awk '{print $1}')
-
 STORED_HASH_FILE="${DEVELOP_DIR}/.${DOCKER_IMAGE_NAME}.hash"
 STORED_HASH=$(cat "${STORED_HASH_FILE}" 2>/dev/null || true)
-
-if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER_NAME}$"; then
-    log "remove" "wait"
-    docker stop "${DOCKER_CONTAINER_NAME}" >/dev/null
-    sleep 1
-    docker rm -f "${DOCKER_CONTAINER_NAME}" >/dev/null
-    sleep "${DOCKER_INIT_WAIT}"
-fi
-
-CONTAINER_ID=$(docker ps -aq --filter "name=^/${DOCKER_CONTAINER_NAME}$")
-if [[ -n "${CONTAINER_ID}" ]]; then
-    if [[ "${BUILD_NEEDED}" == "true" || -z "$(docker ps -q --filter "id=${CONTAINER_ID}")" ]]; then
-        log "container" "recreate_required"
-        docker rm -f "${CONTAINER_ID}" >/dev/null || fail "container_rm_failed"
-        log "container" "removed:${CONTAINER_ID}"
-        CONTAINER_ID=""
-    fi
-fi
 
 BUILD_NEEDED=false
 if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "${STORED_HASH}" != "${DOCKERFILE_HASH}" ]]; then
     BUILD_NEEDED=true
     log "image" "build_required"
-    TARGETARCH="$(uname -m | awk '{if ($1 ~ /^(aarch64|arm64)$/) print "arm64"; else if ($1 == "x86_64") print "amd64"; else print "unknown"}')"
-    docker build --build-arg TARGETARCH="$TARGETARCH" -t "${DOCKER_IMAGE_NAME}" -f "${DOCKERFILE_PATH}" "${PROJECT_DIR}" || fail "build_failed"
-    echo "${DOCKERFILE_HASH}" > "${STORED_HASH_FILE}"
+    docker build --build-arg TARGETARCH="$TARGETARCH" -t "$DOCKER_IMAGE_NAME" -f "$DOCKERFILE_PATH" "$PROJECT_DIR" || fail "build_failed"
+    echo "$DOCKERFILE_HASH" > "$STORED_HASH_FILE"
     log "image" "build_complete"
 fi
 
-if [[ -z "${CONTAINER_ID}" ]]; then
-    log "container" "start"
-    CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp -p 8080:8080 -p 80:80 -p 2222:2222 \
-        --tmpfs "/${PROJECT_NAME}/.git" -w "/${PROJECT_NAME}" -v "${PROJECT_DIR}:/${PROJECT_NAME}:ro" -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
-        --name "${DOCKER_CONTAINER_NAME}" "${DOCKER_IMAGE_NAME}") || fail "container_start_failed"
-    log "container" "started:${CONTAINER_ID}"
-    log "container" "init_wait:${DOCKER_INIT_WAIT}s"
-    sleep "${DOCKER_INIT_WAIT}"
+if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER_NAME}$"; then
+    log "container" "remove_existing"
+    docker stop "$DOCKER_CONTAINER_NAME" >/dev/null || true
+    sleep "$DOCKER_WAIT"
+    docker rm -f "$DOCKER_CONTAINER_NAME" >/dev/null || true
+    sleep "$DOCKER_WAIT"
 fi
 
-[[ -f "${CONFIG_FILE}" ]] && CINC_ARGS+=("-j" "${CONFIG_FILE}")
+log "container" "start"
+CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp  \
+    -v "$PROJECT_DIR:/tmp/config:ro" --tmpfs "/tmp/config/.git" \
+    -v /sys/fs/cgroup:/sys/fs/cgroup:rw -w /tmp/config \
+    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-e RUBYLIB=/tmp/config/config/libraries" ) \
+    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-p :80 -p :8080 -p :8123" || echo "-p 80:80 -p 8080:8080 -p 2222:2222" ) \
+    --name "$DOCKER_CONTAINER_NAME" "$DOCKER_IMAGE_NAME") || fail "container_start_failed"
+log "container" "started:${CONTAINER_ID}"
+sleep "$DOCKER_WAIT"
 
-log "exec" "start"
-docker exec "${CONTAINER_ID}" bash -c '
-    set -e
-    # env MOUNT=share cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o share
-    cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o config
-' _ "${COOKBOOK_PATH}" "${CINC_ARGS[@]}" || fail "exec_failed"
+cmd="cinc-client -l debug --local-mode --config-option node_path=/tmp/nodes \
+  --config-option cookbook_path=${COOKBOOK_PATH} ${CONFIG_FILE} --chef-license accept -o ${RECIPE}"
+docker exec "$CONTAINER_ID" bash -c "$cmd" || log "error" "exec_failed"
 
+[[ -z "${COOKBOOK_OVERRIDE}" ]] && cmd+="::repo"
 while true; do
-    log "rerun" "Proceed to refresh repositories"
-    read -r
-    docker exec "${CONTAINER_ID}" bash -c '
-        set -e
-        cinc-client -l debug --local-mode --config-option node_path=/tmp --config-option cookbook_path="$1" "${@:2}" --chef-license accept -o config::repo
-    ' _ "${COOKBOOK_PATH}" "${CINC_ARGS[@]}" || log "error" "exec_failed"
-    log "exec" "config::repo complete"
+    log "rerun" "$RECIPE" && read -r
+    docker exec "$CONTAINER_ID" bash -c "$cmd" || log "error" "exec_failed"
 done

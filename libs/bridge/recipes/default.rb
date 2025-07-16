@@ -49,10 +49,15 @@ end
 execute 'setup_node' do
   command 'curl -fsSL https://deb.nodesource.com/setup_current.x | bash -'
   not_if 'dpkg -l | grep -q nodejs'
+  environment 'TMPDIR' => '/var/tmp'
   action :run
 end
 
 package 'nodejs' do
+  action :install
+end
+
+package 'npm' do
   action :install
 end
 

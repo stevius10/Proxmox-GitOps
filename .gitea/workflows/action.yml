@@ -23,7 +23,6 @@ runs:
         echo "disk=$DISK" >> $GITEA_ENV
         echo "boot=$BOOT" >> $GITEA_ENV
         echo "mount=$MOUNT" >> $GITEA_ENV
-        echo "terminate=$TERMINATE" >> $GITEA_ENV
       shell: bash
 
     - name: Base configuration
@@ -38,7 +37,6 @@ runs:
         disk: ${{ env.disk }}
         boot: ${{ env.boot }}
         mount: ${{ env.mount }}
-        terminate: ${{ env.terminate }}
       if: ${{ gitea.ref == 'refs/heads/release' }}
 
     - name: Checkout repository

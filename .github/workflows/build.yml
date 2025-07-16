@@ -17,7 +17,6 @@ jobs:
       disk: ${{ steps.config.outputs.disk }}
       boot: ${{ steps.config.outputs.boot }}
       mount: ${{ steps.config.outputs.mount }}
-      terminate: ${{ steps.config.outputs.terminate }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,7 +33,6 @@ jobs:
           echo "disk=$DISK" >> $GITHUB_OUTPUT
           echo "boot=$BOOT" >> $GITHUB_OUTPUT
           echo "mount=$MOUNT" >> $GITHUB_OUTPUT
-          echo "terminate=$TERMINATE" >> $GITHUB_OUTPUT
 
   build:
     runs-on: ubuntu-latest

@@ -7,7 +7,7 @@ if !node['runner']['version'] && node['runner']['version'].to_s.empty?
       if latest
         node.run_state['runner_version'] = latest[1]
       else
-        raise 'Konnte neueste Act Runner-Version nicht ermitteln'
+        raise '[runner] Failed to fetch latest version'
       end
     end
     action :run
@@ -51,7 +51,7 @@ directory node['runner']['install_dir'] do
   action :create
 end
 
-ruby_block 'generate_and_register_runner' do
+ruby_block 'runner_register' do
   block do
     runner_marker = "#{node['runner']['install_dir']}/.runner"
 
@@ -71,23 +71,22 @@ ruby_block 'generate_and_register_runner' do
             break
           end
         rescue => e
-          Chef::Log.warn("Gitea not ready yet (attempt #{attempt + 1}/#{max_retries}): #{e}")
+          Chef::Log.warn("Gitea not ready yet (#{attempt + 1}/#{max_retries}): #{e}")
         end
         sleep delay
       end
+      raise "Gitea not responding" unless connected
 
-      raise "Gitea is not responding after #{max_retries * delay} seconds" unless connected
-
-      token_cmd = Mixlib::ShellOut.new(
+      token = Mixlib::ShellOut.new(
         "#{node['git']['install_dir']}/gitea actions --config #{node['git']['install_dir']}/app.ini generate-runner-token",
         user: node['git']['app']['user'],
         environment: { 'HOME' => "/home/#{node['git']['app']['user']}" }
       )
-      token_cmd.run_command
-      token_cmd.error!
-      token = token_cmd.stdout.strip
+      token.run_command
+      token.error!
+      token = token.stdout.strip
 
-      register_cmd = Mixlib::ShellOut.new(
+      register = Mixlib::ShellOut.new(
         "#{node['runner']['install_dir']}/ace_runner register " \
           "--instance http://localhost:#{node['git']['port']['http']} " \
           "--token #{token} " \
@@ -98,8 +97,8 @@ ruby_block 'generate_and_register_runner' do
         user: node['git']['app']['user'],
         environment: { 'HOME' => "/home/#{node['git']['app']['user']}" }
       )
-      register_cmd.run_command
-      register_cmd.error!
+      register.run_command
+      register.error!
     end
   end
 end

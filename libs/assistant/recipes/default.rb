@@ -25,12 +25,12 @@ directory '/app/uv-cache' do
   action :create
 end
 
-execute 'install_uv_globally' do
+execute 'install_uv' do
   command 'pip install uv --break-system-packages'
   not_if 'pip show uv'
 end
 
-execute 'create_homeassistant_venv' do
+execute 'create_environment' do
   command "uv venv #{node['homeassistant']['dir']['venv']}"
   user node['app']['user']
   group node['app']['group']
@@ -41,7 +41,7 @@ execute 'create_homeassistant_venv' do
   not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/activate") }
 end
 
-execute 'install_homeassistant_in_venv' do
+execute 'install_assistant' do
   command "uv pip install --python #{node['homeassistant']['dir']['venv']}/bin/python webrtcvad wheel homeassistant mysqlclient psycopg2-binary isal"
   user node['app']['user']
   group node['app']['group']
@@ -49,13 +49,12 @@ execute 'install_homeassistant_in_venv' do
   not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/hass") }
 end
 
-execute 'downgrade_josepy' do
+execute 'set_josepy' do
   command "#{node['homeassistant']['dir']['venv']}/bin/pip install 'josepy<2.0'"
   user node['app']['user']
   group node['app']['group']
   environment 'UV_CACHE_DIR' => '/app/uv-cache'
 end
-
 
 template '/etc/systemd/system/homeassistant.service' do
   source 'homeassistant.service.erb'

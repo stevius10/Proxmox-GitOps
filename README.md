@@ -1,4 +1,3 @@
-te# Proxmox GitOps Container Automation
 [![Build Status](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml)
 
 ## Overview

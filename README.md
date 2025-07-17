@@ -32,7 +32,7 @@ Reusable container definitions are stored in the [`libs`](libs) folder. Copy an 
 ```dotenv
 IP=192.168.178.42
 ID=42
-HOSTNAME=customized
+HOSTNAME=apache
 CORES=2
 MEMORY=2048
 SWAP=512
@@ -40,7 +40,7 @@ DISK=local-lvm:8
 BOOT=yes
 ```
 
-- Define generic pipeline in `gitea/workflows`:
+- Paste generic pipeline in `gitea/workflows`:
 ```yaml
 on:
   workflow_dispatch:
@@ -61,8 +61,6 @@ jobs:
 - Add your cookbook to the container definition root:
 ```ruby
 # ./libs/apache/recipes/default.rb
-require 'Env'
-
 package 'apache2'
 
 service 'apache2' do
@@ -83,7 +81,7 @@ end
 
 - b) **Add to Meta-/Mono-Repository**: Add path to [repositories](config/attributes/default.rb#L24) and redeploy Proxmox-GitOps
 
-The container can be tested locally running `local/run.sh [container]`
+The container can be tested locally running `./local/run.sh [container]`
 
 <p align="center">
   <img src="./docs/development.png" alt="Local Development"/>

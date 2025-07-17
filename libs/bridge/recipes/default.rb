@@ -1,4 +1,4 @@
-ruby_block 'proxmox_lxc_device_passthrough' do
+ruby_block 'proxmox_config' do
   block do
     require 'net/http'
     require 'openssl'
@@ -19,7 +19,7 @@ ruby_block 'proxmox_lxc_device_passthrough' do
     req['Content-Type'] = 'application/json'
     req.body = { dev0: node['bridge']['serial'] }.to_json
 
-    res = http.request(req)
+    http.request(req)
   end
   action :run
 end
@@ -47,7 +47,7 @@ end
 end
 
 execute 'setup_node' do
-  command 'curl -fsSL https://deb.nodesource.com/setup_current.x | bash -'
+  command 'curl -fsSL https://deb.nodesource.com/setup_20.x | bash -'
   not_if 'dpkg -l | grep -q nodejs'
   environment 'TMPDIR' => '/var/tmp'
   action :run
@@ -57,14 +57,14 @@ package 'nodejs' do
   action :install
 end
 
-package 'npm' do
-  action :install
+execute 'enable_corepack' do
+  command 'corepack enable'
+  not_if 'which pnpm'
 end
 
-execute 'install_pnpm' do
-  command 'npm install -g pnpm'
-  not_if 'which pnpm'
-  action :run
+execute 'prepare_pnpm_version' do
+  command 'corepack prepare pnpm@8.15.4 --activate'
+  not_if 'pnpm -v | grep 8.15.4'
 end
 
 ruby_block 'fetch_version' do
@@ -99,15 +99,15 @@ remote_file "/tmp/zigbee2mqtt.zip" do
   mode '0644'
   not_if { ::File.exist?("#{node['bridge']['dir']}/.version") && ::File.read("#{node['bridge']['dir']}/.version").strip == node.run_state['bridge_version'] }
   notifies :stop, "service[zigbee2mqtt]", :immediately
-  notifies :run, 'execute[backup_current]', :immediately
-  notifies :run, 'execute[extract_archive]', :immediately
-  notifies :run, 'execute[install_deps]', :delayed
-  notifies :run, 'execute[build_app]', :delayed
+  notifies :run, 'execute[create_backup]', :immediately
+  notifies :run, 'execute[zigbee2mqtt_extract]', :immediately
+  notifies :run, 'execute[install_dependencies]', :delayed
+  notifies :run, 'execute[zigbee2mqtt_build]', :delayed
   notifies :create, "file[#{"#{node['bridge']['dir']}/.version"}]", :delayed
   notifies :start, "service[zigbee2mqtt]", :delayed
 end
 
-execute 'backup_current' do
+execute 'create_backup' do
   command "tar -czf #{node['bridge']['dir']}/backup_$(date +%Y%m%d%H%M%S).tar.gz -C #{node['bridge']['dir']} . && find #{node['bridge']['dir']} -name 'backup_*.tar.gz' -type f | head -n -3 | xargs rm -f || true"
   user node['app']['user']
   group node['app']['group']
@@ -116,7 +116,7 @@ execute 'backup_current' do
   action :nothing
 end
 
-execute 'extract_archive' do
+execute 'zigbee2mqtt_extract' do
   command lazy { "unzip -o #{"/tmp/zigbee2mqtt.zip"} -d #{node['bridge']['dir']} && mv #{node['bridge']['dir']}/zigbee2mqtt-#{node.run_state['bridge_version']}/* #{node['bridge']['dir']}/ && rm -rf #{node['bridge']['dir']}/zigbee2mqtt-#{node.run_state['bridge_version']}" }
   user node['app']['user']
   group node['app']['group']
@@ -124,16 +124,15 @@ execute 'extract_archive' do
   action :nothing
 end
 
-execute 'install_deps' do
+execute 'install_dependencies' do
   command 'pnpm install --frozen-lockfile'
   user node['app']['user']
   group node['app']['group']
   cwd node['bridge']['dir']
   environment('HOME' => "/home/#{node['app']['user']}")
-  action :nothing
 end
 
-execute 'build_app' do
+execute 'zigbee2mqtt_build' do
   command 'pnpm build'
   user node['app']['user']
   group node['app']['group']
@@ -174,7 +173,7 @@ template "/etc/systemd/system/zigbee2mqtt.service" do
   variables(
     app_user: node['app']['user'],
     app_group: node['app']['group'],
-    data_dir: node['bridge']['data_dir']
+    bridge_dir: node['bridge']['dir']
   )
   notifies :run, 'execute[reload_systemd]', :immediately
 end
@@ -184,7 +183,7 @@ execute 'reload_systemd' do
   action :nothing
 end
 
-execute 'enable_service' do
+execute 'service_enable' do
   command "systemctl enable zigbee2mqtt"
   not_if "systemctl is-enabled zigbee2mqtt"
   action :run

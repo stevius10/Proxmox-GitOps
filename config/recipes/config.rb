@@ -1,4 +1,4 @@
-ruby_block 'wait_for_startup' do
+ruby_block 'config_wait_startup' do
   block do
     require 'socket'; require 'timeout'
     Timeout.timeout(15) do
@@ -14,7 +14,7 @@ end
 
 reset_user = "#{node['git']['install_dir']}/gitea admin user list --config #{node['git']['install_dir']}/app.ini | awk '{print $2}' | grep '^#{Env.get(node, 'login')}'"
 
-execute 'create_user' do
+execute 'config_create_user' do
   command "#{node['git']['install_dir']}/gitea admin user create --config #{node['git']['install_dir']}/app.ini " +
             "--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')} " +
             "--email #{Env.get(node, 'email')} --admin --must-change-password=false"
@@ -24,7 +24,7 @@ execute 'create_user' do
   action :run
 end
 
-execute 'reset_user' do
+execute 'config_reset_user' do
   command "#{node['git']['install_dir']}/gitea admin user change-password --config #{node['git']['install_dir']}/app.ini " +
             "--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')}"
   environment 'GITEA_WORK_DIR' => node['git']['data_dir']
@@ -33,7 +33,7 @@ execute 'reset_user' do
   action :nothing
 end
 
-ruby_block 'add_key' do
+ruby_block 'config_key_add' do
   block do
     require 'net/http'
     require 'uri'
@@ -43,19 +43,17 @@ ruby_block 'add_key' do
     key_content = ::File.read(key_path).strip
 
     api_url = "#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys"
-    check_api = URI(api_url)
-    check_req = Net::HTTP::Get.new(check_api.request_uri)
+    api = URI(api_url)
+    check_req = Net::HTTP::Get.new(api.request_uri)
     check_req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
-    check_response = Net::HTTP.new(check_api.host, check_api.port).request(check_req)
+    response = Net::HTTP.new(api.host, api.port).request(check_req)
 
-    existing_keys = JSON.parse(check_response.body) rescue []
-
-    unless existing_keys.any? { |k| k['key'] && k['key'].strip == key_content }
-      req = Net::HTTP::Post.new(check_api.request_uri)
+    unless (JSON.parse(response.body) rescue []).any? { |k| k['key'] && k['key'].strip == key_content }
+      req = Net::HTTP::Post.new(api.request_uri)
       req['Content-Type'] = 'application/json'
       req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
       req.body = { title: "gitops", key: key_content }.to_json
-      response = Net::HTTP.new(check_api.host, check_api.port).request(req)
+      response = Net::HTTP.new(api.host, api.port).request(req)
       raise "HTTP #{response.code}: #{response.body}" unless response.code.to_i.between?(200, 299) || response.code.to_i == 422
     end
   end
@@ -84,14 +82,14 @@ file "/home/#{node['git']['app']['user']}/.ssh/config" do
   not_if { ::File.exist?("/home/#{node['git']['app']['user']}/.ssh/config") }
 end
 
-execute 'test_connection' do
+execute 'config_wait_connection' do
   command "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -p #{node['git']['app']['ssh_port']} -T #{Env.get(node, 'login')}@#{node['host']} || true"
   user node['git']['app']['user']
   action :run
   live_stream true
 end
 
-execute 'secure_git' do
+execute 'config_git_safe_directory' do
   command <<-SH
     git config --global --add safe.directory "*" && \
     git config --system --add safe.directory "*"
@@ -100,7 +98,7 @@ execute 'secure_git' do
   action :run
 end
 
-execute 'configure_git' do
+execute 'config_git_user' do
   command <<-SH
     git config --global user.name "#{Env.get(node, 'login')}"
     git config --global user.email "#{Env.get(node, 'email')}"
@@ -111,7 +109,7 @@ execute 'configure_git' do
   action :run
 end
 
-ruby_block 'create_organization' do
+ruby_block 'config_gitea_create_org' do
   block do
     require 'net/http'
     require 'uri'
@@ -130,7 +128,7 @@ ruby_block 'create_organization' do
   action :run
 end
 
-ruby_block 'configure_environment' do
+ruby_block 'config_gitea_environment_variables' do
   block do
     %w(proxmox login password email host).each do |parent_key|
       value = node[parent_key]

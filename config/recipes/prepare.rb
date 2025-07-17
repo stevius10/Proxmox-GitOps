@@ -1,17 +1,3 @@
-ruby_block 'environment_info' do
-  block do
-    Chef::Log.info("Node Attributes: ")
-    node&.each do |key, value|
-      Chef::Log.info("ATTR #{key}=#{value}")
-    end
-
-    Chef::Log.info("Databag Attributes: ")
-    node.override_attrs&.each do |key, value|
-      Chef::Log.info("DATA #{key}=#{value}")
-    end
-  end
-end
-
 [
   "/home/#{node['git']['app']['user']}",
   "#{node['git']['home']}",
@@ -38,11 +24,11 @@ package %w(git acl python3-pip ansible nodejs npm python3-proxmoxer) do
   action :install
 end
 
-execute 'install_ansible' do
+execute 'prepare_install_ansible' do
   command 'python3 -m pip install --upgrade ansible --break-system-packages'
 end
 
-execute 'install_ansible_collection' do
+execute 'prepare_install_ansible' do
   command 'LC_ALL=C.UTF-8 ansible-galaxy collection install community.general'
   user 'root'
   not_if "ansible-galaxy collection list | grep community.general"

@@ -1,3 +1,4 @@
+# chown app:app /dev/serial/by-id/...
 ruby_block 'proxmox_config' do
   block do
     require 'net/http'
@@ -149,7 +150,7 @@ file "#{node['bridge']['dir']}/.version" do
   action :nothing
 end
 
-template "#{node['bridge']['dir']}/configuration.yaml" do
+template "#{node['bridge']['data']}/configuration.yaml" do
   source 'configuration.yaml.erb'
   owner node['app']['user']
   group node['app']['group']

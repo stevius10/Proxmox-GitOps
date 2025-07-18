@@ -1,0 +1,6 @@
+{
+  "bridge":
+    {
+      "serial": "/dev/serial/by-id/usb-ITead_Sonoff_Zigbee_3.0_USB_Dongle_Plus_1c27822ced5fec11a1d52e5f25bfaa52-if00-port0"
+    }
+}

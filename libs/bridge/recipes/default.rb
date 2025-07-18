@@ -37,7 +37,7 @@ end
   end
 end
 
-[ node['bridge']['dir'], node['bridge']['data_dir'] ].each do |dir|
+[ node['bridge']['dir'], node['bridge']['data'] ].each do |dir|
   directory dir do
     owner node['app']['user']
     group node['app']['group']

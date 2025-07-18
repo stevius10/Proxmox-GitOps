@@ -1,5 +1,16 @@
 inputs:
-  repo: { required: true }
+  repo:
+    required: true
+    type: string
+  ref:
+    required: true
+    type: string
+    default: "main"
+  cache_bust:
+    required: false
+    type: string
+    default: ''
+
 runs:
   using: 'composite'
   steps:
@@ -57,5 +68,5 @@ runs:
       run: |
         tar cz . | ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ env.id }} config@${{ env.ip }} \
           'sudo tar xz -C /tmp && sudo IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} PWD="$(pwd)" \
-             cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="/tmp" -o repo'
+             cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="/tmp" $( [[ -f "/tmp/repo/config.json" ]] && echo "-j /tmp/repo/config.json" ) -o repo'
       shell: bash

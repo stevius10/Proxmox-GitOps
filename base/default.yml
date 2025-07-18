@@ -4,20 +4,20 @@
   gather_facts: no
   vars:
     os: "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
-    ssh_keys_dir: "/share/.ssh"
+    keys_dir: "/share/.ssh"
   tasks:
-    - name: Check configuration
+    - name: Check container configuration
       ansible.builtin.stat:
         path: "config.json"
       register: config_file
 
-    - name: Load configuration
+    - name: Load container configuration
       ansible.builtin.include_vars:
         file: "config.json"
         name: config
       when: config_file.stat.exists
 
-    - name: Set connection configuration
+    - name: Set Proxmox configuration
       ansible.builtin.set_fact:
         PROXMOX_HOST: "{{ lookup('env', 'PROXMOX_HOST') }}"
         PROXMOX_USER: "{{ lookup('env', 'PROXMOX_USER') }}"
@@ -26,18 +26,18 @@
       when:
         - (config_file.stat.exists and config.proxmox is defined) or (not config_file.stat.exists)
 
-    - name: Ensure key directory
+    - name: Ensure container keys directory on host
       ansible.builtin.file:
-        path: "{{ ssh_keys_dir }}"
+        path: "{{ keys_dir }}"
         state: directory
 
-    - name: Generate key
+    - name: Generate container key on host
       community.crypto.openssh_keypair:
-        path: "{{ ssh_keys_dir }}/{{ id }}"
+        path: "{{ keys_dir }}/{{ id }}"
         type: ed25519
         force: false
 
-    - name: Check container exists
+    - name: Check container existence
       community.general.proxmox_vm_info:
         api_host: "{{ PROXMOX_HOST }}"
         api_user: "{{ PROXMOX_USER }}"
@@ -50,7 +50,7 @@
       delegate_to: localhost
       ignore_errors: yes
 
-    - name: Set container exists
+    - name: Set container existence
       set_fact:
         container_exists: "{{ container_info is success and (container_info.proxmox_vms | length) > 0 }}"
 
@@ -69,6 +69,21 @@
       ignore_errors: yes
       when: container_exists
 
+    - name: Wait for container to be stopped
+      uri:
+        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/status/current"
+        method: GET
+        headers:
+          Authorization: "PVEAPIToken={{ PROXMOX_USER }}!{{ PROXMOX_TOKEN }}={{ PROXMOX_SECRET }}"
+        validate_certs: no
+      register: container_status
+      until: container_status.json.data.status == "stopped"
+      retries: 5
+      delay: 2
+      ignore_errors: true
+      delegate_to: localhost
+      when: container_exists
+
     - name: Remove container
       community.general.proxmox:
         api_host: "{{ PROXMOX_HOST }}"
@@ -84,11 +99,20 @@
       register: removal
       when: container_exists
 
-    - name: Wait (removal)
-      wait_for:
-        path: "/var/lib/vz/private/{{ id }}"
-        state: absent
-        timeout: 30
+    - name: Wait for container to be removed
+      uri:
+        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/status/current"
+        method: GET
+        headers:
+          Authorization: "PVEAPIToken={{ PROXMOX_USER }}!{{ PROXMOX_TOKEN }}={{ PROXMOX_SECRET }}"
+        validate_certs: no
+      register: container_status
+      until:
+        - container_status.status == 500
+        - "'does not exist' in container_status.json.message"
+      retries: 5
+      delay: 4
+      failed_when: false
       delegate_to: localhost
       when: container_exists
 
@@ -115,7 +139,7 @@
         ostemplate: "{{ os }}"
         cores: "{{ cores }}"
         memory: "{{ memory }}"
-        pubkey: "{{ lookup('file', [ssh_keys_dir, id ~ '.pub'] | path_join) }}"
+        pubkey: "{{ lookup('file', [keys_dir, id ~ '.pub'] | path_join) }}"
         swap: "{{ swap }}"
         disk: "{{ disk }}"
         netif:
@@ -123,6 +147,22 @@
         mounts: "{{ mounts | default({}) }}"
         onboot: "{{ boot }}"
         state: present
+      delegate_to: localhost
+
+    - name: Wait for container to be created
+      uri:
+        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/config"
+        method: GET
+        headers:
+          Authorization: "PVEAPIToken={{ PROXMOX_USER }}!{{ PROXMOX_TOKEN }}={{ PROXMOX_SECRET }}"
+        validate_certs: no
+      register: container_status
+      until:
+        - container_status.status == 200
+        - "'hostname' in container_status.json.data"
+      retries: 5
+      delay: 6
+      ignore_errors: yes
       delegate_to: localhost
 
     - name: Start container
@@ -137,22 +177,21 @@
         state: started
       delegate_to: localhost
 
-    - name: Wait (SSH)
+    - name: Wait for container to be connectable
       wait_for:
         port: 22
         host: "{{ ip }}"
         timeout: 180
-      ignore_errors: yes
       delegate_to: localhost
 
-    - name: Test user already configured
-      command: "ssh -o BatchMode=yes -o ConnectTimeout=5 -i {{ ssh_keys_dir }}/{{ id }} config@{{ ip }} echo success"
+    - name: Check technical user configured
+      command: "ssh -o BatchMode=yes -o ConnectTimeout=5 -i {{ keys_dir }}/{{ id }} config@{{ ip }} echo success"
       register: ssh_config_test
       failed_when: false
       changed_when: false
       when: container_exists
 
-    - name: Set SSH user
+    - name: Set technical user
       set_fact:
         ssh_user: "{{ 'config' if (container_exists and (ssh_config_test.rc | default(1)) == 0) else 'root' }}"
 
@@ -162,12 +201,12 @@
         id: "{{ id }}"
         ansible_host: "{{ ip }}"
         ansible_user: "{{ ssh_user }}"
-        ansible_ssh_private_key_file: "{{ [ssh_keys_dir, id] | path_join }}"
+        ansible_ssh_private_key_file: "{{ [keys_dir, id] | path_join }}"
         ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-        public_key: "{{ lookup('file', [ssh_keys_dir, id ~ '.pub'] | path_join) }}"
-        private_key: "{{ lookup('file', [ssh_keys_dir, id] | path_join) }}"
+        public_key: "{{ lookup('file', [keys_dir, id ~ '.pub'] | path_join) }}"
+        private_key: "{{ lookup('file', [keys_dir, id] | path_join) }}"
 
-    - name: Reset hosts
+    - name: Reset known hosts
       ansible.builtin.known_hosts:
         name: "{{ ip }}"
         state: absent

@@ -11,4 +11,5 @@ jobs:
         uses: srv/config/.gitea/workflows@main
         with:
           repo: ${{ env.GITEA_REPOSITORY }}
-          ref: main
+          ref: ${{ gitea.ref_name }}
+          cache_bust: ${{ gitea.run_number }}

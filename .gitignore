@@ -1,8 +1,7 @@
 **/.git/
 
-/config/.gitea/
-/local/*.hash
+local/config.json
+local/*.hash
 
 .DS_Store
-/.idea
-libs/**/config.json
+.idea

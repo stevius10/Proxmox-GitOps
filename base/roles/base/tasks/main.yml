@@ -1,4 +1,4 @@
-- name: Basic system configuration
+- name: Base container configuration
   block:
     - name: Update system
       apt:
@@ -13,7 +13,7 @@
         name: "{{ default_packages }}"
         state: present
 
-    - name: Create standard users
+    - name: Create default users
       user:
         name: "{{ item.name }}"
         shell: "{{ item.shell | default('/bin/bash') }}"
@@ -45,17 +45,17 @@
       register: cinc_versions
       changed_when: false
 
-    - name: Extract version
+    - name: Get configuration management version
       ansible.builtin.set_fact:
         cinc_version: "{{ cinc_versions.content | regex_findall('href=\"(\\d+\\.\\d+\\.\\d+)/\"') | sort | last }}"
 
-    - name: Download
+    - name: Download configuration management
       ansible.builtin.get_url:
         url: "https://downloads.cinc.sh/files/stable/cinc/{{ cinc_version }}/debian/12/cinc_{{ cinc_version }}-1_{{ arch | default('amd64') }}.deb"
         dest: /tmp/cinc.deb
         validate_certs: no
 
-    - name: Install Cinc
+    - name: Install configuration management
       ansible.builtin.apt:
         deb: /tmp/cinc.deb
         state: present
@@ -74,7 +74,7 @@
   notify: Restart SSH
   when: (configure_ssh | default(true) | bool)
   block:
-    - name: Disable password authentication
+    - name: Disable SSH password authentication
       ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         regexp: "^#?PasswordAuthentication"
@@ -92,66 +92,48 @@
 
 - name: SSH key management
   block:
-    - name: Key passing
+    - name: Store container key
       ansible.builtin.set_fact:
         private_key: "{{ private_key ~ (private_key.endswith('\n') | ternary('', '\n')) }}"
         public_key: "{{ public_key ~ (public_key.endswith('\n') | ternary('', '\n')) }}"
 
-    - name: Create shared key directory
+    - name: Ensure container key directory
       file:
-        path: "/share/.ssh"
+        path: "/root/.ssh"
         state: directory
-        owner: app
-        group: app
+        owner: root
+        group: root
         recurse: yes
 
-    - name: Private key
+    - name: Save container private key
       copy:
         content: "{{ private_key }}"
-        dest: "/app/id_rsa"
-        owner: app
-        group: app
+        dest: "/root/id_rsa"
+        owner: root
+        group: root
         mode: 0600
 
-    - name: Public key
+    - name: Save container public key
       copy:
         content: "{{ public_key }}"
-        dest: "/app/id_rsa.pub"
-        owner: app
-        group: app
+        dest: "/root/id_rsa.pub"
+        owner: root
+        group: root
         mode: 0644
 
-    - name: Verify key
-      shell: ssh-keygen -y -f /app/id_rsa | diff - /app/id_rsa.pub
+    - name: Verify container key
+      shell: ssh-keygen -y -f /root/id_rsa | diff - /root/id_rsa.pub
       register: verify
       changed_when: false
       failed_when: verify.rc != 0
 
-    - name: Set authorized key
+    - name: Set container authorized key
       ansible.posix.authorized_key:
         user: "{{ item }}"
         key: "{{ public_key }}"
         state: present
         exclusive: no
       loop: "{{ ssh_users }}"
-
-    - name: Shared private key
-      copy:
-        src: /app/id_rsa
-        dest: "/share/.ssh/{{ id }}"
-        remote_src: true
-        owner: app
-        group: app
-        mode: 0600
-
-    - name: Shared public key
-      copy:
-        src: /app/id_rsa.pub
-        dest: "/share/.ssh/{{ id }}.pub"
-        remote_src: true
-        owner: app
-        group: app
-        mode: 0644
 
 - name: Customization
   block:

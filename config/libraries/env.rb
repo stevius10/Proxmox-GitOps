@@ -1,7 +1,21 @@
 require 'net/http'
 require 'uri'
 require 'json'
-require 'active_support/core_ext/object/blank'
+
+class Object
+  def blank?
+    respond_to?(:empty?) ? empty? : !self
+  end
+
+  def presence
+    blank? ? nil : self
+  end
+end
+
+class NilClass
+  def blank?; true; end
+  def presence; nil; end
+end
 
 module Env
   

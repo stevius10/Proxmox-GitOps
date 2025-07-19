@@ -173,6 +173,7 @@
         api_token_secret: "{{ PROXMOX_SECRET }}"
         api_port: 8006
         vmid: "{{ id }}"
+        hostname: "{{ hostname }}"
         node: "pve"
         state: started
       delegate_to: localhost

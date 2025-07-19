@@ -54,8 +54,9 @@ jobs:
       - id: init
         uses: srv/config/.gitea/workflows@main
         with:
-          repo: ${{ env.GITEA_REPOSITORY }}
-          ref: main
+          repo: ${{ gitea.repository }}
+          ref: ${{ gitea.ref_name }}
+          cache_bust: ${{ gitea.run_number }}
 ```
 
 - Add your cookbook to the container definition root:

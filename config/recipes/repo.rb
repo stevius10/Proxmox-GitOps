@@ -176,6 +176,9 @@ path_target = node['git']['workspace']
           if ! git config --file .gitmodules --get-regexp path | grep -q "^submodule\\.#{module_name}\\.path"; then
             git submodule add #{submodule_url} #{path_module}
           fi
+          if [ "#{Env.get(node, 'host')}" = "127.0.0.1"  ] && [ -f local/config.json ]; then
+            git add -f local/config.json
+          fi
         EOH
         only_if { ::Dir.exist?("#{path_repo_target}/.git") }
       end

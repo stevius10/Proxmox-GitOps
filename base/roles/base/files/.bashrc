@@ -1,10 +1,3 @@
-# Basic
-
-alias ls='ls -lhA --group-directories-first'
-alias python='python3'
-alias py='python'
-alias pip='pip3'
-
 # Filesystem
 
 alias ..='cd ..'
@@ -12,14 +5,30 @@ alias ...='cd ../..'
 alias ....='cd ../../..'
 alias .....='cd ../../../..'
 
+# General
+
+alias ls='ls -lhA --group-directories-first'
+alias grep='grep --color=auto'
 alias mkdir='mkdir -pv'
 
+alias df='df -h'
+alias free='free -h'
+alias du='du -h'
+
 alias redo='sudo "$(fc -ln -1)"'
+
+# Development
+
+alias python='python3'
+alias py='python'
+alias pip='pip3'
 
 # Applications
 
 alias vi="vim -c 'startinsert'"
 alias vim="vim -c 'startinsert'"
+
+# Workflow
 
 alias reset='git reset --mixed HEAD~1'
 alias clone='git clone --recurse-submodules'

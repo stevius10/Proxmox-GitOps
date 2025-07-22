@@ -2,29 +2,14 @@ require 'net/http'
 require 'uri'
 require 'json'
 
-class Object
-  def blank?
-    respond_to?(:empty?) ? empty? : !self
-  end
-
-  def presence
-    blank? ? nil : self
-  end
-end
-
-class NilClass
-  def blank?; true; end
-  def presence; nil; end
-end
-
 module Env
 
   def self.creds(node, login_key = 'login', password_key = 'password')
-    [login = ENV[login_key.upcase] || node[login_key.to_sym], pass = ENV[password_key.upcase] || node[password_key.to_sym]].tap { Chef::Log.info(login); Chef::Log.info(pass) }
+    [login = ENV[login_key.upcase] || node[login_key.to_sym], pass = ENV[password_key.upcase] || node[password_key.to_sym]].tap { Chef::Log.info(mask(login)); Chef::Log.info(mask(pass)) }
   end
 
   def self.get(node, key)
-    Chef::Log.info("[#{__method__}] #{key}: #{val = node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key)}"); val
+    Chef::Log.info("[#{__method__}] #{key}: #{mask(val = node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key))}"); val
   rescue => e
     Chef::Log.warn("[#{__method__}] #{e.message} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
   end
@@ -55,9 +40,28 @@ module Env
     req = (body ? Net::HTTP::Post : Net::HTTP::Get).new(uri)
     req.basic_auth(*creds(node))
     req['Content-Type'] = 'application/json' and req.body = body if body
-    Chef::Log.info("[#{__method__}] #{key}: #{val = Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }}"); val
+    Chef::Log.info("[#{__method__}] #{key}: HTTP #{(val = Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }).code}"); val
   rescue => e
     Chef::Log.warn("[#{__method__}] #{e.message} fail '#{key}' on #{host(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
   end
 
+end
+
+class Object
+  def blank?
+    respond_to?(:empty?) ? empty? : !self
+  end
+
+  def presence
+    blank? ? nil : self
+  end
+end
+
+class NilClass
+  def blank?; true; end
+  def presence; nil; end
+end
+
+def mask(str)
+  str.to_s.length <= 2 ? '*' * str.to_s.length : "#{str[0]}#{'*' * (str.length - 2)}#{str[-1]}"
 end

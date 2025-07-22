@@ -12,7 +12,34 @@ The architecture is based on a multi-stage pipeline capable of recursively deplo
   <img src="./docs/concept.svg" alt="Concept"/>
 </p>
 
-Initial bootstrapping is performed via a local Docker environment, with subsequent deployments targeting Proxmox VE. This ensures consistent, reproducible, and automated infrastructure management. 
+Initial bootstrapping is performed via a local Docker environment, with subsequent deployments targeting Proxmox VE.  
+
+### Core Concepts 
+
+This system implements stateless infrastructure management on Proxmox VE, ensuring deterministic reproducibility and environmental parity through recursive self-containment.
+
+|Concept|Approach| Reasoning                                                                                                                              |
+|---|---|----------------------------------------------------------------------------------------------------------------------------------------|
+| **Ephemeral State**| Git repository represents *current desired state*; history is reset to ensure state purity across deployments.| Deployment consistency and stateless infrastructure over version history.                                                              |
+| **Recursive Self-Containment**| Embedded control plane recursively provisions itself within target containers, ensuring deterministic bootstrap.| Prevents configuration drift; enables consistent and reproducible behavior.                                                            |
+| **Dynamic Orchestration**| Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management (e.g., submodule remote rewriting)| Declarative approach intractable for adjusting to dynamic cross-layer changes (interchangeable repository remotes or network context). |
+| **Mono-Repository**| Centralizes infrastructure as a single code artifact; submodules modularize development at runtime| Consistency and modularity trade-off: infrastructure self-contained; dynamically resolved in recursive context.                        |
+
+<p align="center">
+  <img src="./docs/repositories.png" alt="Repositories"/>
+</p>
+
+### Trade-offs
+
+- **Complexity vs. Autonomy:** Recursive self-replication increases complexity drastically to achieve deterministic bootstrap and reproducible behavior. 
+- **Git Convention vs. Infrastructure State:** Uses Git as a state engine rather than versioning in volatile, stateless contexts; Mono-repository representation, however, encapsulates the entire infrastructure as self-contained asset suited for version control.
+
+## Requirements
+
+- Docker
+- Proxmox VE 8.4
+- Proxmox API token
+- See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
 ## Getting Started
 
@@ -87,31 +114,3 @@ The container can be tested locally running `./local/run.sh [container]`
 <p align="center">
   <img src="./docs/development.png" alt="Local Development"/>
 </p>
-
-
-### Requirements
-
-- Docker
-- Proxmox VE
-- Proxmox API token
-- See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations 
-
-### Core Concepts
-
-#### Self-Replication
-- During configuration, the codebase is pushed into a Gitea instance running inside the container
-- This triggers the same pipeline from within the new environment, enabling recursive configuration ("pipeline within a pipeline")
-- Subsequent runs are idempotent: Ansible and Chef validate and enforce the desired state using static configuration
-
-<p align="center">
-  <img src="./docs/repositories.png" alt="Repositories"/>
-</p>
-
-#### Key Features
-
-- **Self-Managed Infrastructure:** The system provisions, configures, and verifies itself recursively
-- **Container Provisioning:** Managed by Ansible using the Proxmox API
-- **Container Configuration:** Managed by cookbooks for application-level setup
-- **CI/CD Orchestration:** Execution is handled by a Runner automatically installed inside the container
-- **Environment Management:** Environment variables are initially loaded from `config.json` and recursively propagated into the GitOps system
-- **Modularity:** Distinct components and modular reusable workflows managed within Gitea, facilitating extension

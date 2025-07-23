@@ -18,8 +18,9 @@ runs:
       uses: https://gitea.com/actions/checkout@v4
       with:
         repository: "${{ inputs.repo }}"
-        ref: "${{ gitea.ref_name }}"
+        ref: "${{ inputs.ref }}"
         path: repo
+      if: ${{ always() }}
 
     - name: Configure container
       id: init

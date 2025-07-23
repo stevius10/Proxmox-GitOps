@@ -14,6 +14,14 @@ if !node['runner']['version'] && node['runner']['version'].to_s.empty?
   end
 end
 
+directory node['runner']['install_dir'] do
+  owner node['git']['app']['user']
+  group node['git']['app']['group']
+  mode '0755'
+  recursive true
+  action :create
+end
+
 remote_file "#{node['runner']['install_dir']}/ace_runner" do
   source lazy {
     ver = node['runner']['version'] && !node['runner']['version'].to_s.empty? ? node['runner']['version'] : node.run_state['runner_version']
@@ -24,6 +32,11 @@ remote_file "#{node['runner']['install_dir']}/ace_runner" do
   group node['git']['app']['group']
   mode '0755'
   action :create_if_missing
+end
+
+execute 'daemon_reload' do
+  command 'systemctl daemon-reload'
+  action :nothing
 end
 
 template '/etc/systemd/system/runner.service' do
@@ -40,14 +53,6 @@ template "#{node['runner']['install_dir']}/config.yaml" do
   owner node['git']['app']['user']
   group node['git']['app']['group']
   mode '0644'
-  action :create
-end
-
-directory node['runner']['install_dir'] do
-  owner node['git']['app']['user']
-  group node['git']['app']['group']
-  mode '0755'
-  recursive true
   action :create
 end
 
@@ -105,6 +110,6 @@ end
 
 service 'runner' do
   action [:enable, :start]
-  subscribes :restart, 'template[runner.config.yaml.erb]', :delayed
-  subscribes :restart, 'remote_file[#{node["git"]["runner_install_dir"]}/ace_runner]', :delayed
+  subscribes :restart, "template[#{node['runner']['install_dir']}/config.yaml]", :delayed
+  subscribes :restart, "remote_file[#{node['runner']['install_dir']}/ace_runner]", :delayed
 end

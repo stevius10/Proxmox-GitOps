@@ -158,7 +158,8 @@ template "#{node['bridge']['data']}/configuration.yaml" do
   variables(
     port: node['bridge']['port'],
     serial: node['bridge']['serial'],
-    app_dir: node['bridge']['dir'],
+    data_dir: node['bridge']['data'],
+    logs_dir: node['bridge']['logs'],
     broker_host: Env.get(node, 'broker'),
     broker_user: Env.get(node, 'login'),
     broker_password: Env.get(node, 'password')

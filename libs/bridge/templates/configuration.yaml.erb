@@ -6,13 +6,12 @@ mqtt:
   user: '<%= @broker_user %>'
   password: '<%= @broker_password %>'
 serial:
-
   port: <%= @serial %>
 frontend:
   port: <%= @port %>
   host: 0.0.0.0
 data_path: <%= @data_dir %>
 advanced:
-  log_directory: /var/log/zigbee/%TIMESTAMP%
+  log_directory: <%= @logs_dir %>/%TIMESTAMP%
   log_rotation: true
   log_level: info

@@ -2,7 +2,7 @@ name: <%= node['hostname'] %>
 labels: ["<%= node['runner']['labels'] %>"]
 
 log:
-  level: info
+  level: warn
 
 runner:
   file: .runner

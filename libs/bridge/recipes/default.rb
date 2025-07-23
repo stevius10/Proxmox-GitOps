@@ -158,6 +158,7 @@ template "#{node['bridge']['data']}/configuration.yaml" do
   variables(
     port: node['bridge']['port'],
     serial: node['bridge']['serial'],
+    adapter: node['bridge']['adapter'],
     data_dir: node['bridge']['data'],
     logs_dir: node['bridge']['logs'],
     broker_host: Env.get(node, 'broker'),

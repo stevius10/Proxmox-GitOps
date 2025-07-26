@@ -7,6 +7,10 @@ usershare allow guests = no
 <% @share.each do |name, config| %>
   [<%= name %>]
   path = <%= config['path'] || "/share/#{name}" %>
-  valid users = <%= node['git']['app']['user'] %>
+  valid users = <%= @login %>
+  force user = <%= @user %>
+  force group = <%= @group %>
   read only = no
+  create mask = 0775
+  directory mask = 2775
 <% end %>

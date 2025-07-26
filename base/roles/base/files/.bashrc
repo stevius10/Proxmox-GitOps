@@ -15,6 +15,7 @@ alias df='df -h'
 alias free='free -h'
 alias du='du -h'
 
+alias journal='journalctl -xef --output=short-iso --no-pager'
 alias redo='sudo "$(fc -ln -1)"'
 
 # Development

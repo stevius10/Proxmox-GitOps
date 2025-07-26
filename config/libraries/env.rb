@@ -37,12 +37,15 @@ module Env
 
   private_class_method def self.request(node, key, body = nil)
     uri = URI("http://#{host(node)}:8080/api/v1/orgs/srv/actions/variables/#{key}")
-    req = (body ? Net::HTTP::Post : Net::HTTP::Get).new(uri)
-    req.basic_auth(*creds(node))
-    req['Content-Type'] = 'application/json' and req.body = body if body
-    Chef::Log.info("[#{__method__}] #{key}: HTTP #{(val = Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }).code}"); val
-  rescue => e
-    Chef::Log.warn("[#{__method__}] #{e.message} fail '#{key}' on #{host(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
+    (body ? [Net::HTTP::Put, Net::HTTP::Post] : [Net::HTTP::Get]).each do |m|
+      req = m.new(uri)
+      req.basic_auth(*creds(node))
+      req['Content-Type'] = 'application/json'
+      req.body = body if body
+      val = Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }
+      Chef::Log.info("[#{__method__}] #{key}: HTTP #{val.code}")
+      return val unless body && val.code.to_i == 404
+    end
   end
 
 end

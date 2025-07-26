@@ -1,0 +1,34 @@
+- name: Ensure filesystem usage
+  ansible.builtin.apt:
+    name: cifs-utils
+    state: present
+    update_cache: true
+
+- name: Set mount as list
+  set_fact:
+    mount_list: "{{ mount.split(',') | reject('equalto', '') | list }}"
+  when: mount is defined
+
+- name: Ensure mount directories exist
+  ansible.builtin.file:
+    path: "{{ '/share' if item == 'share' else '/share/' ~ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0777'
+  loop: "{{ mount_list }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Enable mount
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    line: "//{{ host }}/{{ item }} {{ '/share' if item == 'share' else '/share/' ~ item }} cifs username={{ login }},password={{ password }},uid=1000,gid=1000,vers=3.0 0 0"
+    state: present
+    create: yes
+  loop: "{{ mount_list }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Restart mount
+  ansible.builtin.command: mount -a

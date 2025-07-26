@@ -1,4 +1,4 @@
-Env.set(node, 'broker', node['ip'])
+Env.set(node, 'broker', "mqtt://#{node['ip']}:#{node['broker']['port']}")
 
 %w[mosquitto].each do |pkg|
   package pkg do

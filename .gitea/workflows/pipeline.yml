@@ -50,6 +50,7 @@ jobs:
           disk: ${{ needs.init.outputs.disk }}
           boot: ${{ needs.init.outputs.boot }}
           mount: ${{ needs.init.outputs.mount }}
+          share: true
     if: ${{ gitea.ref == 'refs/heads/release' }}
 
   share:

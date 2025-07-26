@@ -116,7 +116,7 @@
       delegate_to: localhost
       when: container_exists
 
-    - name: Set Mounts
+    - name: Set shared mounts
       set_fact:
         mounts: "{{ mounts | default({}) | combine({ 'mp' ~ idx: 'local:' ~ item.split(':')[1] ~ ',mp=/share/' ~ (item.split(':')[0] if item.split(':')[0] != 'share' else '') }) }}"
       loop: "{{ (mount | default('')).split(',') | select('match', '^.+:.+$') }}"
@@ -124,6 +124,7 @@
         index_var: idx
       when:
         - mount is defined
+        - (share | default(false, true) | bool)
         - (mount | trim | length) > 0
 
     - name: Create container
@@ -144,7 +145,10 @@
         disk: "{{ disk }}"
         netif:
           net0: "name=eth0,gw=192.168.178.1,ip={{ ip }}/24,bridge=vmbr0"
-        mounts: "{{ mounts | default({}) }}"
+        mounts: "{{ mounts if (share | default(false, true) | bool) else {} }}"
+        unprivileged: >-
+          {{ true if (share | default(false) | bool) else false 
+            if (mount is defined and (mount | trim | length > 0)) else true }}
         onboot: "{{ boot }}"
         state: present
       delegate_to: localhost
@@ -223,3 +227,16 @@
       ansible.builtin.include_role:
         name: base
       tags: base
+
+    - name: Configure mounts
+      ansible.builtin.include_role:
+        name: mount
+      vars:
+        host: "{{ lookup('env', 'HOST') }}"
+        login: "{{ lookup('env', 'LOGIN') }}"
+        password: "{{ lookup('env', 'PASSWORD') }}"
+        mount: "{{ mount }}"
+      when:
+        - not (share | default(false) | bool)
+        - mount is defined
+      tags: mounts

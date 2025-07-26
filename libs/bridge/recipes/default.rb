@@ -165,6 +165,7 @@ template "#{node['bridge']['data']}/configuration.yaml" do
     broker_user: Env.get(node, 'login'),
     broker_password: Env.get(node, 'password')
   )
+  not_if { ::File.exist?("#{node['bridge']['data']}/configuration.yaml") }
   notifies :restart, "service[zigbee2mqtt]", :delayed
 end
 

@@ -26,6 +26,10 @@ inputs:
   mount:
     required: true
     type: string
+  share:
+    required: false
+    default: false
+    type: boolean
 
 runs:
   using: "composite"
@@ -39,8 +43,11 @@ runs:
         ansible-playbook default.yml -e "ip=${{ inputs.ip }}" -e "id=${{ inputs.id }}" \
           -e "hostname=${{ inputs.hostname }}" -e "cores=${{ inputs.cores }}" -e "memory=${{ inputs.memory }}" \
           -e "swap=${{ inputs.swap }}" -e "disk=${{ inputs.disk }}" -e "boot=${{ inputs.boot }}" \
-          -e "mount=${{ inputs.mount }}"
+          -e "mount=${{ inputs.mount }}" -e "share=${{ inputs.share }}"
       env:
+        HOST: ${{ vars.HOST }}
+        LOGIN: ${{ vars.LOGIN }}
+        PASSWORD: ${{ vars.PASSWORD }}
         PROXMOX_HOST: ${{ vars.PROXMOX_HOST }}
         PROXMOX_USER: ${{ vars.PROXMOX_USER }}
         PROXMOX_TOKEN: ${{ vars.PROXMOX_TOKEN }}

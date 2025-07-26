@@ -144,7 +144,15 @@
 
 - name: Customization
   block:
-    - name: Copy bash configuration
+    - name: Copy bash configuration for root
+      copy:
+        src: .bashrc
+        dest: /root/.bashrc
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Copy bash configuration for users
       copy:
         src: .bashrc
         dest: "/home/{{ item }}/.bashrc"

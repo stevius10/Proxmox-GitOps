@@ -13,6 +13,11 @@ frontend:
   host: 0.0.0.0
 data_path: <%= @data_dir %>
 advanced:
+  channel: 11
+  network_key: GENERATE
+  pan_id: GENERATE
+  ext_pan_id: GENERATE
+
   log_directory: <%= @logs_dir %>/%TIMESTAMP%
   log_rotation: true
   log_level: info

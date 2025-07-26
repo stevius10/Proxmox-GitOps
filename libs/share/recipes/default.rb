@@ -1,4 +1,4 @@
-user = Env.get(node, 'login')
+login = Env.get(node, 'login')
 password = Env.get(node, 'password')
 
 %w[samba samba-common samba-client].each do |pkg|
@@ -22,19 +22,22 @@ end
 template '/etc/samba/smb.conf' do
   source 'smb.conf.erb'
   variables(
+    login: login,
+    user: node['git']['app']['user'],
+    group: node['git']['app']['group'],
     share: node['mount']
   )
   notifies :restart, 'service[smb]'
 end
 
-execute "create_user_#{user}" do
-  command "useradd --no-create-home --shell /bin/false #{user}"
-  not_if "id -u #{user}"
+execute "create_user_#{login}" do
+  command "useradd --no-create-home --shell /bin/false #{login}"
+  not_if "id -u #{login}"
 end
 
-execute "create_login_#{user}" do
-  command "printf '#{password}\\n#{password}\\n' | smbpasswd -a -s #{user}"
-  not_if "pdbedit -L | grep -w #{user}"
+execute "create_samba_#{login}" do
+  command "printf '#{password}\\n#{password}\\n' | smbpasswd -a -s #{login}"
+  not_if "pdbedit -L | grep -w #{login}"
 end
 
 service 'smb' do

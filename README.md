@@ -2,7 +2,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ## Overview
 
-Proxmox GitOps implements a self-sufficient, extensible CI/CD environment for provisioning, configuring, and orchestrating Linux Containers (LXC) within Proxmox VE. Leveraging an Infrastructure-as-Code (IaC) approach, it manages the entire container lifecycle—bootstrapping, deployment, configuration, and validation—through version-controlled automation.
+Proxmox-GitOps implements a self-sufficient, extensible CI/CD environment for provisioning, configuring, and orchestrating Linux Containers (LXC) within Proxmox VE. Leveraging an Infrastructure-as-Code (IaC) approach, it manages the entire container lifecycle—bootstrapping, deployment, configuration, and validation—through version-controlled automation.
 
 ## Architecture
 
@@ -67,7 +67,7 @@ DISK=local-lvm:8
 BOOT=yes
 ```
 
-- Paste generic pipeline in `gitea/workflows`:
+- Paste generic pipeline in `.gitea/workflows`:
 ```yaml
 on:
   workflow_dispatch:
@@ -88,7 +88,7 @@ jobs:
 
 - Add your cookbook to the container definition root:
 ```ruby
-# ./libs/apache/recipes/default.rb
+# libs/apache/recipes/default.rb
 package 'apache2'
 
 service 'apache2' do

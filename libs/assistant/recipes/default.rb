@@ -1,13 +1,40 @@
+execute 'fix_broken_apt' do
+  command 'apt-get --fix-broken install -y'
+  ignore_failure true
+end
+
 %w[
   mc bluez libffi-dev libssl-dev libjpeg-dev zlib1g-dev autoconf
   build-essential libopenjp2-7 libturbojpeg0-dev ffmpeg liblapack3 liblapack-dev
   dbus-broker libpcap-dev libavdevice-dev libavformat-dev libavcodec-dev
   libavutil-dev libavfilter-dev libmariadb-dev-compat libatlas-base-dev
-  pip python3
+  nfs-common wget libncurses5-dev libgdbm-dev libnss3-dev libreadline-dev
+  libsqlite3-dev libbz2-dev
 ].each do |pkg|
   package pkg do
     action :install
   end
+end
+
+remote_file '/tmp/Python-3.13.5.tgz' do
+  source 'https://www.python.org/ftp/python/3.13.5/Python-3.13.5.tgz'
+  mode '0644'
+  action :create
+end
+
+bash 'install_python3135' do
+  cwd '/tmp'
+  code <<-EOH
+    tar -xzf Python-3.13.5.tgz; cd Python-3.13.5
+    ./configure --enable-optimizations --prefix=/usr/local
+    make -j$(nproc); make altinstall
+  EOH
+  not_if { ::File.exist?('/usr/local/bin/python3.13') }
+end
+
+execute 'install_uv' do
+  command '/usr/local/bin/python3.13 -m pip install uv --break-system-packages'
+  not_if '/usr/local/bin/python3.13 -m pip show uv'
 end
 
 directory node['homeassistant']['dir']['config'] do
@@ -18,6 +45,13 @@ directory node['homeassistant']['dir']['config'] do
   action :create
 end
 
+link '/config' do
+  to node['homeassistant']['dir']['config']
+  owner node['app']['user']
+  group node['app']['group']
+  action :create
+end
+
 directory '/app/uv-cache' do
   owner node['app']['user']
   group node['app']['group']
@@ -25,13 +59,8 @@ directory '/app/uv-cache' do
   action :create
 end
 
-execute 'install_uv' do
-  command 'pip install uv --break-system-packages'
-  not_if 'pip show uv'
-end
-
 execute 'create_environment' do
-  command "uv venv #{node['homeassistant']['dir']['venv']}"
+  command "uv venv --python=/usr/local/bin/python3.13 #{node['homeassistant']['dir']['venv']}"
   user node['app']['user']
   group node['app']['group']
   environment(
@@ -50,10 +79,16 @@ execute 'install_assistant' do
 end
 
 execute 'set_josepy' do
-  command "#{node['homeassistant']['dir']['venv']}/bin/pip install 'josepy<2.0'"
+  command "uv pip install --python #{node['homeassistant']['dir']['venv']}/bin/python josepy"
   user node['app']['user']
   group node['app']['group']
   environment 'UV_CACHE_DIR' => '/app/uv-cache'
+  not_if "uv pip list --python #{node['homeassistant']['dir']['venv']}/bin/python | grep josepy"
+end
+
+execute 'reload_systemd' do
+  command 'systemctl daemon-reload'
+  action :nothing
 end
 
 template '/etc/systemd/system/homeassistant.service' do
@@ -63,20 +98,37 @@ template '/etc/systemd/system/homeassistant.service' do
   mode '0644'
   variables(
     venv_dir: node['homeassistant']['dir']['venv'],
-    config_dir: node['homeassistant']['dir']['config']
+    config_dir: node['homeassistant']['dir']['config'],
+    user: node['app']['user']
   )
   notifies :run, 'execute[reload_systemd]', :immediately
 end
 
-execute 'reload_systemd' do
-  command 'systemctl daemon-reload'
-  action :nothing
+execute 'install_configurator' do
+  command "#{node['homeassistant']['dir']['venv']}/bin/python -m pip install hass-configurator"
+  user node['app']['user']
+  group node['app']['group']
+  environment 'UV_CACHE_DIR' => '/app/uv-cache'
+  not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/hass-configurator") }
+end
+
+template '/etc/systemd/system/hass-configurator.service' do
+  source 'configurator.service.erb'
+  owner 'root'
+  group 'root'
+  mode '0644'
+  variables(
+    venv_dir: node['homeassistant']['dir']['venv'],
+    config_dir: node['homeassistant']['dir']['config'],
+    user: node['app']['user']
+  )
+  notifies :run, 'execute[reload_systemd]', :immediately
 end
 
 service 'homeassistant' do
   action [:enable, :start]
 end
 
-execute 'apt_autoremove' do
-  command 'apt-get -y autoremove && apt-get -y autoclean'
+service 'hass-configurator' do
+  action [:enable, :start]
 end

@@ -1,4 +1,3 @@
-# chown app:app /dev/serial/by-id/...
 ruby_block 'proxmox_config' do
   block do
     require 'net/http'
@@ -177,8 +176,9 @@ template "/etc/systemd/system/zigbee2mqtt.service" do
   variables(
     app_user: node['app']['user'],
     app_group: node['app']['group'],
-    bridge_dir: node['bridge']['dir']
-  )
+    bridge_dir: node['bridge']['dir'],
+    serial: node['bridge']['serial']
+    )
   notifies :run, 'execute[reload_systemd]', :immediately
 end
 

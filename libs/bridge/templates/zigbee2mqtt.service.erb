@@ -12,5 +12,8 @@ ExecStart=/usr/bin/node <%= @bridge_dir %>/index.js
 Restart=always
 RestartSec=10
 
+PermissionsStartOnly=true
+ExecStartPre=-/bin/chown <%= @app_user %>:<%= @app_group %> <%= @serial %>
+
 [Install]
 WantedBy=multi-user.target

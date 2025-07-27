@@ -1,4 +1,3 @@
-# chown app:app /dev/serial/by-id/...
 ruby_block 'proxmox_config' do
   block do
     require 'net/http'

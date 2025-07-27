@@ -1,0 +1,13 @@
+[Unit]
+Description=Hass Configurator
+After=network.target
+
+[Service]
+Type=simple
+User=<%= @user %>
+WorkingDirectory=<%= @config_dir %>
+ExecStart=<%= @venv_dir %>/bin/hass-configurator -s -e -b <%= @config_dir %>
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

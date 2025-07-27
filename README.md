@@ -18,12 +18,12 @@ Initial bootstrapping is performed via a local Docker environment, with subseque
 
 This system implements stateless infrastructure management on Proxmox VE, ensuring deterministic reproducibility and environmental parity through recursive self-containment.
 
-|Concept|Approach| Reasoning                                                                                                                              |
-|---|---|----------------------------------------------------------------------------------------------------------------------------------------|
-| **Ephemeral State**| Git repository represents *current desired state*; history is reset to ensure state purity across deployments.| Deployment consistency and stateless infrastructure over version history.                                                              |
-| **Recursive Self-Containment**| Embedded control plane recursively provisions itself within target containers, ensuring deterministic bootstrap.| Prevents configuration drift; enables consistent and reproducible behavior.                                                            |
-| **Dynamic Orchestration**| Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management (e.g., submodule remote rewriting)| Declarative approach intractable for adjusting to dynamic cross-layer changes (interchangeable repository remotes or network context). |
-| **Mono-Repository**| Centralizes infrastructure as a single code artifact; submodules modularize development at runtime| Consistency and modularity trade-off: infrastructure self-contained; dynamically resolved in recursive context.                        |
+|Concept|Approach| Reasoning|
+|-|-|-|
+| **Ephemeral State**| Git repository represents *current desired state*; state purity across deployments.| Deployment consistency and stateless infrastructure over version history.|
+| **Recursive Self-Containment**| Embedded control plane recursively provisions itself within target containers, ensuring deterministic bootstrap.| Prevents configuration drift; enables consistent and reproducible behavior.|
+| **Dynamic Orchestration**| Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management| Declarative approach intractable for adjusting to dynamic cross-layer changes (e.g. submodule remote rewriting or network context).|
+| **Mono-Repository**| Centralizes infrastructure as a single code artifact; submodules modularize development at runtime| Consistency and modularity: infrastructure self-contained; dynamically resolved in recursive context.|
 
 <p align="center">
   <img src="./docs/repositories.png" alt="Repositories"/>

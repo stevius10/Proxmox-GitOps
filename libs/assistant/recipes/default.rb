@@ -70,6 +70,16 @@ execute 'create_environment' do
   not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/activate") }
 end
 
+execute 'install_venv_pip' do
+  command "#{node['homeassistant']['dir']['venv']}/bin/python -m ensurepip"
+  user node['app']['user']
+  group node['app']['group']
+  environment(
+    'HOME' => "/home/#{node['app']['user']}"
+  )
+  not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/pip") }
+end
+
 execute 'install_assistant' do
   command "uv pip install --python #{node['homeassistant']['dir']['venv']}/bin/python webrtcvad wheel homeassistant mysqlclient psycopg2-binary isal"
   user node['app']['user']
@@ -104,12 +114,23 @@ template '/etc/systemd/system/homeassistant.service' do
   notifies :run, 'execute[reload_systemd]', :immediately
 end
 
-execute 'install_configurator' do
-  command "#{node['homeassistant']['dir']['venv']}/bin/python -m pip install hass-configurator"
+package 'python3-venv' do
+  action :install
+end
+
+execute 'create_configurator_venv' do
+  command 'python3 -m venv /app/configurator-venv'
+  user node['app']['user']
+  group node['app']['group']
+  not_if { ::File.exist?('/app/configurator-venv/bin/activate') }
+end
+
+execute 'install_hass_configurator' do
+  command '/app/configurator-venv/bin/python -m pip install --upgrade pip && /app/configurator-venv/bin/python -m pip install hass-configurator'
   user node['app']['user']
   group node['app']['group']
   environment 'UV_CACHE_DIR' => '/app/uv-cache'
-  not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/hass-configurator") }
+  not_if { ::File.exist?('/app/configurator-venv/bin/hass-configurator') }
 end
 
 template '/etc/systemd/system/hass-configurator.service' do
@@ -118,7 +139,7 @@ template '/etc/systemd/system/hass-configurator.service' do
   group 'root'
   mode '0644'
   variables(
-    venv_dir: node['homeassistant']['dir']['venv'],
+    venv_dir: '/app/configurator-venv',
     config_dir: node['homeassistant']['dir']['config'],
     user: node['app']['user']
   )

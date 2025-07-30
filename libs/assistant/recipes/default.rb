@@ -19,11 +19,7 @@ link '/config' do
   action :create
 end
 
-Common.download(self, '/tmp/Python-3.13.5.tgz',
-                url: 'https://www.python.org/ftp/python/3.13.5/Python-3.13.5.tgz',
-                mode: '0644',
-                action: :create
-)
+Common.download(self, '/tmp/Python-3.13.5.tgz', url: 'https://www.python.org/ftp/python/3.13.5/Python-3.13.5.tgz')
 
 bash 'install_python3135' do
   cwd '/tmp'

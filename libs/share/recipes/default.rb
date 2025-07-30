@@ -1,11 +1,7 @@
 login = Env.get(node, 'login')
 password = Env.get(node, 'password')
 
-%w[samba samba-common samba-client].each do |pkg|
-  package pkg do
-    action :install
-  end
-end
+Common.packages(self, %w[samba samba-common samba-client])
 
 node['mount'].each do |name|
   path = (name == 'share' ? '/share' : "/share/#{name}")

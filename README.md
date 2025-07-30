@@ -1,5 +1,17 @@
 [![Build Status](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## Table of Contents
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Core Concepts](#core-concepts)
+- [Trade-offs](#trade-offs)
+- [Design](#design)
+- [Lifecycle](#lifecycle)
+- [Requirements](#requirements)
+- [Getting Started](#getting-started)
+- [Create Container](#create-container)
+
 ## Overview
 
 Proxmox-GitOps implements a self-sufficient, extensible CI/CD environment for provisioning, configuring, and orchestrating Linux Containers (LXC) within Proxmox VE. Leveraging an Infrastructure-as-Code (IaC) approach, it manages the entire container lifecycle—bootstrapping, deployment, configuration, and validation—through version-controlled automation.
@@ -25,14 +37,34 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 | **Dynamic Orchestration**| Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management| Declarative approach intractable for adjusting to dynamic cross-layer changes (e.g. submodule remote rewriting or network context).|
 | **Mono-Repository**| Centralizes infrastructure as a single code artifact; submodules modularize development at runtime| Consistency and modularity: infrastructure self-contained; dynamically resolved in recursive context.|
 
+---
+
+## Trade-offs
+
+- **Complexity vs. Autonomy:** Recursive self-replication increases complexity drastically to achieve integrated deterministic bootstrap and reproducing behavior.
+
+- **Git Convention vs. Infrastructure State:** Uses Git as a state engine rather than versioning in volatile, stateless contexts. Mono-repository representation, however, encapsulates the entire infrastructure as a self-contained asset suited for version control.
+
+---
+
+## Design
+
+- **"Head-full" Headless**: loosely coupled; Ansible for maintained provisioning library, Cinc (or Chef respectively) for separation, modularization and complexity.
+
 <p align="center">
   <img src="./docs/repositories.png" alt="Repositories"/>
 </p>
 
-### Trade-offs
+### Lifecycle
 
-- **Complexity vs. Autonomy:** Recursive self-replication increases complexity drastically to achieve deterministic bootstrap and reproducible behavior. 
-- **Git Convention vs. Infrastructure State:** Uses Git as a state engine rather than versioning in volatile, stateless contexts; Mono-repository representation, however, encapsulates the entire infrastructure as self-contained asset suited for version control.
+- **Self-containing Mono-Repository** Artifact for **Version-Controlled Mirroring**
+  - `clone` aliased `git clone --recurse-submodules` (store network /share in persistent context)
+
+- **Backup**: See previous
+
+- **Update**: See previous, and redeploy merged
+
+- **Rollback**: See previous, or set `snapshot` to `release` at runtime
 
 ## Requirements
 
@@ -91,25 +123,23 @@ jobs:
 # libs/apache/recipes/default.rb
 package 'apache2'
 
-service 'apache2' do
-  action [:enable, :start]
-end
-
 file '/var/www/html/index.html' do
   content "<h1>Hello from #{Env.get(node, 'login')}</h1>"
   mode '0644'
   owner 'app' # see base/roles/base/tasks/main.yml
   group 'app' # each container is configured identically 
 end
+
+Common.application 'apache2' # reusables included by convention
 ```
 
 - Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
 
 - a) **Deploy**: Push to the `release` branch of a new repository
 
-- b) **Add to Meta-/Mono-Repository**: Add path to [repositories](config/attributes/default.rb#L24) and redeploy Proxmox-GitOps
+- b) **Add to Meta-/Mono-Repository**: Add path to [repositories](config/attributes/default.rb#L24) and redeploy
 
-The container can be tested locally running `./local/run.sh [container]`
+The container can be tested locally running `./local/run.sh [container]` (_wip_)
 
 <p align="center">
   <img src="./docs/development.png" alt="Local Development"/>

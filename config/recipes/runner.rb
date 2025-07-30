@@ -1,52 +1,12 @@
-if !node['runner']['version'] && node['runner']['version'].to_s.empty?
-  ruby_block 'fetch_latest_runner_version' do
-    block do
-      require 'open-uri'
-      html = URI.open('https://gitea.com/gitea/act_runner/releases/latest').read
-      latest = html.match(/title>v([\d\.]+)/)
-      if latest
-        node.run_state['runner_version'] = latest[1]
-      else
-        raise '[runner] Failed to fetch latest version'
-      end
-    end
-    action :run
-  end
-end
+Common.directories(self, node['runner']['install_dir'], owner: node['git']['app']['user'], group: node['git']['app']['group'])
 
-directory node['runner']['install_dir'] do
-  owner node['git']['app']['user']
-  group node['git']['app']['group']
-  mode '0755'
-  recursive true
-  action :create
-end
-
-remote_file "#{node['runner']['install_dir']}/ace_runner" do
-  source lazy {
-    ver = node['runner']['version'] && !node['runner']['version'].to_s.empty? ? node['runner']['version'] : node.run_state['runner_version']
-    arch = (node['kernel']['machine'] =~ /arm64|aarch64/) ? 'arm64' : 'amd64'
-    "https://gitea.com/gitea/act_runner/releases/download/v#{ver}/act_runner-#{ver}-linux-#{arch}"
-  }
-  owner node['git']['app']['user']
-  group node['git']['app']['group']
-  mode '0755'
-  action :create_if_missing
-end
-
-execute 'daemon_reload' do
-  command 'systemctl daemon-reload'
-  action :nothing
-end
-
-template '/etc/systemd/system/runner.service' do
-  source 'runner.service.erb'
-  owner 'root'
-  group 'root'
-  mode '0644'
-  action :create
-  notifies :run, 'execute[daemon_reload]', :immediately
-end
+Common.download(self, "#{node['runner']['install_dir']}/act_runner",
+  url: -> { ver = Common.latest('https://gitea.com/gitea/act_runner/releases/latest')
+    "https://gitea.com/gitea/act_runner/releases/download/v#{ver}/act_runner-#{ver}-linux-#{Common.arch(node)}" },
+  owner: node['git']['app']['user'],
+  group: node['git']['app']['group'],
+  mode: '0755'
+)
 
 template "#{node['runner']['install_dir']}/config.yaml" do
   source 'runner.config.yaml.erb'
@@ -56,43 +16,35 @@ template "#{node['runner']['install_dir']}/config.yaml" do
   action :create
 end
 
+Common.application(self, 'runner',
+  user: node['git']['app']['user'],
+  exec: "#{node['runner']['install_dir']}/act_runner daemon --config #{node['runner']['install_dir']}/config.yaml",
+  cwd: node['runner']['install_dir'],
+  subscribe: ["template[#{node['runner']['install_dir']}/config.yaml]", "remote_file[#{node['runner']['install_dir']}/act_runner]"]
+)
+
 ruby_block 'runner_register' do
   block do
-    runner_marker = "#{node['runner']['install_dir']}/.runner"
-
-    unless ::File.exist?(runner_marker)
+    # unless ::File.exist?(node['runner']['marker_file']) # stability over convention
       require 'net/http'
-
-      uri = URI("http://localhost:#{node['git']['port']['http']}")
-      max_retries = 10
-      delay = 3
       connected = false
-
-      max_retries.times do |attempt|
-        begin
-          res = Net::HTTP.get_response(uri)
-          if res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
-            connected = true
-            break
-          end
-        rescue => e
-          Chef::Log.warn("Gitea not ready yet (#{attempt + 1}/#{max_retries}): #{e}")
-        end
-        sleep delay
+      5.times do
+        res = Common.request(URI("http://localhost:#{node['git']['port']['http']}"))
+        (connected = true; break) if res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
+        sleep 3
       end
       raise "Gitea not responding" unless connected
 
-      token = Mixlib::ShellOut.new(
+      (token = Mixlib::ShellOut.new(
         "#{node['git']['install_dir']}/gitea actions --config #{node['git']['install_dir']}/app.ini generate-runner-token",
         user: node['git']['app']['user'],
         environment: { 'HOME' => "/home/#{node['git']['app']['user']}" }
-      )
-      token.run_command
+      )).run_command
       token.error!
       token = token.stdout.strip
 
-      register = Mixlib::ShellOut.new(
-        "#{node['runner']['install_dir']}/ace_runner register " \
+      (register = Mixlib::ShellOut.new(
+        "#{node['runner']['install_dir']}/act_runner register " \
           "--instance http://localhost:#{node['git']['port']['http']} " \
           "--token #{token} " \
           "--no-interactive " \
@@ -101,15 +53,10 @@ ruby_block 'runner_register' do
         cwd: node['runner']['install_dir'],
         user: node['git']['app']['user'],
         environment: { 'HOME' => "/home/#{node['git']['app']['user']}" }
-      )
-      register.run_command
+      )).run_command
       register.error!
-    end
-  end
-end
 
-service 'runner' do
-  action [:enable, :start]
-  subscribes :restart, "template[#{node['runner']['install_dir']}/config.yaml]", :delayed
-  subscribes :restart, "remote_file[#{node['runner']['install_dir']}/ace_runner]", :delayed
+      # File.write(node['runner']['marker_file'], Time.now.to_s)
+    # end
+  end
 end

@@ -35,30 +35,21 @@ end
 
 ruby_block 'config_key_add' do
   block do
-    require 'net/http'
-    require 'uri'
     require 'json'
+    key_content = ::File.read("#{node['key']}.pub").strip
+    key_url = "#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys"
 
-    key_path = "#{node['key']}.pub"
-    key_content = ::File.read(key_path).strip
-
-    api_url = "#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys"
-    api = URI(api_url)
-    check_req = Net::HTTP::Get.new(api.request_uri)
-    check_req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
-    response = Net::HTTP.new(api.host, api.port).request(check_req)
-
+    response = Common.request(key_url, user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
     unless (JSON.parse(response.body) rescue []).any? { |k| k['key'] && k['key'].strip == key_content }
-      req = Net::HTTP::Post.new(api.request_uri)
-      req['Content-Type'] = 'application/json'
-      req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
-      req.body = { title: "gitops", key: key_content }.to_json
-      response = Net::HTTP.new(api.host, api.port).request(req)
-      raise "HTTP #{response.code}: #{response.body}" unless response.code.to_i.between?(200, 299) || response.code.to_i == 422
+      result = Common.request(key_url, method: Net::HTTP::Post,
+        user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
+        headers: { 'Content-Type' => 'application/json' },
+        body: { title: "gitops", key: key_content }.to_json )
+      raise "HTTP #{result.code}: #{result.body}" unless result.code.to_i.between?(200, 299) || result.code.to_i == 422
     end
-  end
   action :run
   only_if { ::File.exist?("#{node['key']}.pub") }
+  end
 end
 
 directory "/home/#{node['git']['app']['user']}/.ssh" do
@@ -83,7 +74,7 @@ file "/home/#{node['git']['app']['user']}/.ssh/config" do
 end
 
 execute 'config_wait_connection' do
-  command "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -p #{node['git']['app']['ssh_port']} -T #{Env.get(node, 'login')}@#{node['host']} || true"
+  command "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -p #{node['git']['port']['ssh']} -T #{Env.get(node, 'login')}@#{node['host']} || true"
   user node['git']['app']['user']
   action :run
   live_stream true
@@ -109,21 +100,17 @@ execute 'config_git_user' do
   action :run
 end
 
+
 ruby_block 'config_gitea_create_org' do
   block do
-    require 'net/http'
-    require 'uri'
-    api = URI("#{node['git']['endpoint']}/orgs")
-    http = Net::HTTP.new(api.host, api.port)
-    req = Net::HTTP::Post.new(api.request_uri)
-    req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
-    req['Content-Type'] = 'application/json'
-    req.body = { username: node['git']['repo']['org'] }.to_json
-    response = http.request(req)
-    code = response.code.to_i
-    if code != 201 && code != 422
-      raise "HTTP #{code}: #{response.body}"
-    end
+    require 'json'
+    response_status_code = (result = Common.request("#{node['git']['endpoint']}/orgs",
+     method: Net::HTTP::Post,
+     user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
+     headers: { 'Content-Type' => 'application/json' },
+     body: { username: node['git']['repo']['org'] }.to_json
+    )).code.to_i
+    raise "HTTP #{response_status_code}: #{result.body}" unless response_status_code == 201 || response_status_code == 422
   end
   action :run
 end

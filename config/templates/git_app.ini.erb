@@ -8,7 +8,7 @@ RUN_MODE = prod
 DOMAIN       = <%= node['host'] %>
 HTTP_PORT    = <%= node['git']['port']['http'] %>
 ROOT_URL     = http://<%= node['host'] %>:<%= node['git']['port']['http'] %>/
-SSH_PORT     = 2222
+SSH_PORT     = <%= node['git']['port']['ssh'] %>
 START_SSH_SERVER = true
 
 [database]

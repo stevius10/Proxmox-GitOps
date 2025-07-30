@@ -33,27 +33,18 @@ path_target = node['git']['workspace']
 
   ruby_block "repo_create_#{name_repo}" do
     block do
-      require 'net/http'
-      require 'uri'
       require 'json'
-
-      api = URI("#{node['git']['endpoint']}/repos/#{node['git']['repo']['org']}/#{name_repo}")
-      req = Net::HTTP::Get.new(api.request_uri)
-      req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
-      response = Net::HTTP.new(api.host, api.port).request(req)
-
+      response = Common.request("#{node['git']['endpoint']}/repos/#{node['git']['repo']['org']}/#{name_repo}", user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
       if response.code.to_i == 404
-        api = URI("#{node['git']['endpoint']}/admin/users/#{node['git']['repo']['org']}/repos")
-        http = Net::HTTP.new(api.host, api.port)
-        req = Net::HTTP::Post.new(api.request_uri)
-        req.basic_auth(Env.get(node, 'login'), Env.get(node, 'password'))
-        req['Content-Type'] = 'application/json'
-        req.body = { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.to_json
-
-        code = http.request(req).code.to_i
-        node.run_state["#{name_repo}_repo_created"] = (code == 201)
-        node.run_state["#{name_repo}_repo_exists"] = false
-        raise "#{name_repo} (HTTP #{code}): #{response.body}" unless [201, 409].include?(code)
+        create_url_response_code = (result = Common.request("#{node['git']['endpoint']}/admin/users/#{node['git']['repo']['org']}/repos",
+         method: Net::HTTP::Post,
+         user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
+         headers: { 'Content-Type' => 'application/json' },
+         body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.to_json
+        )).code.to_i
+        node.run_state["#{name_repo}_repo_created"] = (create_url_response_code == 201)
+        node.run_state["#{name_repo}_repo_exists"] = (create_url_response_code == 409)
+        raise "#{name_repo} (HTTP #{create_url_response_code}): #{result.body}" unless [201, 409].include?(create_url_response_code)
       else
         node.run_state["#{name_repo}_repo_created"] = false
         node.run_state["#{name_repo}_repo_exists"] = true

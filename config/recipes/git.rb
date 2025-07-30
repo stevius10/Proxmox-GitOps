@@ -1,9 +1,9 @@
 Common.download(self, "#{node['git']['install_dir']}/gitea",
-                url: -> { ver = Common.request('https://github.com/go-gitea/gitea/releases/latest').body[/title>Release (v?[\d\.]+)/, 1].sub(/^v/, '')
-     "https://github.com/go-gitea/gitea/releases/download/v#{ver}/gitea-#{ver}-linux-#{Common.arch(node)}" },
-                owner: node['git']['app']['user'],
-                group: node['git']['app']['group'],
-                mode: '0755'
+  url: -> { ver = Common.request('https://github.com/go-gitea/gitea/releases/latest').body[/title>Release (v?[\d\.]+)/, 1].sub(/^v/, '')
+    "https://github.com/go-gitea/gitea/releases/download/v#{ver}/gitea-#{ver}-linux-#{Common.arch(node)}" },
+  owner: node['git']['app']['user'],
+  group: node['git']['app']['group'],
+  mode: '0755'
 )
 
 template "#{node['git']['install_dir']}/app.ini" do

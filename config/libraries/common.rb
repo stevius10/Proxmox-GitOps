@@ -110,11 +110,7 @@ module Common
 
     ctx.service name do
       action action
-      if subscribe
-        Array(subscribe).flatten.each do |ref|
-          subscribes :restart, ref, :delayed
-        end
-      end
+      Array(subscribe).flatten.each { |ref| subscribes :restart, ref, :delayed } if subscribe
     end
   end
 

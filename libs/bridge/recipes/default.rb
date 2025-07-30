@@ -23,7 +23,7 @@ execute 'enable_corepack' do
 end
 
 z2m_file = Common.download(self, "/tmp/zigbee2mqtt.zip",
-  url: -> { ver = Common.request('https://github.com/Koenkk/zigbee2mqtt/releases/latest').body[/title>Release (v?[\d\.]+)/,1].sub(/^v/, '')
+  url: -> { ver = Common.latest('https://github.com/Koenkk/zigbee2mqtt/releases/latest')
   "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{ver}.zip" },
   owner: node['git']['app']['user'],
   group: node['git']['app']['group'],

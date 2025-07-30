@@ -1,8 +1,8 @@
 Common.directories(self, node['runner']['install_dir'], owner: node['git']['app']['user'], group: node['git']['app']['group'])
 
 Common.download(self, "#{node['runner']['install_dir']}/act_runner",
-  url: -> { ver = Common.request('https://gitea.com/gitea/act_runner/releases/latest').body[/title>Release (v?[\d\.]+)/, 1].sub(/^v/, '')
-"https://gitea.com/gitea/act_runner/releases/v#{ver}/act_runner-#{ver}-linux-#{Common.arch(node)}" },
+  url: -> { ver = Common.latest('https://gitea.com/gitea/act_runner/releases/latest')
+    "https://gitea.com/gitea/act_runner/releases/download/v#{ver}/act_runner-#{ver}-linux-#{Common.arch(node)}" },
   owner: node['git']['app']['user'],
   group: node['git']['app']['group'],
   mode: '0755'
@@ -28,14 +28,10 @@ ruby_block 'runner_register' do
     unless ::File.exist?(node['runner']['marker_file'])
       require 'net/http'
       connected = false
-      10.times do
-        begin
-          if [Net::HTTPSuccess, Net::HTTPRedirection].include?(Common.request(URI("http://localhost:#{node['git']['port']['http']}")))
-            (connected = true) and break
-          else
-            sleep 2
-          end
-        end
+      5.times do
+        res = Common.request(URI("http://localhost:#{node['git']['port']['http']}"))
+        (connected = true; break) if res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
+        sleep 3
       end
       raise "Gitea not responding" unless connected
 
@@ -59,6 +55,8 @@ ruby_block 'runner_register' do
         environment: { 'HOME' => "/home/#{node['git']['app']['user']}" }
       )).run_command
       register.error!
+
+      File.write(node['runner']['marker_file'], Time.now.to_s)
     end
   end
 end

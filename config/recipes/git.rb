@@ -14,7 +14,7 @@ template "#{node['git']['install_dir']}/app.ini" do
   action :create_if_missing
 end
 
-application(self, 'gitea',
+Common.application(self, 'gitea',
   user: node['git']['app']['user'],
   exec: "#{node['git']['install_dir']}/gitea web --config #{node['git']['install_dir']}/app.ini",
   cwd: node['git']['data_dir'],

@@ -16,7 +16,7 @@ template "#{node['runner']['install_dir']}/config.yaml" do
   action :create
 end
 
-application(self, 'runner',
+Common.application(self, 'runner',
   user: node['git']['app']['user'],
   exec: "#{node['runner']['install_dir']}/act_runner daemon --config #{node['runner']['install_dir']}/config.yaml",
   cwd: node['runner']['install_dir'],

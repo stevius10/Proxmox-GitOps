@@ -25,7 +25,7 @@ Common.application(self, 'runner',
 
 ruby_block 'runner_register' do
   block do
-    unless ::File.exist?(node['runner']['marker_file'])
+    # unless ::File.exist?(node['runner']['marker_file']) # stability over convention
       require 'net/http'
       connected = false
       5.times do
@@ -56,7 +56,7 @@ ruby_block 'runner_register' do
       )).run_command
       register.error!
 
-      File.write(node['runner']['marker_file'], Time.now.to_s)
-    end
+      # File.write(node['runner']['marker_file'], Time.now.to_s)
+    # end
   end
 end

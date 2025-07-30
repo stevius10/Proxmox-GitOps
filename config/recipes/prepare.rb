@@ -1,7 +1,6 @@
 # Filesystem
 
-[
-  "/home/#{node['git']['app']['user']}",
+Common.directories(self, [ "/home/#{node['git']['app']['user']}",
   "#{node['git']['home']}",
   "#{node['git']['install_dir']}",
   "#{node['git']['data_dir']}",
@@ -13,21 +12,9 @@
   "#{node['runner']['install_dir']}",
   "#{::File.dirname(node['key'])}",
   "#{node['git']['workspace']}"
-].each do |dir|
-  directory dir do
-    owner node['git']['app']['user']
-    group node['git']['app']['group']
-    mode '0755'
-    recursive true
-    action :create
-  end
-end
+], owner: node['git']['app']['user'], group: node['git']['app']['group'])
 
-# Packages
-
-package %w(git acl python3-pip ansible nodejs npm python3-proxmoxer) do
-  action :install
-end
+Common.packages(self, %w(git acl python3-pip ansible nodejs npm python3-proxmoxer))
 
 execute 'prepare_install_ansible' do
   command 'python3 -m pip install --upgrade ansible --break-system-packages'

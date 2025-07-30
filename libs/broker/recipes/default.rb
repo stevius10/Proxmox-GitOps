@@ -1,22 +1,8 @@
 Env.set(node, 'broker', "mqtt://#{node['ip']}:#{node['broker']['port']}")
 
-%w[mosquitto].each do |pkg|
-  package pkg do
-    action :install
-  end
-end
+package 'mosquitto'
 
-[node['broker']['dir']['data'], node['broker']['dir']['log']].each do |dir|
-  directory dir do
-    owner node['app']['user']
-    group node['app']['group']
-    mode '0755'
-    recursive true
-    action :create
-  end
-end
-
-# Configuration
+Common.directories(self, [node['broker']['dir']['data'], node['broker']['dir']['log']], owner: node['app']['user'], group: node['app']['group'])
 
 template node['broker']['file']['config'] do
   source 'mosquitto.conf.erb'
@@ -32,8 +18,6 @@ template node['broker']['file']['config'] do
   notifies :restart, 'service[mosquitto]', :delayed
 end
 
-# Security 
-
 file node['broker']['file']['user'] do
   owner node['app']['user']
   group node['app']['group']
@@ -47,26 +31,7 @@ execute "user-add_#{Env.get(node, 'login')}" do
   sensitive true
 end
 
-# Service 
-
-template '/etc/systemd/system/mosquitto.service' do
-  source 'mosquitto.service.erb'
-  owner 'root'
-  group 'root'
-  mode '0644'
-  variables({ 
-    config_file: node['broker']['file']['config'], 
-    user: node['app']['user'], 
-    group: node['app']['group']
-  })
-end
-
-execute 'reload-systemd' do
-  command 'systemctl daemon-reload'
-  action :run
-  notifies :restart, 'service[mosquitto]', :immediately
-end
-
-service 'mosquitto' do
-  action [:enable, :start]
-end
+application(self, 'mosquitto',
+  user: node['app']['user'],
+  exec:  "/usr/sbin/mosquitto -c #{node['broker']['file']['config']}",
+  subscribe: "template[#{node['broker']['file']['config']}]" )

@@ -1,16 +1,5 @@
-package 'caddy' do
-  action :upgrade
-end
-
-[ node['proxy']['dir']['app'], node['proxy']['dir']['logs'] ].each do |d|
-  directory d do
-    owner     node['app']['user']
-    group     node['app']['group']
-    mode      '0755'
-    recursive true
-    action    :create
-  end
-end
+package 'caddy'
+Common.directories(self, [node['proxy']['dir']['app'], node['proxy']['dir']['logs']], owner: node['app']['user'], group: node['app']['group'])
 
 ruby_block 'fetch_proxmox_containers' do
   block do
@@ -65,7 +54,6 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
   action :create
 end
 
-service 'caddy' do
-  action    [:enable, :start]
-  subscribes :reload, "template[#{node['proxy']['dir']['app']}/Caddyfile]", :immediately
-end
+application(self, 'caddy',
+  user: node['app']['user'],
+  subscribe: "template[#{node['proxy']['dir']['app']}/Caddyfile]")

@@ -8,5 +8,3 @@ default['bridge']['adapter']    = Env.get(node, 'adapter') || ''
 default['bridge']['dir']        = '/app/bridge'
 default['bridge']['data']       = "#{node['bridge']['dir']}/data"
 default['bridge']['logs']       = "#{node['bridge']['dir']}/logs"
-
-default['bridge']['version']    = 'latest'

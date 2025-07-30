@@ -91,25 +91,29 @@ jobs:
 # libs/apache/recipes/default.rb
 package 'apache2'
 
-service 'apache2' do
-  action [:enable, :start]
-end
-
 file '/var/www/html/index.html' do
   content "<h1>Hello from #{Env.get(node, 'login')}</h1>"
   mode '0644'
   owner 'app' # see base/roles/base/tasks/main.yml
   group 'app' # each container is configured identically 
 end
+
+Common.application 'apache2' # reusables included by default
 ```
 
 - Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
 
 - a) **Deploy**: Push to the `release` branch of a new repository
 
-- b) **Add to Meta-/Mono-Repository**: Add path to [repositories](config/attributes/default.rb#L24) and redeploy Proxmox-GitOps
+- b) **Add to Meta-/Mono-Repository**: Add path to [repositories](config/attributes/default.rb#L24) and redeploy
 
-The container can be tested locally running `./local/run.sh [container]`
+- c) **Self-containing Infrastructure Backup** or **Artifact** (e.g., **Version-Controlled Mirroring**): Using `'alias clone='git clone --recurse-submodules'` (store /share if needed)
+
+- d) **Update**: See previous, and redeploy merged
+
+- d) **Rollback**: See previous, or set `snapshot` to `release` at runtime
+
+The container can be tested locally running `./local/run.sh [container]` (_wip_)
 
 <p align="center">
   <img src="./docs/development.png" alt="Local Development"/>

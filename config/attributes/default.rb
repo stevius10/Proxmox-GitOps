@@ -12,13 +12,15 @@ default['git']['workspace']         = '/share/workspace'
 
 default['git']['port']['http']      = 8080
 default['git']['port']['ssh']       = 2222
-default['git']['endpoint']          = "http://#{node['host']}:#{node['git']['port']['http']}/api/v1"
+default['git']['version']          = "v1"
+default['git']['endpoint']          = "http://#{node['host']}:#{node['git']['port']['http']}/api/#{node['git']['version']}"
 
 default['git']['repo']['org']       = 'srv'
 default['git']['repo']['ssh']       = "#{node['host']}:#{node['git']['port']['ssh']}/#{node['git']['repo']['org']}"
 
 default['runner']['install_dir']    = '/app/runner'
 default['runner']['cache_dir']      = '/tmp'
+default['runner']['marker_file']    = "#{node['runner']['install_dir']}/.runner"
 default['runner']['labels']         = 'shell'
 
 default['git']['repositories']      = [ "./", "./base", "./config/libraries", "./libs/share", "./libs/broker", "./libs/bridge", "./libs/assistant", "./libs/proxy" ]

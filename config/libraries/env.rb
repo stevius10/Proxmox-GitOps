@@ -17,13 +17,13 @@ module Env
   def self.get_variable(node, key)
     JSON.parse(request(node, key).body)['data']
   rescue => e
-    Chef::Log.warn("[#{__method__}] #{e.message} failed get '#{key}' on #{host(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
+    Chef::Log.warn("[#{__method__}] #{e.message} failed get '#{key}' on #{endpoint(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
   end
 
   def self.set_variable(node, key, val)
     request(node, key, { name: key, value: val.to_s }.to_json)
   rescue => e
-    Chef::Log.warn("[#{__method__}] #{e.message} failed set '#{key}' on #{host(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
+    Chef::Log.warn("[#{__method__}] #{e.message} failed set '#{key}' on #{endpoint(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
     raise
   end
 
@@ -31,12 +31,17 @@ module Env
     alias_method :set, :set_variable
   end
 
-  private_class_method def self.host(node)
-    node['host'].to_s.presence || ENV['HOST'].presence || '127.0.0.1'
+  private_class_method def self.or_default(var, default)
+    var.to_s.presence ? var.to_s : default.to_s
+  end
+
+  private_class_method def self.endpoint(node, port=or_default(node.dig('git', 'port', 'http'), '8080'))
+    or_default(node.dig('git', 'endpoint'),
+"http://#{or_default(node['host'].to_s.presence || ENV['HOST'].to_s.presence, '127.0.0.1')}:#{port}/api/#{or_default(node.dig('git', 'version'), 'v1')}")
   end
 
   private_class_method def self.request(node, key, body = nil)
-    uri = URI("http://#{host(node)}:8080/api/v1/orgs/srv/actions/variables/#{key}")
+    uri = URI("#{endpoint(node)}/orgs/#{or_default(node.dig('git', 'repo', 'org'), 'srv')}/actions/variables/#{key}")
     (body ? [Net::HTTP::Put, Net::HTTP::Post] : [Net::HTTP::Get]).each do |m|
       req = m.new(uri)
       req.basic_auth(*creds(node))

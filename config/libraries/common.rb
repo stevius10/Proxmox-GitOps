@@ -32,9 +32,8 @@ module Common
   end
 
   def self.download(ctx, path, url:, owner: 'root', group: 'root', mode: '0644', action: :create)
-    src = url.respond_to?(:call) ? lazy { url.call } : url
     ctx.remote_file path do
-      source src
+      source url.respond_to?(:call) ? lazy { url.call } : url
       owner  owner
       group  group
       mode   mode

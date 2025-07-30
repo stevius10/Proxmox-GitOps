@@ -87,14 +87,14 @@ execute 'install_configurator' do
   not_if { ::File.exist?("#{node['configurator']['dir']}/bin/hass-configurator") }
 end
 
-application(self, 'homeassistant',
+Common.application(self, 'homeassistant',
   user: node['app']['user'],
   exec: "#{node['homeassistant']['dir']['venv']}/bin/python3 -m homeassistant --config #{node['homeassistant']['dir']['config']}",
   cwd: node['homeassistant']['dir']['config'],
   unit: { 'Service' => { 'RestartForceExitStatus' => '100',
     'Environment' => "PATH=#{node['homeassistant']['dir']['venv']}/bin:/usr/local/bin:/usr/bin:/usr/local/bin/uv" } } )
 
-application(self, 'hass-configurator',
+Common.application(self, 'hass-configurator',
   user:  node['app']['user'],
   exec:  "#{node['configurator']['dir']}/bin/hass-configurator -s -e -b #{node['homeassistant']['dir']['config']}",
   cwd:   node['homeassistant']['dir']['config'] )

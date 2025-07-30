@@ -1,4 +1,5 @@
 package 'caddy'
+
 Common.directories(self, [node['proxy']['dir']['app'], node['proxy']['dir']['logs']], owner: node['app']['user'], group: node['app']['group'])
 
 ruby_block 'fetch_proxmox_containers' do
@@ -54,6 +55,6 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
   action :create
 end
 
-application(self, 'caddy',
+Common.application(self, 'caddy',
   user: node['app']['user'],
   subscribe: "template[#{node['proxy']['dir']['app']}/Caddyfile]")

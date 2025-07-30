@@ -90,7 +90,7 @@ template "#{node['bridge']['data']}/configuration.yaml" do
   notifies :restart, "service[zigbee2mqtt]", :delayed
 end
 
-application(self, 'zigbee2mqtt',
+Common.application(self, 'zigbee2mqtt',
   user: node['app']['user'],
   group: node['app']['group'],
   exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",

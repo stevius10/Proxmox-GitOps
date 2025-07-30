@@ -31,7 +31,7 @@ execute "user-add_#{Env.get(node, 'login')}" do
   sensitive true
 end
 
-application(self, 'mosquitto',
+Common.application(self, 'mosquitto',
   user: node['app']['user'],
   exec:  "/usr/sbin/mosquitto -c #{node['broker']['file']['config']}",
   subscribe: "template[#{node['broker']['file']['config']}]" )

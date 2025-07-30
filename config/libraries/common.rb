@@ -42,11 +42,22 @@ module Common
   end
 
   def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil)
-    req  = method.new(u = URI(uri))
+    req = method.new(u = URI(uri))
     req.basic_auth(user, pass) if user && pass
     req.body = body if body
     headers.each { |k, v| req[k] = v }
-    Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https') { |http| http.request(req) }
+    response = Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https') { |http| http.request(req) }
+    return response if response.is_a?(Net::HTTPSuccess)
+    if response.is_a?(Net::HTTPRedirection)
+      loc = response['location']
+      loc = "#{u.scheme}://#{u.host}#{loc}" if loc && loc.start_with?('/')
+      return request(loc, user: user, pass: pass, headers: headers, method: method, body: body)
+    end
+    response
+  end
+
+  def self.latest(release_url)
+    request(release_url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1].to_s || "latest"
   end
 
   def self.daemon(ctx, name)

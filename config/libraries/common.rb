@@ -42,11 +42,11 @@ module Common
   end
 
   def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil)
-    req  = method.new(URI(uri))
+    req  = method.new(u = URI(uri))
     req.basic_auth(user, pass) if user && pass
     req.body = body if body
     headers.each { |k, v| req[k] = v }
-    Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') { |http| http.request(req) }
+    Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https') { |http| http.request(req) }
   end
 
   def self.daemon(ctx, name)

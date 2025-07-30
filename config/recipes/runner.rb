@@ -28,10 +28,10 @@ ruby_block 'runner_register' do
     # unless ::File.exist?(node['runner']['marker_file']) # stability over convention
       require 'net/http'
       connected = false
-      5.times do
+      15.times do
         res = Common.request(URI("http://localhost:#{node['git']['port']['http']}"))
         (connected = true; break) if res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
-        sleep 3
+        sleep 5
       end
       raise "Gitea not responding" unless connected
 
@@ -60,3 +60,5 @@ ruby_block 'runner_register' do
     # end
   end
 end
+
+Common.application(self, 'runner')

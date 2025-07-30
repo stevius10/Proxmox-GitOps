@@ -22,11 +22,6 @@ execute 'enable_corepack' do
   not_if 'which pnpm'
 end
 
-service 'zigbee2mqtt' do
-  supports restart: true, start: true, stop: true, status: true
-  action :nothing
-end
-
 z2m_file = Common.download(self, "/tmp/zigbee2mqtt.zip",
   url: -> { ver = Common.request('https://github.com/Koenkk/zigbee2mqtt/releases/latest').body[/title>Release (v?[\d\.]+)/,1].sub(/^v/, '')
   "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{ver}.zip" },
@@ -34,7 +29,7 @@ z2m_file = Common.download(self, "/tmp/zigbee2mqtt.zip",
   group: node['git']['app']['group'],
   mode: '0644'
 )
-z2m_file.notifies :stop, "service[zigbee2mqtt]", :immediately
+z2m_file.notifies :stop, "service[zigbee2mqtt]", :immediately if resources("service[zigbee2mqtt]") rescue nil
 z2m_file.notifies :run, 'execute[create_backup]', :immediately
 z2m_file.notifies :run, 'execute[zigbee2mqtt_extract]', :immediately
 z2m_file.notifies :run, 'execute[install_dependencies]', :delayed

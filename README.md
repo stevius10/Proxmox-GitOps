@@ -4,13 +4,16 @@
 ## Table of Contents
 - [Overview](#overview)
 - [Architecture](#architecture)
-- [Core Concepts](#core-concepts)
-- [Trade-offs](#trade-offs)
-- [Design](#design)
-- [Lifecycle](#lifecycle)
-- [Requirements](#requirements)
-- [Getting Started](#getting-started)
-- [Create Container](#create-container)
+  - [Core Concepts](#core-concepts)
+  - [Design](#design)
+  - [Trade-offs](#trade-offs)
+- [Usage](#usage)
+  - [Lifecycle](#lifecycle)
+  - [Getting Started](#getting-started)
+    - [Requirements](#requirements)
+    - [Define Container](#define-container)
+
+---
 
 ## Overview
 
@@ -30,34 +33,34 @@ Initial bootstrapping is performed via a local Docker environment, with subseque
 
 This system implements stateless infrastructure management on Proxmox VE, ensuring deterministic reproducibility and environmental parity through recursive self-containment.
 
-|Concept|Approach| Reasoning|
-|-|-|-|
-| **Ephemeral State**| Git repository represents *current desired state*; state purity across deployments.| Deployment consistency and stateless infrastructure over version history.|
-| **Recursive Self-Containment**| Embedded control plane recursively provisions itself within target containers, ensuring deterministic bootstrap.| Prevents configuration drift; enables consistent and reproducible behavior.|
-| **Dynamic Orchestration**| Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management| Declarative approach intractable for adjusting to dynamic cross-layer changes (e.g. submodule remote rewriting or network context).|
-| **Mono-Repository**| Centralizes infrastructure as a single code artifact; submodules modularize development at runtime| Consistency and modularity: infrastructure self-contained; dynamically resolved in recursive context.|
+| Concept | Approach | Reasoning |
+|---------|----------|-----------|
+| **Ephemeral State** | Git repository represents *current desired state*, ensuring state purity across deployments.| Deployment consistency and stateless infrastructure over version history. |
+| **Recursive Self-Containment** | Embedded control plane recursively provisions itself within target containers, ensuring deterministic bootstrap.| Prevents configuration drift; enables consistent and reproducible behavior. |
+| **Dynamic Orchestration** | Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management| Declarative approach intractable for adjusting to dynamic cross-layer changes (e.g. submodule remote rewriting). |
+| **Monorepository** | Centralizes infrastructure as a single code artifact; submodules modularize development at runtime| Consistency and modularity: infrastructure self-contained; dynamically resolved in recursive context. |
 
----
+### Design
 
-## Trade-offs
+- **Loosely coupled**: Containers are decoupled from the platform, so control plane is independently interchangeable.
+
+- **Headless**: Ansible for provisioning, leveraging upstream maintenance; Cinc (Chef) for modular, declarative desired state configuration and managing recursive complexity.
+
+### Trade-offs
 
 - **Complexity vs. Autonomy:** Recursive self-replication increases complexity drastically to achieve integrated deterministic bootstrap and reproducing behavior.
 
 - **Git Convention vs. Infrastructure State:** Uses Git as a state engine rather than versioning in volatile, stateless contexts. Mono-repository representation, however, encapsulates the entire infrastructure as a self-contained asset suited for version control.
 
----
-
-## Design
-
-- **"Head-full" Headless**: loosely coupled; Ansible for maintained provisioning library, Cinc (or Chef respectively) for separation, modularization and complexity.
-
 <p align="center">
   <img src="./docs/repositories.png" alt="Repositories"/>
 </p>
 
+## Usage
+
 ### Lifecycle
 
-- **Self-containing Mono-Repository** Artifact for **Version-Controlled Mirroring**
+- **Self-contained Mono-Repository** Artifact for **Version-Controlled Mirroring**
   - `clone` aliased `git clone --recurse-submodules` (store network /share in persistent context)
 
 - **Backup**: See previous
@@ -66,28 +69,28 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - **Rollback**: See previous, or set `snapshot` to `release` at runtime
 
-## Requirements
+### Getting Started
+
+- Set **credentials and Proxmox API token** in [`local/.config.json`](local/.config.json) as `./local/config.json`
+- Run `./local/run.sh` for local Docker environment
+- Accept the Pull Request at `localhost:8080/srv/proxmoxgitops/pulls/1` to deploy on Proxmox VE
+
+<p align="center">
+  <img src="./docs/recursion.png" alt="Pipeline"/>
+</p>
+
+#### Requirements
 
 - Docker
 - Proxmox VE 8.4
 - Proxmox API token
 - See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
-## Getting Started
-
-- Configure **credentials and Proxmox API token** in [`local/.config.json`](local/.config.json) as `config.json`
-- Run `local/run.sh` for local Docker environment 
-- Accept the [`Pull Request`](http://localhost:8080/srv/proxmoxgitops/pulls/1) to deploy on Proxmox VE
-
-<p align="center">
-  <img src="./docs/recursion.png" alt="Pipeline"/>
-</p>
-
-### Create Container
+#### Define Container
 
 Reusable container definitions are stored in the [`libs`](libs) folder. Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
 
-- Add `config.env` to your container's root directory, e.g.:
+- Add `config.env` to your container's _libs_ root directory (e.g. `./libs/apache`):
 ```dotenv
 IP=192.168.178.42
 ID=42
@@ -99,7 +102,7 @@ DISK=local-lvm:8
 BOOT=yes
 ```
 
-- Paste generic pipeline in `.gitea/workflows`:
+- Paste generic pipeline in container's `.gitea/workflows`:
 ```yaml
 on:
   workflow_dispatch:

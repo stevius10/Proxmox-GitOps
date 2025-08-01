@@ -6,10 +6,6 @@ inputs:
     required: true
     type: string
     default: "main"
-  cache_bust:
-    required: false
-    type: string
-    default: ''
 
 runs:
   using: 'composite'
@@ -20,7 +16,6 @@ runs:
         repository: "${{ inputs.repo }}"
         ref: "${{ inputs.ref }}"
         path: repo
-      if: ${{ always() }}
 
     - name: Configure container
       id: init

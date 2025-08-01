@@ -1,39 +1,25 @@
-ruby_block 'config_wait_startup' do
-  block do
-    require 'socket'; require 'timeout'
-    Timeout.timeout(15) do
-      loop do
-        break if TCPSocket.new('127.0.0.1', node['git']['port']['http']).close rescue sleep 1
-      end
-    end
-  rescue Timeout::Error
-    Chef::Log.warn('Service not reachable')
-  end
-  action :run
+ruby_block 'wait_http' do
+  block do Common.wait("127.0.0.1:#{node['git']['port']['http']}", timeout: 15, sleep_interval: 1) end
 end
 
-reset_user = "#{node['git']['install_dir']}/gitea admin user list --config #{node['git']['install_dir']}/app.ini | awk '{print $2}' | grep '^#{Env.get(node, 'login')}'"
-
-execute 'config_create_user' do
-  command "#{node['git']['install_dir']}/gitea admin user create --config #{node['git']['install_dir']}/app.ini " +
-            "--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')} " +
-            "--email #{Env.get(node, 'email')} --admin --must-change-password=false"
-  environment 'GITEA_WORK_DIR' => node['git']['data_dir']
+execute 'config_default_user' do
   user node['git']['app']['user']
-  not_if reset_user
-  action :run
+  command <<-EOH
+    base="#{node['git']['install_dir']}/gitea admin user"
+    config="--config #{node['git']['install_dir']}/app.ini"
+    user="--username #{Env.get(node, 'login')}"
+    pw="--password #{Env.get(node, 'password')}"
+    mail="--email #{Env.get(node, 'email')}"
+    admin="--admin --must-change-password=false"
+    if $base list $config | awk '{print $2}' | grep -q '^#{Env.get(node, 'login')}'; then
+      $base change-password $config $user $pw
+    else
+      $base create $config $user $pw $mail $admin
+    fi
+  EOH
 end
 
-execute 'config_reset_user' do
-  command "#{node['git']['install_dir']}/gitea admin user change-password --config #{node['git']['install_dir']}/app.ini " +
-            "--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')}"
-  environment 'GITEA_WORK_DIR' => node['git']['data_dir']
-  user node['git']['app']['user']
-  only_if reset_user
-  action :nothing
-end
-
-ruby_block 'config_key_add' do
+ruby_block 'config_add_key' do
   block do
     require 'json'
     key_content = ::File.read("#{node['key']}.pub").strip
@@ -73,11 +59,8 @@ file "/home/#{node['git']['app']['user']}/.ssh/config" do
   not_if { ::File.exist?("/home/#{node['git']['app']['user']}/.ssh/config") }
 end
 
-execute 'config_wait_connection' do
-  command "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -p #{node['git']['port']['ssh']} -T #{Env.get(node, 'login')}@#{node['host']} || true"
-  user node['git']['app']['user']
-  action :run
-  live_stream true
+ruby_block 'wait_ssh' do
+  block do Common.wait("#{Env.get(node, 'login')}@#{node['host']}:#{node['git']['port']['ssh']}") end
 end
 
 execute 'config_git_safe_directory' do
@@ -99,7 +82,6 @@ execute 'config_git_user' do
   environment 'HOME' => "/home/#{node['git']['app']['user']}"
   action :run
 end
-
 
 ruby_block 'config_gitea_create_org' do
   block do

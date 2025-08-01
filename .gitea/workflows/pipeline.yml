@@ -1,7 +1,7 @@
 on:
   workflow_dispatch:
   push:
-    branches: [ release, main, develop ]
+    branches: [ release, main ]
 
 jobs:
 

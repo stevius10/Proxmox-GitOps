@@ -1,5 +1,7 @@
 module Common
 
+  # General
+
   def self.packages(ctx, *pkgs, action: :install)
     Array(pkgs).flatten.each do |pkg|
       ctx.package pkg do
@@ -20,45 +22,7 @@ module Common
     end
   end
 
-  def self.arch(node)
-    case node['kernel']['machine'].to_s
-    when /arm64|aarch64/
-      'arm64'
-    when /armv6|armv7l/
-      'armv7'
-    else
-      'amd64'
-    end
-  end
-
-  def self.download(ctx, path, url:, owner: 'root', group: 'root', mode: '0644', action: :create)
-    ctx.remote_file path do
-      source url.respond_to?(:call) ? lazy { url.call } : url
-      owner  owner
-      group  group
-      mode   mode
-      action action
-    end
-  end
-
-  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil)
-    req = method.new(u = URI(uri))
-    req.basic_auth(user, pass) if user && pass
-    req.body = body if body
-    headers.each { |k, v| req[k] = v }
-    response = Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https') { |http| http.request(req) }
-    return response if response.is_a?(Net::HTTPSuccess)
-    if response.is_a?(Net::HTTPRedirection)
-      loc = response['location']
-      loc = "#{u.scheme}://#{u.host}#{loc}" if loc && loc.start_with?('/')
-      return request(loc, user: user, pass: pass, headers: headers, method: method, body: body)
-    end
-    response
-  end
-
-  def self.latest(release_url)
-    request(release_url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1].to_s || "latest"
-  end
+  # System
 
   def self.daemon(ctx, name)
     ctx.find_resource!(:execute, name)
@@ -112,6 +76,89 @@ module Common
       action action
       Array(subscribe).flatten.each { |ref| subscribes :restart, ref, :delayed } if subscribe
     end
+  end
+
+  def self.arch(node)
+    case node['kernel']['machine'].to_s
+    when /arm64|aarch64/
+      'arm64'
+    when /armv6|armv7l/
+      'armv7'
+    else
+      'amd64'
+    end
+  end
+
+  # Helper
+
+  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil)
+    req = method.new(u = URI(uri))
+    req.basic_auth(user, pass) if user && pass
+    req.body = body if body
+    headers.each { |k, v| req[k] = v }
+    response = Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https') { |http| http.request(req) }
+    return response if response.is_a?(Net::HTTPSuccess)
+    if response.is_a?(Net::HTTPRedirection)
+      loc = response['location']
+      loc = "#{u.scheme}://#{u.host}#{loc}" if loc && loc.start_with?('/')
+      return request(loc, user: user, pass: pass, headers: headers, method: method, body: body)
+    end
+    response
+  end
+
+  def self.latest(url)
+    request(url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1].to_s || "latest"
+  end
+
+  def self.download(ctx, path, url:, owner: 'root', group: 'root', mode: '0644', action: :create)
+    ctx.remote_file path do
+      source url.respond_to?(:call) ? lazy { url.call } : url
+      owner  owner
+      group  group
+      mode   mode
+      action action
+    end
+  end
+
+  # Utility
+
+  def self.wait(condition = nil, timeout: 20, sleep_interval: 5, &block)
+    return Kernel.sleep(condition) if condition.is_a?(Integer)
+    return Timeout.timeout(timeout) { block.call } if block_given?
+    raise ArgumentError unless condition
+
+    Timeout.timeout(timeout) do
+      loop do
+        ok = false
+        if condition =~ %r{^https?://}
+          uri = URI(condition)
+          http = Net::HTTP.new(uri.host, uri.port)
+          http.use_ssl = (uri.scheme == 'https')
+          http.verify_mode = OpenSSL::SSL::VERIFY_NONE if uri.scheme == 'https'
+          begin
+            res = http.get(uri.path.empty? ? '/' : uri.path)
+            ok = res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
+          rescue
+            ok = false
+          end
+        else
+          host_port = condition.include?('@') ? condition.split('@', 2).last : condition
+          host, port = host_port.split(':', 2)
+          port = (port || '80').to_i
+          begin
+            TCPSocket.new(host, port).close
+            ok = true
+          rescue
+            ok = false
+          end
+        end
+        break if ok
+        sleep sleep_interval
+      end
+    end
+    true
+  rescue Timeout::Error, StandardError
+    false
   end
 
 end

@@ -4,19 +4,13 @@ require 'fileutils'
 path_backup = "/tmp/backup"
 
 home = "/home/#{node['git']['app']['user']}"
-execute 'repo_prepare' do
-  command <<-EOH
-    git config --global user.name "#{Env.get(node, 'login')}"
-    git config --global user.email "#{Env.get(node, 'email')}"
-  EOH
-  user node['git']['app']['user']
-  environment 'HOME' => home
-end
 
 path_source = ENV['PWD']
 path_target = node['git']['workspace']
 
-(node['git']['repositories'].sort_by { |r| r == "./" ? 1 : 0 }).each do |repo_files|
+(repositories = node['git']['repositories']
+  .flat_map { |r| (r == './libs' && Dir.exist?(File.join(path_source, r))) ? Dir.glob(File.join(path_source, r, '*')).select { |d| File.directory?(d) }.map { |p| p.sub(path_source, '.') } : r }
+  .sort_by { |r| r == "./" ? 1 : 0 }).each do |repo_files|
 
   path_repo_source = (repo_files == "./") ? path_source : File.expand_path(repo_files, path_source)
   name_repo = File.basename(path_repo_source)
@@ -134,7 +128,7 @@ path_target = node['git']['workspace']
   end
 
   if repo_files == "./"
-    submodules = node['git']['repositories'].reject { |r| r == "./" }
+    submodules = repositories.reject { |r| r == "./" }
 
     ruby_block 'repo_meta_submodules_file' do
       block do

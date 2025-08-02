@@ -8,7 +8,7 @@ jobs:
     runs-on: shell
     steps:
       - id: init
-        uses: srv/config/.gitea/workflows@main
+        uses: main/config/.gitea/workflows@main
         with:
           repo: ${{ gitea.repository }}
           ref: ${{ gitea.ref_name }}

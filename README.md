@@ -73,7 +73,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - Set **credentials and Proxmox API token** in [`local/.config.json`](local/.config.json) as `./local/config.json`
 - Run `./local/run.sh` for local Docker environment
-- Accept the Pull Request at `localhost:8080/srv/config/pulls/1` to deploy on Proxmox VE
+- Accept the Pull Request at `localhost:8080/main/config/pulls/1` to deploy on Proxmox VE
 
 <p align="center">
   <img src="./docs/recursion.png" alt="Pipeline"/>
@@ -114,7 +114,7 @@ jobs:
     runs-on: shell
     steps:
       - id: init
-        uses: srv/config/.gitea/workflows@main
+        uses: main/config/.gitea/workflows@main
         with:
           repo: ${{ gitea.repository }}
           ref: ${{ gitea.ref_name }}

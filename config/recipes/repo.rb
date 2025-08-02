@@ -12,9 +12,9 @@ Common.directories(self, [destination, working], recreate: true,
 (repositories = node['git']['repositories']
   .flat_map { |r| (r == './libs') ? Dir.glob(File.join(source, r, '*')).select { |d| File.directory?(d) }.map { |p| p.sub(source, '.') } : r }
   .sort_by { |r| r == "./" ? 1 : 0 }).each do |repository| # dynamically resolved libs before monorepo
-  
+
   monorepo = (repository == "./")
-  
+
   path_source = monorepo ? source : File.expand_path(repository, source)
   name_repo = File.basename(path_source)
   path_working = "#{working}/#{name_repo}"
@@ -34,8 +34,13 @@ Common.directories(self, [destination, working], recreate: true,
 
   execute "repo_exists_snapshot_create_#{name_repo}" do
     command <<-EOH
-      git clone --depth 1 ssh://#{node['git']['app']['user']}@#{node['git']['repo']['ssh']}/#{node['git']['repo']['org']}/#{name_repo}.git #{path_working} && \
-      rm -rf #{path_working}/.git
+      if git ls-remote ssh://#{node['git']['app']['user']}@#{node['git']['repo']['ssh']}/#{node['git']['repo']['org']}/#{name_repo}.git HEAD | grep -q .; then
+        git clone --recurse-submodules ssh://#{node['git']['app']['user']}@#{node['git']['repo']['ssh']}/#{node['git']['repo']['org']}/#{name_repo}.git #{path_working}
+        cd #{path_working} && git submodule update --init --recursive
+        rm -f .gitmodules && find . -type d -name .git -exec rm -rf {} +
+      else
+        mkdir -p #{path_working}
+      fi
     EOH
     user node['git']['app']['user']
     environment 'HOME' => home
@@ -44,9 +49,9 @@ Common.directories(self, [destination, working], recreate: true,
 
   ruby_block "repo_exists_reset_#{name_repo}" do
     block do
-      unless [204, 404].include?(result = Common.request("#{node['git']['endpoint']}/repos/#{node['git']['repo']['org']}/#{name_repo}",
-        method: Net::HTTP::Delete, user:   Env.get(node, 'login'), pass:   Env.get(node, 'password')).code.to_i)
-        raise "Failed to delete #{name_repo} (HTTP #{code}): #{result.body}"
+      unless [204, 404].include?(status_code = (result = Common.request("#{node['git']['endpoint']}/repos/#{node['git']['repo']['org']}/#{name_repo}",
+        method: Net::HTTP::Delete, user:   Env.get(node, 'login'), pass:   Env.get(node, 'password'))).code.to_i)
+        raise "Failed to delete #{name_repo} (#{status_code}): #{result.body}"
       end
     end
     action :run
@@ -81,6 +86,7 @@ Common.directories(self, [destination, working], recreate: true,
   execute "repo_init_#{name_repo}" do
     command <<-EOH
       mkdir -p #{path_destination} && cd #{path_destination} && git init -b main
+      git commit --allow-empty -m "base commit [skip ci]"
     EOH
     user node['git']['app']['user']
     environment 'HOME' => home
@@ -116,20 +122,21 @@ Common.directories(self, [destination, working], recreate: true,
 
   execute "repo_exists_snapshot_push_#{name_repo}" do
     command <<-EOH
-      rm -rf #{path_working} && cp -r #{path_destination} #{path_working}
-      cd #{path_destination} && git add -A && git commit --allow-empty -m "snapshot [skip ci]"
-      git push -f origin snapshot && (rm -rf #{path_destination} || true)
+      git push -u origin HEAD:main && rm -rf #{path_working} && cp -r #{path_destination} #{path_working}
+      cd #{path_working} && git checkout -b snapshot && git add -A 
+      git commit --allow-empty -m "snapshot [skip ci]"
+      git push -f origin snapshot && (rm -rf #{path_working} || true)
     EOH
     cwd path_destination
     user node['git']['app']['user']
     environment 'HOME' => home
-    only_if { node.run_state["#{name_repo}_repo_exists"] && ::File.exist?("#{path_working}/.git/config") }
+    only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
   execute "repo_empty_#{name_repo}" do
     command <<-EOH
-      git commit --allow-empty -m 'initial commit [skip ci]' && git push -f origin HEAD:main &&
-      (git ls-remote --exit-code origin release >/dev/null 2>&1 && git push -f origin HEAD:release || git push -u origin HEAD:release)
+      git push -f origin HEAD:main && (git ls-remote --exit-code origin release >/dev/null 2>&1 && \
+        git push -f origin HEAD:release || git push -u origin HEAD:release)
     EOH
     cwd path_destination
     user node['git']['app']['user']
@@ -137,9 +144,9 @@ Common.directories(self, [destination, working], recreate: true,
     action :run
   end
 
-  # Last ordered Monorepository
+  # Monorepository ordered as last
   if monorepo
-    
+
     submodules = repositories.reject { |r| r == "./" } # without itself
 
     ruby_block 'repo_mono_submodule_rewritten' do
@@ -154,9 +161,9 @@ Common.directories(self, [destination, working], recreate: true,
       action :run
     end
 
-    # Submodule handling in Monorepository 
+    # Submodule handling in Monorepository
     submodules.each do |submodule|
-      
+
       path_module = submodule.sub(%r{^\./}, '')
       module_name = File.basename(path_module)
       module_url = "#{node['git']['host']}/#{node['git']['repo']['org']}/#{module_name}.git"
@@ -192,7 +199,7 @@ Common.directories(self, [destination, working], recreate: true,
     command <<-EOH
     git add --all
     if ! git diff --quiet || ! git diff --cached --quiet; then
-      git commit --allow-empty -m "[skip ci]"
+      git commit --allow-empty -m "initial commit [skip ci]"
       git push -f origin HEAD:main
       sleep 3
       if ! git ls-remote origin refs/for/release | grep -q "$(git rev-parse HEAD)"; then
@@ -205,6 +212,7 @@ Common.directories(self, [destination, working], recreate: true,
             -o force-push
         fi
       fi
+      rm -rf #{path_destination}
     fi
     EOH
     action :run

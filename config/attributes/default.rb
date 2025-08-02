@@ -12,11 +12,12 @@ default['git']['workspace']         = '/share/workspace'
 
 default['git']['port']['http']      = 8080
 default['git']['port']['ssh']       = 2222
-default['git']['version']          = "v1"
+default['git']['version']           = "v1"
+default['git']['host']              = "http://#{node['host']}:#{node['git']['port']['http']}"
 default['git']['endpoint']          = "http://#{node['host']}:#{node['git']['port']['http']}/api/#{node['git']['version']}"
 
-default['git']['repo']['org']       = 'srv'
-default['git']['repo']['ssh']       = "#{node['host']}:#{node['git']['port']['ssh']}/#{node['git']['repo']['org']}"
+default['git']['repo']['org']       = 'main'
+default['git']['repo']['ssh']       = "#{node['host']}:#{node['git']['port']['ssh']}"
 
 default['runner']['install_dir']    = '/app/runner'
 default['runner']['cache_dir']      = '/tmp'

@@ -60,7 +60,7 @@ file "/home/#{node['git']['app']['user']}/.ssh/config" do
 end
 
 ruby_block 'wait_ssh' do
-  block do Common.wait("#{Env.get(node, 'login')}@#{node['host']}:#{node['git']['port']['ssh']}") end
+  block do Common.wait("#{Env.get(node, 'login')}@#{node['host']}:#{node['git']['port']['ssh']}/#{node['git']['repo']['org']}") end
 end
 
 execute 'config_git_safe_directory' do

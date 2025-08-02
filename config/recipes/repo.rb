@@ -69,7 +69,6 @@ Common.directories(self, [destination, working], recreate: true,
       elsif status_code == 409
         node.run_state["#{name_repo}_repo_created"] = false
         node.run_state["#{name_repo}_repo_exists"]  = true
-        raise "#{name_repo} already exists (HTTP 409): #{result.body}"
       else
         raise "Error creating repository '#{name_repo}' (HTTP #{status_code}): #{result.body}"
       end
@@ -81,9 +80,8 @@ Common.directories(self, [destination, working], recreate: true,
 
   execute "repo_init_#{name_repo}" do
     command <<-EOH
-      git init -b main
+      mkdir -p #{path_destination} && cd #{path_destination} && git init -b main
     EOH
-    cwd path_destination
     user node['git']['app']['user']
     environment 'HOME' => home
   end
@@ -95,7 +93,7 @@ Common.directories(self, [destination, working], recreate: true,
     mode '0644'
     variables(repo: name_repo, git_user: node['git']['app']['user'])
     action :create
-    only_if { node.run_state["#{name_repo}_repo_exists"] && ::File.directory?("#{path_working}/.git") }
+    only_if { ::File.directory?("#{path_destination}/.git") }
   end
 
   ruby_block "repo_files_#{name_repo}" do

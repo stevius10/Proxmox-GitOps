@@ -61,7 +61,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 ### Lifecycle
 
 - **Self-contained Mono-Repository** Artifact for **Version-Controlled Mirroring**
-  - `clone` aliased `git clone --recurse-submodules` (store network /share in persistent context)
+  - `clone` aliased `git clone --recurse-submodules` (store network /share for persistence, disable it for security)
 
 - **Backup**: See previous
 
@@ -73,7 +73,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - Set **credentials and Proxmox API token** in [`local/.config.json`](local/.config.json) as `./local/config.json`
 - Run `./local/run.sh` for local Docker environment
-- Accept the Pull Request at `localhost:8080/srv/proxmoxgitops/pulls/1` to deploy on Proxmox VE
+- Accept the Pull Request at `localhost:8080/srv/config/pulls/1` to deploy on Proxmox VE
 
 <p align="center">
   <img src="./docs/recursion.png" alt="Pipeline"/>
@@ -118,7 +118,6 @@ jobs:
         with:
           repo: ${{ gitea.repository }}
           ref: ${{ gitea.ref_name }}
-          cache_bust: ${{ gitea.run_number }}
 ```
 
 - Add your cookbook to the container definition root:
@@ -133,14 +132,14 @@ file '/var/www/html/index.html' do
   group 'app' # each container is configured identically 
 end
 
-Common.application 'apache2' # reusables included by convention
+Common.application 'apache2' # provided by convention
 ```
 
 - Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
 
 - a) **Deploy**: Push to the `release` branch of a new repository
 
-- b) **Add to Meta-/Mono-Repository**: Add path to [repositories](config/attributes/default.rb#L24) and redeploy
+- b) **Add to Mono-Repository**: Redeploy
 
 The container can be tested locally running `./local/run.sh [container]` (_wip_)
 

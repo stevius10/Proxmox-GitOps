@@ -23,4 +23,4 @@ default['runner']['cache_dir']      = '/tmp'
 default['runner']['marker_file']    = "#{node['runner']['install_dir']}/.runner"
 default['runner']['labels']         = 'shell'
 
-default['git']['repositories']      = [ "./", "./base", "./config/libraries", "./libs/share", "./libs/broker", "./libs/bridge", "./libs/assistant", "./libs/proxy" ]
+default['git']['repositories']      = [ "./", "./base", "./config/libraries", "./libs" ]

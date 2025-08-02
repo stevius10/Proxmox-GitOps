@@ -5,7 +5,7 @@
     logallrefupdates = true
 
 [remote "origin"]
-    url = ssh://<%= node['git']['app']['user'] %>@<%= node['git']['repo']['ssh'] %>/<%= node['git']['repo']['org']  %>/<%= @repo %>.git
+    url = ssh://<%= node['git']['app']['user'] %>@<%= node['git']['repo']['ssh'] %>/<%= node['git']['org']['main']  %>/<%= @repo %>.git
     fetch = +refs/heads/*:refs/remotes/origin/*
 
 [branch "main"]

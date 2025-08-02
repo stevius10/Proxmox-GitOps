@@ -1,55 +1,47 @@
-ruby_block 'config_wait_startup' do
-  block do
-    require 'socket'; require 'timeout'
-    Timeout.timeout(15) do
-      loop do
-        break if TCPSocket.new('127.0.0.1', node['git']['port']['http']).close rescue sleep 1
-      end
-    end
-  rescue Timeout::Error
-    Chef::Log.warn('Service not reachable')
-  end
-  action :run
+ruby_block 'config_wait_http' do
+  block do Common.wait("127.0.0.1:#{node['git']['port']['http']}", timeout: 15, sleep_interval: 1) end
 end
 
-reset_user = "#{node['git']['install_dir']}/gitea admin user list --config #{node['git']['install_dir']}/app.ini | awk '{print $2}' | grep '^#{Env.get(node, 'login')}'"
-
-execute 'config_create_user' do
-  command "#{node['git']['install_dir']}/gitea admin user create --config #{node['git']['install_dir']}/app.ini " +
-            "--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')} " +
-            "--email #{Env.get(node, 'email')} --admin --must-change-password=false"
-  environment 'GITEA_WORK_DIR' => node['git']['data_dir']
+execute 'config_set_user' do
   user node['git']['app']['user']
-  not_if reset_user
-  action :run
+  command <<-EOH
+    base="#{node['git']['dir']['install']}/gitea admin user"
+    config="--config #{node['git']['dir']['install']}/app.ini"
+    login="#{Env.get(node, 'login')}"
+    pw="#{Env.get(node, 'password')}"
+    mail="--email #{Env.get(node, 'email')}"
+    admin="--admin --must-change-password=false"
+    api_user="#{node['git']['endpoint']}/api/#{node['git']['version']}/user"
+    if curl -sSf -u "${login}:${pw}" "${api_user}" > /dev/null; then
+      exit 0
+    fi
+    user_arg="--username ${login}"
+    pw_arg="--password ${pw}"
+    if $base list $config | awk '{print $2}' | grep -q "^${login}$"; then
+      $base change-password $config ${user_arg} ${pw_arg}
+    else
+      $base create $config ${user_arg} ${pw_arg} ${mail} ${admin}
+    fi
+  EOH
 end
 
-execute 'config_reset_user' do
-  command "#{node['git']['install_dir']}/gitea admin user change-password --config #{node['git']['install_dir']}/app.ini " +
-            "--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')}"
-  environment 'GITEA_WORK_DIR' => node['git']['data_dir']
-  user node['git']['app']['user']
-  only_if reset_user
-  action :nothing
-end
-
-ruby_block 'config_key_add' do
+ruby_block 'config_ensure_key' do
   block do
     require 'json'
-    key_content = ::File.read("#{node['key']}.pub").strip
-    key_url = "#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys"
-
-    response = Common.request(key_url, user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
-    unless (JSON.parse(response.body) rescue []).any? { |k| k['key'] && k['key'].strip == key_content }
-      result = Common.request(key_url, method: Net::HTTP::Post,
-        user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
-        headers: { 'Content-Type' => 'application/json' },
-        body: { title: "gitops", key: key_content }.to_json )
-      raise "HTTP #{result.code}: #{result.body}" unless result.code.to_i.between?(200, 299) || result.code.to_i == 422
+    login = Env.get(node, 'login')
+    password = Env.get(node, 'password')
+    key = ::File.read("#{node['key']}.pub").strip
+    url = "#{node['git']['endpoint']}/admin/users/#{login}/keys"
+    resp = Common.request(url, user: login, pass: password)
+    (JSON.parse(resp.body) rescue []).each do |k|
+      Common.request("#{url}/#{k['id']}", method: Net::HTTP::Delete, user: login, pass: password) if k['key'] && k['key'].strip == key
     end
+    result = Common.request(url, body: { title: "config-#{login}", key: key }.to_json, method: Net::HTTP::Post,
+      user: login, pass: password, headers: { 'Content-Type' => 'application/json' })
+    raise "Key Create Failed (#{result.code}): #{result.body}" unless [201, 422].include?(result.code.to_i)
+  end
   action :run
   only_if { ::File.exist?("#{node['key']}.pub") }
-  end
 end
 
 directory "/home/#{node['git']['app']['user']}/.ssh" do
@@ -67,17 +59,13 @@ file "/home/#{node['git']['app']['user']}/.ssh/config" do
       StrictHostKeyChecking no
   CONF
   owner node['git']['app']['user']
-  group node['git']['app']['user']
+  group node['git']['app']['group']
   mode '0600'
   action :create_if_missing
-  not_if { ::File.exist?("/home/#{node['git']['app']['user']}/.ssh/config") }
 end
 
-execute 'config_wait_connection' do
-  command "ssh -o BatchMode=yes -o StrictHostKeyChecking=no -p #{node['git']['port']['ssh']} -T #{Env.get(node, 'login')}@#{node['host']} || true"
-  user node['git']['app']['user']
-  action :run
-  live_stream true
+ruby_block 'config_wait_ssh' do
+  block do Common.wait("#{Env.get(node, 'login')}@#{node['host']}:#{node['git']['port']['ssh']}") end
 end
 
 execute 'config_git_safe_directory' do
@@ -100,27 +88,26 @@ execute 'config_git_user' do
   action :run
 end
 
-
-ruby_block 'config_gitea_create_org' do
-  block do
-    require 'json'
-    response_status_code = (result = Common.request("#{node['git']['endpoint']}/orgs",
-     method: Net::HTTP::Post,
-     user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
-     headers: { 'Content-Type' => 'application/json' },
-     body: { username: node['git']['repo']['org'] }.to_json
-    )).code.to_i
-    raise "HTTP #{response_status_code}: #{result.body}" unless response_status_code == 201 || response_status_code == 422
+[node['git']['org']['main'], node['git']['org']['stage']].each do |org|
+  ruby_block "config_git_org_#{org}" do
+    block do
+      require 'json'
+      status_code = (result = Common.request("#{node['git']['endpoint']}/orgs",
+        method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
+        user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
+        body: { username: org }.to_json
+      )).code.to_i
+      raise "HTTP #{status_code}: #{result.body}" unless [201, 409, 422].include? status_code
+    end
+    action :run
   end
-  action :run
 end
 
-ruby_block 'config_gitea_environment_variables' do
+ruby_block 'config_git_environment' do
   block do
     %w(proxmox login password email host).each do |parent_key|
       value = node[parent_key]
       next if value.nil? || value.to_s.strip.empty?
-
       if value.is_a?(Hash)
         value.each do |subkey, subvalue|
           next if subvalue.nil? || subvalue.to_s.strip.empty?

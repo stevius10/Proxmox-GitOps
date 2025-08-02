@@ -1,7 +1,7 @@
 on:
   workflow_dispatch:
   push:
-    branches: [ release, main, develop ]
+    branches: [ release, main ]
 
 jobs:
 
@@ -39,7 +39,7 @@ jobs:
     needs: init
     steps:
       - id: init
-        uses: srv/base/.gitea/workflows@main
+        uses: main/base/.gitea/workflows@main
         with:
           ip: ${{ needs.init.outputs.ip }}
           id: ${{ needs.init.outputs.id }}

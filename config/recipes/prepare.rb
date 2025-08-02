@@ -2,14 +2,14 @@
 
 Common.directories(self, [ "/home/#{node['git']['app']['user']}",
   "#{node['git']['home']}",
-  "#{node['git']['install_dir']}",
-  "#{node['git']['data_dir']}",
-  "#{node['git']['data_dir']}/custom",
-  "#{node['git']['data_dir']}/data",
-  "#{node['git']['data_dir']}/data/gitea-repositories",
-  "#{node['git']['data_dir']}/log",
-  "#{node['git']['data_dir']}/custom/conf",
-  "#{node['runner']['install_dir']}",
+  "#{node['git']['dir']['install']}",
+  "#{node['git']['dir']['data']}",
+  "#{node['git']['dir']['data']}/custom",
+  "#{node['git']['dir']['data']}/data",
+  "#{node['git']['dir']['data']}/data/gitea-repositories",
+  "#{node['git']['dir']['data']}/log",
+  "#{node['git']['dir']['data']}/custom/conf",
+  "#{node['runner']['dir']['install']}",
   "#{::File.dirname(node['key'])}",
   "#{node['git']['workspace']}"
 ], owner: node['git']['app']['user'], group: node['git']['app']['group'])

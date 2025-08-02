@@ -12,7 +12,7 @@ runner:
 
 cache:
   enabled: false
-  dir: "<%= node['runner']['cache_dir'] %>"
+  dir: "<%= node['runner']['dir']['cache'] %>"
 
 host:
-  workdir_parent: "<%= node['runner']['cache_dir'] %>"
+  workdir_parent: "<%= node['runner']['dir']['cache'] %>"

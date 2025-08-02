@@ -41,7 +41,7 @@ module Env
   end
 
   private_class_method def self.request(node, key, body = nil)
-    uri = URI("#{endpoint(node)}/orgs/#{or_default(node.dig('git', 'repo', 'org'), 'srv')}/actions/variables/#{key}")
+    uri = URI("#{endpoint(node)}/orgs/#{or_default(node.dig('git', 'repo', 'org'), 'main')}/actions/variables/#{key}")
     (body ? [Net::HTTP::Put, Net::HTTP::Post] : [Net::HTTP::Get]).each do |m|
       req = m.new(uri)
       req.basic_auth(*creds(node))

@@ -21,7 +21,7 @@ Proxmox-GitOps implements a self-sufficient, extensible CI/CD environment for pr
 
 ## Architecture
 
-The architecture is based on a multi-stage pipeline capable of recursively deploying and configuring itself. 
+The architecture is based on a multi-stage pipeline capable of recursively deploying and configuring itself as a self-managed control plane. 
 
 <p align="center">
   <img src="./docs/concept.svg" alt="Concept"/>
@@ -38,13 +38,13 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 | **Ephemeral State** | Git repository represents *current desired state*, ensuring state purity across deployments.| Deployment consistency and stateless infrastructure over version history. |
 | **Recursive Self-Containment** | Embedded control plane recursively provisions itself within target containers, ensuring deterministic bootstrap.| Prevents configuration drift; enables consistent and reproducible behavior. |
 | **Dynamic Orchestration** | Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management| Declarative approach intractable for adjusting to dynamic cross-layer changes (e.g. submodule remote rewriting). |
-| **Monorepository** | Centralizes infrastructure as a single code artifact; submodules modularize development at runtime| Consistency and modularity: infrastructure self-contained; dynamically resolved in recursive context. |
+| **Monorepository** | Centralizes infrastructure as a single code artifact; submodules modularize development at runtime | Consistency and modularity: infrastructure self-contained; dynamically resolved in recursive context. |
 
 ### Design
 
-- **Loosely coupled**: Containers are decoupled from the platform, so control plane is independently interchangeable.
+- **Loosely coupled**: Containers are decoupled from the control plane, enabling runtime replacement and independent operation. 
 
-- **Headless**: Ansible for provisioning, leveraging upstream maintenance; Cinc (Chef) for modular, declarative desired state configuration and managing recursive complexity.
+- **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity. 
 
 ### Trade-offs
 
@@ -61,7 +61,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 ### Lifecycle
 
 - **Self-contained Mono-Repository** Artifact for **Version-Controlled Mirroring**
-  - `clone` aliased `git clone --recurse-submodules` (store network /share in persistent context)
+  - `clone` aliased `git clone --recurse-submodules` (store network /share for persistence, disable it for security)
 
 - **Backup**: See previous
 
@@ -73,7 +73,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - Set **credentials and Proxmox API token** in [`local/.config.json`](local/.config.json) as `./local/config.json`
 - Run `./local/run.sh` for local Docker environment
-- Accept the Pull Request at `localhost:8080/srv/proxmoxgitops/pulls/1` to deploy on Proxmox VE
+- Accept the Pull Request at `localhost:8080/main/config/pulls/1` to deploy on Proxmox VE
 
 <p align="center">
   <img src="./docs/recursion.png" alt="Pipeline"/>
@@ -90,7 +90,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 Reusable container definitions are stored in the [`libs`](libs) folder. Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
 
-- Add `config.env` to your container's _libs_ root directory (e.g. `./libs/apache`):
+- Add `config.env` to your container's root directory (e.g. `./libs/apache`):
 ```dotenv
 IP=192.168.178.42
 ID=42
@@ -114,11 +114,10 @@ jobs:
     runs-on: shell
     steps:
       - id: init
-        uses: srv/config/.gitea/workflows@main
+        uses: main/config/.gitea/workflows@main
         with:
           repo: ${{ gitea.repository }}
           ref: ${{ gitea.ref_name }}
-          cache_bust: ${{ gitea.run_number }}
 ```
 
 - Add your cookbook to the container definition root:
@@ -133,14 +132,14 @@ file '/var/www/html/index.html' do
   group 'app' # each container is configured identically 
 end
 
-Common.application 'apache2' # reusables included by convention
+Common.application 'apache2' # provided by convention
 ```
 
 - Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
 
 - a) **Deploy**: Push to the `release` branch of a new repository
 
-- b) **Add to Meta-/Mono-Repository**: Add path to [repositories](config/attributes/default.rb#L24) and redeploy
+- b) **Add to Mono-Repository**: Redeploy
 
 The container can be tested locally running `./local/run.sh [container]` (_wip_)
 

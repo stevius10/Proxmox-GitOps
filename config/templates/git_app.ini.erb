@@ -13,10 +13,11 @@ START_SSH_SERVER = true
 
 [database]
 DB_TYPE  = sqlite3
-PATH     = <%= node['git']['data_dir'] %>/gitea.db
+PATH     = <%= node['git']['dir']['data'] %>/gitea.db
 
 [security]
 INSTALL_LOCK = true
+MIN_PASSWORD_LENGTH=4
 
 [actions]
 ENABLED = true
@@ -24,7 +25,7 @@ DEFAULT_ACTIONS_URL=self
 LOG_RETENTION_DAYS = 7
 
 [repository]
-ROOT = <%= node['git']['data_dir'] %>/gitea-repositories
+ROOT = <%= node['git']['dir']['data'] %>/gitea-repositories
 REPOSITORY_AVATAR_FALLBACK = none
 DISABLE_STARS = true
 DISABLE_MIGRATIONS = true

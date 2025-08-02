@@ -1,6 +1,6 @@
-Common.directories(self, node['runner']['install_dir'], owner: node['git']['app']['user'], group: node['git']['app']['group'])
+Common.directories(self, node['runner']['dir']['install'], owner: node['git']['app']['user'], group: node['git']['app']['group'])
 
-Common.download(self, "#{node['runner']['install_dir']}/act_runner",
+Common.download(self, "#{node['runner']['dir']['install']}/act_runner",
   url: -> { ver = Common.latest('https://gitea.com/gitea/act_runner/releases/latest')
     "https://gitea.com/gitea/act_runner/releases/download/v#{ver}/act_runner-#{ver}-linux-#{Common.arch(node)}" },
   owner: node['git']['app']['user'],
@@ -8,7 +8,7 @@ Common.download(self, "#{node['runner']['install_dir']}/act_runner",
   mode: '0755'
 )
 
-template "#{node['runner']['install_dir']}/config.yaml" do
+template "#{node['runner']['dir']['install']}/config.yaml" do
   source 'runner.config.yaml.erb'
   owner node['git']['app']['user']
   group node['git']['app']['group']
@@ -17,11 +17,9 @@ template "#{node['runner']['install_dir']}/config.yaml" do
 end
 
 Common.application(self, 'runner',
-  user: node['git']['app']['user'], action: [:enable],
-  exec: "#{node['runner']['install_dir']}/act_runner daemon --config #{node['runner']['install_dir']}/config.yaml",
-  cwd: node['runner']['install_dir'],
-  subscribe: ["template[#{node['runner']['install_dir']}/config.yaml]", "remote_file[#{node['runner']['install_dir']}/act_runner]"]
-)
+  user: node['git']['app']['user'], action: [:enable], cwd: node['runner']['dir']['install'],
+  exec: "#{node['runner']['dir']['install']}/act_runner daemon --config #{node['runner']['dir']['install']}/config.yaml",
+  subscribe: ["template[#{node['runner']['dir']['install']}/config.yaml]", "remote_file[#{node['runner']['dir']['install']}/act_runner]"] )
 
 ruby_block 'runner_register' do
   block do
@@ -40,7 +38,7 @@ ruby_block 'runner_register' do
     raise 'Gitea not responding' unless connected
 
     (token = Mixlib::ShellOut.new(
-      "#{node['git']['install_dir']}/gitea actions --config #{node['git']['install_dir']}/app.ini generate-runner-token",
+      "#{node['git']['dir']['install']}/gitea actions --config #{node['git']['dir']['install']}/app.ini generate-runner-token",
       user: node['git']['app']['user'],
       environment: { 'HOME' => "/home/#{node['git']['app']['user']}" }
     )).run_command
@@ -48,13 +46,13 @@ ruby_block 'runner_register' do
     token = token.stdout.strip
 
     (register = Mixlib::ShellOut.new(
-      "#{node['runner']['install_dir']}/act_runner register " \
+      "#{node['runner']['dir']['install']}/act_runner register " \
         "--instance http://localhost:#{node['git']['port']['http']} " \
         "--token #{token} " \
         "--no-interactive " \
         "--labels shell " \
-        "--config #{node['runner']['install_dir']}/config.yaml",
-      cwd: node['runner']['install_dir'],
+        "--config #{node['runner']['dir']['install']}/config.yaml",
+      cwd: node['runner']['dir']['install'],
       user: node['git']['app']['user'],
       environment: { 'HOME' => "/home/#{node['git']['app']['user']}" }
     )).run_command

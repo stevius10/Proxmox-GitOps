@@ -37,7 +37,7 @@ runs:
 
     - uses: https://gitea.com/actions/checkout@v4
       with:
-        repository: srv/base
+        repository: main/base
         ref: 'main'
     - run: |
         ansible-playbook default.yml -e "ip=${{ inputs.ip }}" -e "id=${{ inputs.id }}" \

@@ -5,22 +5,24 @@ default['key']                      = ENV['KEY'].to_s.presence ? ENV['KEY'] : "/
 default['git']['app']['user']       = 'app'
 default['git']['app']['group']      = 'app'
 
-default['git']['install_dir']       = '/app/git'
-default['git']['data_dir']          = '/app/git/data'
+default['git']['dir']['install']    = '/app/git'
+default['git']['dir']['data']          = '/app/git/data'
 default['git']['home']              = "/home/#{node['git']['app']['user']}/git"
 default['git']['workspace']         = '/share/workspace'
 
 default['git']['port']['http']      = 8080
 default['git']['port']['ssh']       = 2222
-default['git']['version']          = "v1"
+default['git']['version']           = "v1"
+default['git']['host']              = "http://#{node['host']}:#{node['git']['port']['http']}"
 default['git']['endpoint']          = "http://#{node['host']}:#{node['git']['port']['http']}/api/#{node['git']['version']}"
 
-default['git']['repo']['org']       = 'srv'
-default['git']['repo']['ssh']       = "#{node['host']}:#{node['git']['port']['ssh']}/#{node['git']['repo']['org']}"
+default['git']['org']['main']       = 'main'
+default['git']['org']['stage']      = 'stage'
+default['git']['repo']['ssh']       = "#{node['host']}:#{node['git']['port']['ssh']}"
 
-default['runner']['install_dir']    = '/app/runner'
-default['runner']['cache_dir']      = '/tmp'
-default['runner']['marker_file']    = "#{node['runner']['install_dir']}/.runner"
+default['runner']['dir']['install']    = '/app/runner'
+default['runner']['dir']['cache']      = '/tmp'
+default['runner']['file']['marker']   = "#{node['runner']['dir']['install']}/.runner"
 default['runner']['labels']         = 'shell'
 
-default['git']['repositories']      = [ "./", "./base", "./config/libraries", "./libs/share", "./libs/broker", "./libs/bridge", "./libs/assistant", "./libs/proxy" ]
+default['git']['repositories']      = [ "./", "./base", "./config/libraries", "./libs" ]

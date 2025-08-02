@@ -17,11 +17,9 @@ template "#{node['runner']['install_dir']}/config.yaml" do
 end
 
 Common.application(self, 'runner',
-  user: node['git']['app']['user'], action: [:enable],
+  user: node['git']['app']['user'], action: [:enable], cwd: node['runner']['install_dir'],
   exec: "#{node['runner']['install_dir']}/act_runner daemon --config #{node['runner']['install_dir']}/config.yaml",
-  cwd: node['runner']['install_dir'],
-  subscribe: ["template[#{node['runner']['install_dir']}/config.yaml]", "remote_file[#{node['runner']['install_dir']}/act_runner]"]
-)
+  subscribe: ["template[#{node['runner']['install_dir']}/config.yaml]", "remote_file[#{node['runner']['install_dir']}/act_runner]"] )
 
 ruby_block 'runner_register' do
   block do

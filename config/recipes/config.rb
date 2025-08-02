@@ -5,8 +5,8 @@ end
 execute 'config_default_user' do
   user node['git']['app']['user']
   command <<-EOH
-    base="#{node['git']['install_dir']}/gitea admin user"
-    config="--config #{node['git']['install_dir']}/app.ini"
+    base="#{node['git']['dir']['install']}/gitea admin user"
+    config="--config #{node['git']['dir']['install']}/app.ini"
     user="--username #{Env.get(node, 'login')}"
     pw="--password #{Env.get(node, 'password')}"
     mail="--email #{Env.get(node, 'email')}"
@@ -60,7 +60,7 @@ file "/home/#{node['git']['app']['user']}/.ssh/config" do
 end
 
 ruby_block 'wait_ssh' do
-  block do Common.wait("#{Env.get(node, 'login')}@#{node['host']}:#{node['git']['port']['ssh']}/#{node['git']['repo']['org']}") end
+  block do Common.wait("#{Env.get(node, 'login')}@#{node['host']}:#{node['git']['port']['ssh']}") end
 end
 
 execute 'config_git_safe_directory' do
@@ -83,21 +83,22 @@ execute 'config_git_user' do
   action :run
 end
 
-ruby_block 'config_gitea_create_org' do
-  block do
-    require 'json'
-    response_status_code = (result = Common.request("#{node['git']['endpoint']}/orgs",
-     method: Net::HTTP::Post,
-     user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
-     headers: { 'Content-Type' => 'application/json' },
-     body: { username: node['git']['repo']['org'] }.to_json
-    )).code.to_i
-    raise "HTTP #{response_status_code}: #{result.body}" unless response_status_code == 201 || response_status_code == 422
+[node['git']['org']['main'], node['git']['org']['stage']].each do |org|
+  ruby_block "config_git_org_#{org}" do
+    block do
+      require 'json'
+      status_code = (result = Common.request("#{node['git']['endpoint']}/orgs",
+        method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
+        user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
+        body: { username: org }.to_json
+      )).code.to_i
+      raise "HTTP #{status_code}: #{result.body}" unless [201,409,422].include? status_code
+    end
+    action :run
   end
-  action :run
 end
 
-ruby_block 'config_gitea_environment_variables' do
+ruby_block 'config_git_environment' do
   block do
     %w(proxmox login password email host).each do |parent_key|
       value = node[parent_key]

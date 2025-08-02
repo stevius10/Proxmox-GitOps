@@ -10,16 +10,18 @@ module Common
     end
   end
 
-  def self.directories(ctx, dirs, owner:, group:, mode: '0755', recursive: true, action: :create)
-    Array(dirs).each do |dir|
-      ctx.directory dir do
-        owner owner
-        group group
-        mode  mode
-        recursive recursive
-        action action
-      end
+  def self.directories(ctx, dirs, opts = {})
+    dirs = Array(dirs)
+    owner     = opts[:owner]    || 'root'
+    group     = opts[:group]    || 'root'
+    mode      = opts[:mode]     || '0755'
+    recursive = opts.key?(:recursive) ? opts[:recursive] : true
+    recreate  = opts[:recreate] || false
+
+    if recreate
+      sort_dir(dirs).each { |dir| delete_dir(ctx, dir) }
     end
+    dirs.each { |dir| create_dir(ctx, dir, owner, group, mode, recursive) }
   end
 
   # System
@@ -89,7 +91,7 @@ module Common
     end
   end
 
-  # Helper
+  # Remote
 
   def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil)
     req = method.new(u = URI(uri))
@@ -160,5 +162,31 @@ module Common
   rescue Timeout::Error, StandardError
     false
   end
+
+  # Helper
+
+  def self.create_dir(ctx, dir, owner, group, mode, recursive)
+    ctx.directory dir do
+      owner owner
+      group group
+      mode  mode
+      recursive recursive
+      action :create
+    end
+  end
+
+    def self.delete_dir(ctx, dir)
+      ctx.directory dir do
+        action :delete
+        recursive true
+        only_if { ::Dir.exist?(dir) }
+      end
+    end
+
+  def self.sort_dir(dirs)
+    Array(dirs).sort_by { |d| -d.count('/') }
+  end
+
+  private_class_method :create_dir, :delete_dir
 
 end

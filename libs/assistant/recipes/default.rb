@@ -88,13 +88,11 @@ execute 'install_configurator' do
 end
 
 Common.application(self, 'homeassistant',
-  user: node['app']['user'],
+  user: node['app']['user'],  cwd: node['homeassistant']['dir']['config'],
   exec: "#{node['homeassistant']['dir']['venv']}/bin/python3 -m homeassistant --config #{node['homeassistant']['dir']['config']}",
-  cwd: node['homeassistant']['dir']['config'],
   unit: { 'Service' => { 'RestartForceExitStatus' => '100',
     'Environment' => "PATH=#{node['homeassistant']['dir']['venv']}/bin:/usr/local/bin:/usr/bin:/usr/local/bin/uv" } } )
 
 Common.application(self, 'hass-configurator',
-  user:  node['app']['user'],
-  exec:  "#{node['configurator']['dir']}/bin/hass-configurator -s -e -b #{node['homeassistant']['dir']['config']}",
-  cwd:   node['homeassistant']['dir']['config'] )
+  user:  node['app']['user'], cwd: node['homeassistant']['dir']['config'],
+  exec:  "#{node['configurator']['dir']}/bin/hass-configurator -s -e -b #{node['homeassistant']['dir']['config']}" )

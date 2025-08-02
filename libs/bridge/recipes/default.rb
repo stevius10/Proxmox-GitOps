@@ -91,15 +91,10 @@ template "#{node['bridge']['data']}/configuration.yaml" do
 end
 
 Common.application(self, 'zigbee2mqtt',
-  user: node['app']['user'],
-  group: node['app']['group'],
+  user: node['app']['user'], cwd: node['bridge']['dir'],
   exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
-  cwd: node['bridge']['dir'],
-  unit: { 'Service' => {
-    'Environment' => 'NODE_ENV=production',
-    'PermissionsStartOnly' => 'true',
-    'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } },
-)
+  unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
+    'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )
 
 # removed due root user permissions:
 #

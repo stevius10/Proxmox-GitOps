@@ -55,6 +55,5 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
   action :create
 end
 
-Common.application(self, 'caddy',
-  user: node['app']['user'],
-  subscribe: "template[#{node['proxy']['dir']['app']}/Caddyfile]")
+Common.application(self, 'caddy', user: node['app']['user'],
+  subscribe: "template[#{node['proxy']['dir']['app']}/Caddyfile]" )

@@ -5,43 +5,42 @@ end
 execute 'config_set_user' do
   user node['git']['app']['user']
   command <<-EOH
-    base="#{node['git']['dir']['install']}/gitea admin user"
-    config="--config #{node['git']['dir']['install']}/app.ini"
     login="#{Env.get(node, 'login')}"
-    pw="#{Env.get(node, 'password')}"
-    mail="--email #{Env.get(node, 'email')}"
-    admin="--admin --must-change-password=false"
-    api_user="#{node['git']['endpoint']}/api/#{node['git']['version']}/user"
-    if curl -sSf -u "${login}:${pw}" "${api_user}" > /dev/null; then
-      exit 0
+    base="#{node['git']['dir']['install']}/gitea admin user --config #{node['git']['dir']['install']}/app.ini"
+    user="--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')}"
+    create="--email #{Env.get(node, 'email')} --admin --must-change-password=false"
+    if $base list | awk '{print $2}' | grep -q "^#{Env.get(node, 'login')}$"; then
+      $base delete $user 
     fi
-    user_arg="--username ${login}"
-    pw_arg="--password ${pw}"
-    if $base list $config | awk '{print $2}' | grep -q "^${login}$"; then
-      $base change-password $config ${user_arg} ${pw_arg}
-    else
-      $base create $config ${user_arg} ${pw_arg} ${mail} ${admin}
-    fi
+    $base create $create $user
   EOH
+  not_if { Common.request("#{node['git']['endpoint']}/user", user: Env.get(node, 'login'), pass: Env.get(node, 'password'), expect: true) }
 end
 
-ruby_block 'config_ensure_key' do
+ruby_block 'config_set_key' do
   block do
     require 'json'
     login = Env.get(node, 'login')
     password = Env.get(node, 'password')
-    key = ::File.read("#{node['key']}.pub").strip
     url = "#{node['git']['endpoint']}/admin/users/#{login}/keys"
-    resp = Common.request(url, user: login, pass: password)
-    (JSON.parse(resp.body) rescue []).each do |k|
+    key = ::File.read("#{node['key']}.pub").strip
+
+    (JSON.parse(Common.request(url, user: login, pass: password).body) rescue []).each do |k|
       Common.request("#{url}/#{k['id']}", method: Net::HTTP::Delete, user: login, pass: password) if k['key'] && k['key'].strip == key
     end
-    result = Common.request(url, body: { title: "config-#{login}", key: key }.to_json, method: Net::HTTP::Post,
-      user: login, pass: password, headers: { 'Content-Type' => 'application/json' })
-    raise "Key Create Failed (#{result.code}): #{result.body}" unless [201, 422].include?(result.code.to_i)
+    result = Common.request(url, body: { title: "config-#{login}", key: key }.to_json,
+      user: login, pass: password, method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' })
+    raise "Set new key failed (#{result.code}): #{result.body}" unless [201, 422].include?(result.code.to_i)
   end
   action :run
   only_if { ::File.exist?("#{node['key']}.pub") }
+  not_if do
+    next false unless ::File.exist?("#{node['key']}.pub")
+    begin
+      resp = Common.request("#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys", user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
+      (JSON.parse(resp.body) rescue []).any? { |k| k['key'] && k['key'].strip == ::File.read("#{node['key']}.pub").strip }
+    end
+  end
 end
 
 directory "/home/#{node['git']['app']['user']}/.ssh" do

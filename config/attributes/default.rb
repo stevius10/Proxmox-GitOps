@@ -6,7 +6,7 @@ default['git']['app']['user']       = 'app'
 default['git']['app']['group']      = 'app'
 
 default['git']['dir']['install']    = '/app/git'
-default['git']['dir']['data']          = '/app/git/data'
+default['git']['dir']['data']       = '/app/git/data'
 default['git']['home']              = "/home/#{node['git']['app']['user']}/git"
 default['git']['workspace']         = '/share/workspace'
 
@@ -20,9 +20,9 @@ default['git']['org']['main']       = 'main'
 default['git']['org']['stage']      = 'stage'
 default['git']['repo']['ssh']       = "#{node['host']}:#{node['git']['port']['ssh']}"
 
-default['runner']['dir']['install']    = '/app/runner'
-default['runner']['dir']['cache']      = '/tmp'
-default['runner']['file']['marker']   = "#{node['runner']['dir']['install']}/.runner"
+default['runner']['dir']['install'] = '/app/runner'
+default['runner']['dir']['cache']   = '/tmp'
+default['runner']['file']['marker'] = "#{node['runner']['dir']['install']}/.runner"
 default['runner']['labels']         = 'shell'
 
 default['git']['repositories']      = [ "./", "./base", "./config/libraries", "./libs" ]

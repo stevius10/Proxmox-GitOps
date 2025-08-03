@@ -37,7 +37,7 @@ Common.directories(self, [destination, working], recreate: true,
       if git ls-remote ssh://#{node['git']['app']['user']}@#{node['git']['repo']['ssh']}/#{node['git']['org']['main']}/#{name_repo}.git HEAD | grep -q .; then
         git clone --recurse-submodules ssh://#{node['git']['app']['user']}@#{node['git']['repo']['ssh']}/#{node['git']['org']['main']}/#{name_repo}.git #{path_working}
         cd #{path_working} && git submodule update --init --recursive
-        rm -f .gitmodules && find . -type d -name .git -exec rm -rf {} +
+        find . -type d -name .git -exec rm -rf {} +
       else
         mkdir -p #{path_working}
       fi
@@ -101,7 +101,7 @@ Common.directories(self, [destination, working], recreate: true,
     only_if { ::File.directory?("#{path_destination}/.git") }
   end
 
-  execute "repo_git_commit_#{name_repo}" do
+  execute "repo_git_empty_#{name_repo}" do
     command <<-EOH
       git commit --allow-empty -m "base commit [skip ci]" && git checkout -b release
       git push -u origin main && git push -u origin release
@@ -111,10 +111,23 @@ Common.directories(self, [destination, working], recreate: true,
     environment 'HOME' => home
   end
 
+  execute "repo_exists_snapshot_push_#{name_repo}" do
+    command <<-EOH
+      cp -r #{path_destination}/.git #{path_working}
+      cd #{path_working} && git checkout -b snapshot && git add -A 
+      git commit --allow-empty -m "snapshot [skip ci]"
+      git push -f origin snapshot && (rm -rf #{path_working} || true)
+    EOH
+    cwd path_destination
+    user node['git']['app']['user']
+    environment 'HOME' => home
+    only_if { node.run_state["#{name_repo}_repo_exists"] }
+  end
+
   ruby_block "repo_files_#{name_repo}" do
     block do
       Find.find(path_source) do |path_src|
-        next if path_src =~ /(^|\/)\.git(\/|$)/ || File.basename(path_src) == '.gitmodules'
+        next if path_src =~ /(^|\/)\.git(\/|$)/
         path_src_rel = path_src.sub(/^#{Regexp.escape(path_source)}\/?/, '')
         path_dst = File.join(path_destination, path_src_rel)
         if File.directory?(path_src)
@@ -127,19 +140,6 @@ Common.directories(self, [destination, working], recreate: true,
       FileUtils.chown_R(node['git']['app']['user'], node['git']['app']['group'], path_destination)
     end
     action :run
-  end
-
-  execute "repo_exists_snapshot_push_#{name_repo}" do
-    command <<-EOH
-      rm -rf #{path_working} && cp -r #{path_destination} #{path_working}
-      cd #{path_working} && git checkout -b snapshot && git add -A 
-      git commit --allow-empty -m "snapshot [skip ci]"
-      git push -f origin snapshot && (rm -rf #{path_working} || true)
-    EOH
-    cwd path_destination
-    user node['git']['app']['user']
-    environment 'HOME' => home
-    only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
   # Monorepository ordered as last
@@ -180,12 +180,12 @@ Common.directories(self, [destination, working], recreate: true,
           if ! git config --file .gitmodules --get-regexp path | grep -q "^submodule\\.#{module_name}\\.path"; then
             git submodule add #{module_url} #{path_module}
           fi
+          git submodule update --init --recursive
           # bootstrap only 
           if [ "#{Env.get(node, 'host')}" = "127.0.0.1"  ] && [ -f local/config.json ]; then
             git add -f local/config.json
           fi
         EOH
-        only_if { ::Dir.exist?("#{path_destination}/.git") }
       end
     end
   end
@@ -220,7 +220,6 @@ Common.directories(self, [destination, working], recreate: true,
     action :delete
     recursive true
     only_if { ::Dir.exist?(path_destination) }
-    not_if { monorepo }
   end
 
   # Fork as stage repository

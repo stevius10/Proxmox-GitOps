@@ -47,9 +47,9 @@ module Env
       req.basic_auth(*creds(node))
       req['Content-Type'] = 'application/json'
       req.body = body if body
-      val = Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }
-      Chef::Log.info("[#{__method__}] #{key}: HTTP #{val.code}")
-      return val unless body && val.code.to_i == 404
+      response = Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }
+      Chef::Log.info("[#{__method__}] request #{uri}: #{response.code} #{response.message}")
+      return response unless body && response.code.to_i == 404
     end
   end
 

@@ -33,10 +33,6 @@ Initial bootstrapping is performed via a local Docker environment, with subseque
 
 This system implements stateless infrastructure management on Proxmox VE, ensuring deterministic reproducibility and environmental parity through recursive self-containment.
 
-<p align="center">
-  <img src="./docs/recursion.png" alt="Pipeline"/>
-</p>
-
 | Concept | Approach | Reasoning |
 |---------|----------|-----------|
 | **Ephemeral State** | Git repository represents *current desired state*, ensuring state purity across deployments.| Deployment consistency and stateless infrastructure over version history. |
@@ -49,6 +45,10 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 - **Loosely coupled**: Containers are decoupled from the control plane, enabling runtime replacement and independent operation. 
 
 - **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity. 
+
+<p align="center">
+  <img src="./docs/recursion.png" alt="Pipeline"/>
+</p>
 
 ### Trade-offs
 

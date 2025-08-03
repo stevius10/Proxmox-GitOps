@@ -99,7 +99,7 @@ module Common
     req.body = body if body
     headers.each { |k, v| req[k] = v }
     response = Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https') { |http| http.request(req) }
-    Chef::Log.info("[#{__method__}] request #{uri}: #{response.code.to_i}")
+    Chef::Log.info("[#{__method__}] request #{uri}: #{response.code} #{response.message}")
 
     if response.is_a?(Net::HTTPSuccess)
       return expect ? true : response

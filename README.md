@@ -8,10 +8,10 @@
   - [Design](#design)
   - [Trade-offs](#trade-offs)
 - [Usage](#usage)
+  - [Requirements](#requirements)
   - [Lifecycle](#lifecycle)
   - [Getting Started](#getting-started)
-    - [Requirements](#requirements)
-    - [Define Container](#define-container)
+    - [Development and Container Extension](#development-and-container-extension)
 
 ---
 
@@ -46,22 +46,29 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity. 
 
+<p align="center">
+  <img src="./docs/recursion.png" alt="Pipeline"/>
+</p>
+
 ### Trade-offs
 
 - **Complexity vs. Autonomy:** Recursive self-replication increases complexity drastically to achieve integrated deterministic bootstrap and reproducing behavior.
 
-- **Git Convention vs. Infrastructure State:** Uses Git as a state engine rather than versioning in volatile, stateless contexts. Mono-repository representation, however, encapsulates the entire infrastructure as a self-contained asset suited for version control.
-
-<p align="center">
-  <img src="./docs/repositories.png" alt="Repositories"/>
-</p>
+- **Git Convention vs. Infrastructure State:** Uses Git as a state engine rather than versioning in volatile, stateless contexts. Monorepository representation, however, encapsulates the entire infrastructure as a self-contained asset suited for version control.
 
 ## Usage
 
+### Requirements
+
+- Docker
+- Proxmox VE 8.4
+- Proxmox API token
+- See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
+
 ### Lifecycle
 
-- **Self-contained Mono-Repository** Artifact for **Version-Controlled Mirroring**
-  - `clone` aliased `git clone --recurse-submodules` (store network /share for persistence, disable it for security)
+- **Self-contained Monorepository** Artifact for **Version-Controlled Mirroring**
+  - `git clone --recurse-submodules` (store network /share for persistence, disable it for security)
 
 - **Backup**: See previous
 
@@ -76,19 +83,14 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 - Accept the Pull Request at `localhost:8080/main/config/pulls/1` to deploy on Proxmox VE
 
 <p align="center">
-  <img src="./docs/recursion.png" alt="Pipeline"/>
+  <img src="./docs/nutshell.png" alt="in a nutshell"/>
 </p>
 
-#### Requirements
+#### Development and Container Extension
 
-- Docker
-- Proxmox VE 8.4
-- Proxmox API token
-- See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
+Reusable container definitions are stored in the [`libs`](libs) folder. 
 
-#### Define Container
-
-Reusable container definitions are stored in the [`libs`](libs) folder. Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
+Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
 
 - Add `config.env` to your container's root directory (e.g. `./libs/apache`):
 ```dotenv
@@ -139,7 +141,7 @@ Common.application 'apache2' # provided by convention
 
 - a) **Deploy**: Push to the `release` branch of a new repository
 
-- b) **Add to Mono-Repository**: Redeploy
+- b) **Add to Monorepository**: Redeploy
 
 The container can be tested locally running `./local/run.sh [container]` (_wip_)
 

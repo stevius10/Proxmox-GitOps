@@ -93,19 +93,24 @@ module Common
 
   # Remote
 
-  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil)
+  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, expect: false)
     req = method.new(u = URI(uri))
     req.basic_auth(user, pass) if user && pass
     req.body = body if body
     headers.each { |k, v| req[k] = v }
     response = Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https') { |http| http.request(req) }
-    return response if response.is_a?(Net::HTTPSuccess)
+    Chef::Log.info("[#{__method__}] request #{uri}: #{response.code.to_i}")
+
+    if response.is_a?(Net::HTTPSuccess)
+      return expect ? true : response
+    end
     if response.is_a?(Net::HTTPRedirection)
       loc = response['location']
-      loc = "#{u.scheme}://#{u.host}#{loc}" if loc && loc.start_with?('/')
-      return request(loc, user: user, pass: pass, headers: headers, method: method, body: body)
+      loc = "#{u.scheme}://#{u.host}#{loc}" if loc&.start_with?('/')
+      return request(loc, user: user, pass: pass, headers: headers, method: method, body: body, expect: expect)
     end
-    response
+
+    expect ? false : response
   end
 
   def self.latest(url)

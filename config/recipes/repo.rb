@@ -83,10 +83,9 @@ Common.directories(self, [destination, working], recreate: true,
 
   # Repository at destination
 
-  execute "repo_init_#{name_repo}" do
+  execute "repo_git_init_#{name_repo}" do
     command <<-EOH
       mkdir -p #{path_destination} && cd #{path_destination} && git init -b main
-      git commit --allow-empty -m "base commit [skip ci]"
     EOH
     user node['git']['app']['user']
     environment 'HOME' => home
@@ -100,6 +99,16 @@ Common.directories(self, [destination, working], recreate: true,
     variables(repo: name_repo, git_user: node['git']['app']['user'])
     action :create
     only_if { ::File.directory?("#{path_destination}/.git") }
+  end
+
+  execute "repo_git_commit_#{name_repo}" do
+    command <<-EOH
+      git commit --allow-empty -m "base commit [skip ci]" && git checkout -b release
+      git push -u origin main && git push -u origin release
+    EOH
+    cwd path_destination
+    user node['git']['app']['user']
+    environment 'HOME' => home
   end
 
   ruby_block "repo_files_#{name_repo}" do
@@ -122,7 +131,7 @@ Common.directories(self, [destination, working], recreate: true,
 
   execute "repo_exists_snapshot_push_#{name_repo}" do
     command <<-EOH
-      git push -u origin HEAD:main && rm -rf #{path_working} && cp -r #{path_destination} #{path_working}
+      rm -rf #{path_working} && cp -r #{path_destination} #{path_working}
       cd #{path_working} && git checkout -b snapshot && git add -A 
       git commit --allow-empty -m "snapshot [skip ci]"
       git push -f origin snapshot && (rm -rf #{path_working} || true)
@@ -131,17 +140,6 @@ Common.directories(self, [destination, working], recreate: true,
     user node['git']['app']['user']
     environment 'HOME' => home
     only_if { node.run_state["#{name_repo}_repo_exists"] }
-  end
-
-  execute "repo_empty_#{name_repo}" do
-    command <<-EOH
-      git push -f origin HEAD:main && (git ls-remote --exit-code origin release >/dev/null 2>&1 && \
-        git push -f origin HEAD:release || git push -u origin HEAD:release)
-    EOH
-    cwd path_destination
-    user node['git']['app']['user']
-    environment 'HOME' => home
-    action :run
   end
 
   # Monorepository ordered as last
@@ -192,6 +190,7 @@ Common.directories(self, [destination, working], recreate: true,
     end
   end
 
+  # Repositories
   execute "repo_push_#{name_repo}" do
     cwd path_destination
     user node['git']['app']['user']
@@ -221,6 +220,7 @@ Common.directories(self, [destination, working], recreate: true,
     action :delete
     recursive true
     only_if { ::Dir.exist?(path_destination) }
+    not_if { monorepo }
   end
 
   # Fork as stage repository

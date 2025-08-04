@@ -68,7 +68,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 ### Lifecycle
 
 - **Self-contained Monorepository** Artifact for **Version-Controlled Mirroring**
-  - `git clone --recurse-submodules` (store network /share for persistence, disable it for security)
+  - `git clone --recurse-submodules` (store /share for persistence, disable network access for security)
 
 - **Backup**: See previous
 

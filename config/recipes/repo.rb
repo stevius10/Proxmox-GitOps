@@ -20,6 +20,8 @@ Common.directories(self, [destination, working], recreate: true,
   path_working = "#{working}/#{name_repo}"
   path_destination = monorepo ? destination : File.expand_path(name_repo, destination)
 
+  Chef::Log.info("#{repository} (#{name_repo})")
+
   ruby_block "repo_exists_#{name_repo}" do
     block do
       node.run_state["#{name_repo}_repo_exists"] =
@@ -29,8 +31,6 @@ Common.directories(self, [destination, working], recreate: true,
     end
     action :run
   end
-
-  # Snapshot and delete if existed
 
   execute "repo_exists_snapshot_create_#{name_repo}" do
     command <<-EOH
@@ -44,7 +44,8 @@ Common.directories(self, [destination, working], recreate: true,
     EOH
     user node['git']['app']['user']
     environment 'HOME' => home
-    only_if { node.run_state["#{name_repo}_repo_exists"] }
+    only_if { Chef::Log.info("[#{repository} (#{name_repo})]: delete repository after snapshot")
+      node.run_state["#{name_repo}_repo_exists"] }
   end
 
   ruby_block "repo_exists_reset_#{name_repo}" do
@@ -58,30 +59,19 @@ Common.directories(self, [destination, working], recreate: true,
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
-  # Create repository
-
-  ruby_block "repo_create_#{name_repo}" do
+  Chef::Log.info("[#{repository} (#{name_repo})]: request repository")
+  ruby_block "repo_request_#{name_repo}" do
     block do
       require 'json'
-      status_code = (result = Common.request(
+      (result = Common.request(
         "#{node['git']['endpoint']}/admin/users/#{node['git']['org']['main']}/repos",
         method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
         user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
         body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.to_json
-      )).code.to_i
-      if status_code == 201
-        node.run_state["#{name_repo}_repo_created"] = true
-      elsif status_code == 409
-        node.run_state["#{name_repo}_repo_created"] = false
-        node.run_state["#{name_repo}_repo_exists"]  = true
-      else
-        raise "Error creating repository '#{name_repo}' (HTTP #{status_code}): #{result.body}"
-      end
+      )).code.to_i == 201 or raise "Error creating repository '#{name_repo}': #{result.code} #{result.message} #{result.body}"
     end
     action :run
   end
-
-  # Repository at destination
 
   execute "repo_git_init_#{name_repo}" do
     command <<-EOH
@@ -101,6 +91,7 @@ Common.directories(self, [destination, working], recreate: true,
     only_if { ::File.directory?("#{path_destination}/.git") }
   end
 
+  Chef::Log.info("[#{repository} (#{name_repo})]: base commit")
   execute "repo_git_empty_#{name_repo}" do
     command <<-EOH
       git commit --allow-empty -m "base commit [skip ci]" && git checkout -b release
@@ -121,13 +112,14 @@ Common.directories(self, [destination, working], recreate: true,
     cwd path_destination
     user node['git']['app']['user']
     environment 'HOME' => home
-    only_if { node.run_state["#{name_repo}_repo_exists"] }
+    only_if { Chef::Log.info("[#{repository} (#{name_repo})]: snapshot commit")
+      node.run_state["#{name_repo}_repo_exists"] }
   end
 
   ruby_block "repo_files_#{name_repo}" do
     block do
       Find.find(path_source) do |path_src|
-        next if path_src =~ /(^|\/)\.git(\/|$)/
+        next if path_src =~ /(^|\/)\.git(\/|$)/ || path_src =~ /(^|\/)\.gitmodules(\/|$)/
         path_src_rel = path_src.sub(/^#{Regexp.escape(path_source)}\/?/, '')
         path_dst = File.join(path_destination, path_src_rel)
         if File.directory?(path_src)
@@ -142,10 +134,9 @@ Common.directories(self, [destination, working], recreate: true,
     action :run
   end
 
-  # Monorepository ordered as last
   if monorepo
-
     submodules = repositories.reject { |r| r == "./" } # without itself
+    Chef::Log.info("#{repository} (monorepository): referencing #{submodules}")
 
     ruby_block 'repo_mono_submodule_rewritten' do
       block do
@@ -153,7 +144,7 @@ Common.directories(self, [destination, working], recreate: true,
         if File.exist?(path_dst_gitmodules)
           File.write(path_dst_gitmodules,
             File.read(path_dst_gitmodules) # remote submodule rewriting
-              .gsub(/(url\s*=\s*http:\/\/)([^:\/\s]+)/) { "#{$1}#{node['ip']}" })
+              .gsub(/(url\s*=\s*http:\/\/)([^:\/\s]+)/) { "#{$1}#{node['host']}" })
         end
       end
       action :run
@@ -172,12 +163,15 @@ Common.directories(self, [destination, working], recreate: true,
         action :delete
       end
 
-      execute "repo_mono_submodule_references" do
+      Chef::Log.info("#{repository} (monorepository): referencing #{path_module} (#{module_name})")
+
+      execute "repo_mono_submodule_references_#{module_name}" do
         cwd path_destination
         user node['git']['app']['user']
         environment 'HOME' => home
         command <<-EOH
           if ! git config --file .gitmodules --get-regexp path | grep -q "^submodule\\.#{module_name}\\.path"; then
+            echo "submodule add: #{module_url} -> #{path_module}"
             git submodule add #{module_url} #{path_module}
           fi
           git submodule update --init --recursive
@@ -188,6 +182,7 @@ Common.directories(self, [destination, working], recreate: true,
         EOH
       end
     end
+
   end
 
   # Repositories

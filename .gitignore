@@ -1,7 +1,6 @@
 **/.git/
 
-config.json
-
+local/config.json
 local/*.hash
 
 .DS_Store

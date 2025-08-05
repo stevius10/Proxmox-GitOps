@@ -1,5 +1,5 @@
 default['app']['user']          = 'app'
-default['app']['group']         = 'app'
+default['app']['group']         = 'config'
 
 default['bridge']['port']       = 8080
 default['bridge']['serial']     = Env.get(node, 'serial') || '/dev/serial/by-id/'

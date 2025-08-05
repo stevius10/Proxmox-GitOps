@@ -8,10 +8,12 @@ default_packages:
   - ansible-core
   - ansible
 
-users:
-  - { name: "app", create_home: false }
-  - { name: "config", groups: ["root", "sudo"], create_home: true }
-  - { name: "user", shell: "/bin/bash", groups: ["root", "sudo"], create_home: true }
+default_groups: ["config"]
+
+default_users:
+  - { name: "app",  groups: ["config"], create_home: false }
+  - { name: "config", groups: ["config", "root", "sudo"], create_home: true }
+  - { name: "user", shell: "/bin/bash", groups: ["config", "root", "sudo"], create_home: true }
 
 ssh_users:
   - config

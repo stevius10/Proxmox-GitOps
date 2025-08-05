@@ -1,7 +1,7 @@
 default['ip'] = ENV['IP']
 
 default['app']['user'] = 'app'
-default['app']['group'] = 'app'
+default['app']['group'] = 'config'
 
 default['proxy']['config']['domain'] = 'lan'
 default['proxy']['dir']['app'] = '/app/proxy'

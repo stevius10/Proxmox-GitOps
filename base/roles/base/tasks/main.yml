@@ -13,14 +13,20 @@
         name: "{{ default_packages }}"
         state: present
 
+    - name: Create default groups
+      group:
+        name: "{{ item }}"
+        state: present
+      loop: "{{ default_groups }}"
+
     - name: Create default users
       user:
         name: "{{ item.name }}"
         shell: "{{ item.shell | default('/bin/bash') }}"
         groups: "{{ item.groups | default(omit) }}"
-        create_home: yes
+        create_home: "{{ item.create_home | default(true) }}"
         state: present
-      loop: "{{ users }}"
+      loop: "{{ default_users }}"
       register: created_users
 
     - name: Configure Sudo
@@ -74,7 +80,7 @@
         path: "/app"
         state: directory
         owner: app
-        group: app
+        group: config
         mode: 0755
 
 - name: SSH configuration

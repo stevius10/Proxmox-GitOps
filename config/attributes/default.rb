@@ -3,7 +3,7 @@ default['id']                       = ENV['ID']
 default['key']                      = ENV['KEY'].to_s.presence ? ENV['KEY'] : "/share/.ssh/#{node['id']}"
 
 default['git']['app']['user']       = 'app'
-default['git']['app']['group']      = 'app'
+default['git']['app']['group']      = 'config'
 
 default['git']['dir']['install']    = '/app/git'
 default['git']['dir']['data']       = '/app/git/data'

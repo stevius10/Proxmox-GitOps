@@ -92,7 +92,7 @@ jobs:
           login: ${{ vars.LOGIN }}
           password: ${{ vars.PASSWORD }}
         run: |
-          git -C config submodule update --init --recursive
+          git -C config submodule update --remote --recursive
           tar -c config -cz . | \
             ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" \
               'sudo tar xz -C /tmp && sudo env \

@@ -1,5 +1,7 @@
-[![Build Status](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Build Status](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+[![PVE 8.4](https://img.shields.io/badge/PVE-8.4-orange)](https://www.proxmox.com/) [![PVE 9.0](https://img.shields.io/badge/PVE-9.0-orange)](https://www.proxmox.com/)
+
 
 ## Table of Contents
 - [Overview](#overview)
@@ -61,7 +63,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 ### Requirements
 
 - Docker
-- Proxmox VE 8.4
+- Proxmox VE 8.4-9.0
 - Proxmox API token
 - See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
@@ -130,8 +132,8 @@ package 'apache2'
 file '/var/www/html/index.html' do
   content "<h1>Hello from #{Env.get(node, 'login')}</h1>"
   mode '0644'
-  owner 'app' # see base/roles/base/tasks/main.yml
-  group 'app' # each container is configured identically 
+  owner 'app'    # see base/roles/base/tasks/main.yml
+  group 'config' # each container is configured identically 
 end
 
 Common.application 'apache2' # provided by convention

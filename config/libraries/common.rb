@@ -12,8 +12,8 @@ module Common
 
   def self.directories(ctx, dirs, opts = {})
     dirs = Array(dirs)
-    owner     = opts[:owner]    || 'root'
-    group     = opts[:group]    || 'root'
+    owner     = opts[:owner]    || 'app'
+    group     = opts[:group]    || 'config'
     mode      = opts[:mode]     || '0755'
     recursive = opts.key?(:recursive) ? opts[:recursive] : true
     recreate  = opts[:recreate] || false
@@ -113,10 +113,6 @@ module Common
     expect ? false : response
   end
 
-  def self.latest(url)
-    request(url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1].to_s || "latest"
-  end
-
   def self.download(ctx, path, url:, owner: 'root', group: 'root', mode: '0644', action: :create)
     ctx.remote_file path do
       source url.respond_to?(:call) ? lazy { url.call } : url
@@ -125,6 +121,32 @@ module Common
       mode   mode
       action action
     end
+  end
+
+  def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshot', restore: false)
+    cookbook = ctx.cookbook_name
+    timestamp = Time.now.strftime('%H%M-%d%m%y')
+    file = File.join(snapshot_dir, "#{cookbook}-#{timestamp}.tar.gz")
+
+    if restore
+      latest = Dir[File.join(snapshot_dir, "#{cookbook}-*.tar.gz")].max_by { |f| File.mtime(f) }
+
+      ctx.execute "common_restore_snapshot_#{dir}" do
+        command "tar -xzf #{latest} -C #{File.dirname(dir)}"
+        only_if { latest && ::File.exist?(latest) }
+      end
+      latest
+    else
+      ctx.execute "common_create_snapshot_#{dir}" do
+        command "rm -f #{File.join(snapshot_dir, "#{cookbook}-*.tar.gz")} && tar -czf #{file} -C #{File.dirname(dir)} #{File.basename(dir)}"
+        only_if { ::Dir.exist?(dir) }
+      end
+      file
+    end
+  end
+
+  def self.latest(url)
+    request(url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1].to_s || "latest"
   end
 
   # Utility

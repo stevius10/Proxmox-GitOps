@@ -118,7 +118,7 @@
 
     - name: Set shared mounts
       set_fact:
-        mounts: "{{ mounts | default({}) | combine({ 'mp' ~ idx: 'local:' ~ item.split(':')[1] ~ ',mp=/share/' ~ (item.split(':')[0] if item.split(':')[0] != 'share' else '') }) }}"
+        mounts: "{{ mounts | default({}) | combine({ ('mp' ~ idx): (item.split(':')[0] ~ ':' ~ item.split(':')[1] ~ ',mp=/share/' ~ (item.split(':')[2] if item.split(':')[2] != 'share' else '') ) }) }}"
       loop: "{{ (mount | default('')).split(',') | select('match', '^.+:.+$') }}"
       loop_control:
         index_var: idx

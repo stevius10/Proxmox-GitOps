@@ -4,13 +4,14 @@ passdb backend = tdbsam
 map to guest = bad user
 usershare allow guests = no
 
-<% @share.each do |name, config| %>
+<% @shares.each do |entry| -%>
+  <% name, path = entry.split(':', 2) -%>
   [<%= name %>]
-  path = <%= config['path'] || "/share/#{name}" %>
+  path = <%= path %>
   valid users = <%= @login %>
-  force user = <%= @user %>
-  force group = <%= @group %>
+  force user = <%= @login %>
+  force group = <%= @login %>
   read only = no
   create mask = 0775
   directory mask = 2775
-<% end %>
+<% end -%>

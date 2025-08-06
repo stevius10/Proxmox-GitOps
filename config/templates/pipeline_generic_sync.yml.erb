@@ -1,0 +1,25 @@
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  include:
+    runs-on: shell
+    steps:
+      - name: Checkout monorepo
+        uses: https://gitea.com/actions/checkout@v4
+        with:
+          repository: 'main/config'
+          ref: 'main'
+          path: 'config'
+
+      - name: Sync submodule
+        run: |
+          cd monorepo
+          git submodule update --remote
+          git add $(git submodule status | awk '{print $2}')
+          git diff --cached --quiet || git commit -m "[sync] main/$repo updated [skip ci]"
+          git push origin main
+        env:
+          repo: ${{ gitea.repository }}

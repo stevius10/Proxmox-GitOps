@@ -154,7 +154,7 @@ Common.directories(self, [destination, working], recreate: true,
     mode '0644'
     action :create
     only_if { repository.include?('libs/') and File.exist?("#{path_destination}/config.env") }
-    not_if { File.exist?("#{path_destination}/.gitea/sync.yml") }
+    not_if { File.exist?("#{path_destination}/.gitea/pipeline.yml") }
   end
 
   if monorepo

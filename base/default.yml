@@ -198,18 +198,30 @@
         headers: "{{ proxmox_auth | combine({'Content-Type': 'application/json'}) }}"
         body_format: json
         body:
-          url: "https://download.proxmox.com/images/system/{{ os.split('/')[-1] }}"
+          url: "http://download.proxmox.com/images/system/{{ os.split('/')[-1] }}"
           filename: "{{ os.split('/')[-1] }}"
           content: "vztmpl"
         validate_certs: no
       when:
         - container_creation.failed
         - os in container_creation.msg | default('')
-      register: os_downloaded
+      register: os_download
+
+    - name: Wait for os to be downloaded
+      uri:
+        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/storage/local/content"
+        method: GET
+        headers: "{{ proxmox_auth }}"
+        validate_certs: no
+      register: os_available
+      until: os in (os_available.json.data | map(attribute='volid') | list)
+      retries: 10
+      delay: 6
+      when: os_download is defined
 
     - name: Retry create container with os downloaded
       community.general.proxmox: *create_container
-      when: os_downloaded.changed
+      when: os_available is defined and os in (os_available.json.data | map(attribute='volid') | list)
 
     - name: Wait for container to be created
       uri:

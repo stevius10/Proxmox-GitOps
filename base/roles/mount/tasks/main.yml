@@ -32,3 +32,4 @@
 
 - name: Restart mount
   ansible.builtin.command: mount -a
+  ignore_errors: yes # avoid permission error if token usage

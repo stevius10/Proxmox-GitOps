@@ -150,8 +150,8 @@ module Common
     file = File.join(snapshot_dir, "#{cookbook}-#{timestamp}.tar.gz")
 
     if restore
-      latest = Dir[File.join(snapshot_dir, "#{cookbook}*.tar.gz")].max_by { |f| File.mtime(f) }
-
+      latest = Dir[File.join(snapshot_dir, "#{cookbook}-*.tar.gz")].max_by { |f| File.mtime(f) }
+      
       ctx.execute "common_restore_snapshot_#{dir}" do
         command "tar -xzf #{latest} -C #{File.dirname(dir)}"
         only_if { latest && ::File.exist?(latest) }

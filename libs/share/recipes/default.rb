@@ -3,15 +3,14 @@ password = Env.get(node, 'password')
 
 Common.packages(self, %w[samba samba-common samba-client])
 
-node['mount'].each do |name|
-  path = (name == 'share' ? '/share' : "/share/#{name}")
-
+node['mount'].each do |entry|
+  name, path = entry.split(':', 2)
   directory path do
     owner node['git']['app']['user']
     group node['git']['app']['group']
     mode '2775'
     recursive true
-    action :create
+    action :create_if_missing
   end
 end
 
@@ -21,7 +20,7 @@ template '/etc/samba/smb.conf' do
     login: login,
     user: node['git']['app']['user'],
     group: node['git']['app']['group'],
-    share: node['mount']
+    shares: node['mount']
   )
   notifies :restart, 'service[smb]'
 end

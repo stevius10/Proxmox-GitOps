@@ -59,31 +59,6 @@
             {'Cookie': 'PVEAuthCookie=' + proxmox_login.json.data.ticket, 
               'CSRFPreventionToken': proxmox_login.json.data.CSRFPreventionToken}) }}
 
-    # Host
-
-    - name: Check container os
-      uri:
-        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/storage/local/content"
-        method: GET
-        headers: "{{ proxmox_auth }}"
-        validate_certs: no
-      register: os_templates
-
-    - name: Download container os if missing
-      uri:
-        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/storage/local/download-url"
-        method: POST
-        headers:
-          - "{{ proxmox_auth }}"
-          - Content-Type: application/json
-        body_format: json
-        body:
-          url: "https://downloads.proxmox.com/images/system/{{ os.split('/')[-1] }}"
-          filename: "{{ os.split('/')[-1] }}"
-          content: "vztmpl"
-        validate_certs: no
-      when: os_templates.json.data | selectattr('volid', 'equalto', os) | list | length == 0
-
     # Key handling
 
     - name: Ensure container keys directory on host
@@ -220,12 +195,10 @@
       uri:
         url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/storage/local/download-url"
         method: POST
-        headers:
-          - "{{ proxmox_auth }}"
-          - Content-Type: application/json
+        headers: "{{ proxmox_auth | combine({'Content-Type': 'application/json'}) }}"
         body_format: json
         body:
-          url: "https://downloads.proxmox.com/images/system/{{ os.split('/')[-1] }}"
+          url: "https://download.proxmox.com/images/system/{{ os.split('/')[-1] }}"
           filename: "{{ os.split('/')[-1] }}"
           content: "vztmpl"
         validate_certs: no

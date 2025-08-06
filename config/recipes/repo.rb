@@ -134,6 +134,29 @@ Common.directories(self, [destination, working], recreate: true,
     action :run
   end
 
+  directory "#{path_destination}/.gitea" do
+    action :create
+  end
+
+  template "#{path_destination}/.gitea/sync.yml" do
+    source 'pipeline_generic_sync.yml.erb'
+    owner node['git']['app']['user']
+    group node['git']['app']['group']
+    mode '0644'
+    action :create
+    not_if { File.exist?("#{path_destination}/.gitea/sync.yml") }
+  end
+
+  template "#{path_destination}/.gitea/pipeline.yml" do
+    source 'pipeline_generic_pipeline.yml.erb'
+    owner node['git']['app']['user']
+    group node['git']['app']['group']
+    mode '0644'
+    action :create
+    only_if { repository.include?('libs/') and File.exist?("#{path_destination}/config.env") }
+    not_if { File.exist?("#{path_destination}/.gitea/sync.yml") }
+  end
+
   if monorepo
     submodules = repositories.reject { |r| r == "./" } # without itself
     Chef::Log.info("#{repository} (monorepository): referencing #{submodules}")

@@ -113,6 +113,27 @@ module Common
     expect ? false : response
   end
 
+  def self.proxmox(uri, node, path, expect: true)
+    host = Env.get(node, 'proxmox_host')
+    user = Env.get(node, 'proxmox_user')
+    pass = Env.get(node, 'proxmox_password')
+    token = Env.get(node, 'proxmox_token')
+    secret = Env.get(node, 'proxmox_secret')
+
+    url = "https://#{host}:8006/api2/json/#{path}"
+      if pass && !pass.empty?
+        response = request("https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
+          body: URI.encode_www_form(username: user, password: pass), headers: { 'Content-Type' => 'application/x-www-form-urlencoded' })
+        raise "[#{__method__}] login: #{response.code} #{response.message}" unless response.is_a?(Net::HTTPSuccess)
+        headers = { 'Cookie' => "PVEAuthCookie=#{JSON.parse(login.body)['data']['ticket']}" }
+      else
+        headers = { 'Authorization' => "PVEAPIToken=#{user}!#{token}=#{secret}" }
+      end
+
+    res = request(url, headers: headers, expect: expect)
+    expect ? JSON.parse(res.body)['data'] : res
+  end
+
   def self.download(ctx, path, url:, owner: 'root', group: 'root', mode: '0644', action: :create)
     ctx.remote_file path do
       source url.respond_to?(:call) ? lazy { url.call } : url
@@ -123,13 +144,13 @@ module Common
     end
   end
 
-  def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshot', restore: false)
+  def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', restore: false)
     cookbook = ctx.cookbook_name
     timestamp = Time.now.strftime('%H%M-%d%m%y')
     file = File.join(snapshot_dir, "#{cookbook}-#{timestamp}.tar.gz")
 
     if restore
-      latest = Dir[File.join(snapshot_dir, "#{cookbook}-*.tar.gz")].max_by { |f| File.mtime(f) }
+      latest = Dir[File.join(snapshot_dir, "#{cookbook}*.tar.gz")].max_by { |f| File.mtime(f) }
 
       ctx.execute "common_restore_snapshot_#{dir}" do
         command "tar -xzf #{latest} -C #{File.dirname(dir)}"
@@ -200,6 +221,8 @@ module Common
       recursive recursive
       action :create
     end
+  rescue => e
+    Chef::Log.warn("Skipping #{dir}: #{e}")
   end
 
     def self.delete_dir(ctx, dir)

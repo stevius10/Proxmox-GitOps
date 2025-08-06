@@ -3,8 +3,17 @@
   hosts: localhost
   gather_facts: no
   vars:
+    proxmox_credentials: &proxmox_credentials
+      api_host: "{{ PROXMOX_HOST }}"
+      api_user: "{{ PROXMOX_USER }}"
+      api_password: "{{ PROXMOX_PASSWORD | default(omit) }}"
+      api_token_id: "{{ (PROXMOX_PASSWORD | default('') == '') | ternary(PROXMOX_TOKEN, omit) }}"
+      api_token_secret: "{{ (PROXMOX_PASSWORD | default('') == '') | ternary(PROXMOX_SECRET, omit) }}"
+      api_port: 8006
+      node: "pve"
     os: "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
     keys_dir: "/share/.ssh"
+
   tasks:
     - name: Check container configuration
       ansible.builtin.stat:
@@ -21,10 +30,31 @@
       ansible.builtin.set_fact:
         PROXMOX_HOST: "{{ lookup('env', 'PROXMOX_HOST') }}"
         PROXMOX_USER: "{{ lookup('env', 'PROXMOX_USER') }}"
+        PROXMOX_PASSWORD: "{{ lookup('env', 'PROXMOX_PASSWORD') }}"
         PROXMOX_TOKEN: "{{ lookup('env', 'PROXMOX_TOKEN') }}"
         PROXMOX_SECRET: "{{ lookup('env', 'PROXMOX_SECRET') }}"
       when:
         - (config_file.stat.exists and config.proxmox is defined) or (not config_file.stat.exists)
+
+    - name: Get Proxmox ticket
+      uri:
+        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/access/ticket"
+        method: POST
+        body:
+          username: "{{ PROXMOX_USER }}"
+          password: "{{ PROXMOX_PASSWORD }}"
+        body_format: json
+        validate_certs: no
+      register: proxmox_login
+      when: PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != ''
+
+    - name: Set Proxmox request headers
+      set_fact:
+        proxmox_auth: >-
+          {{ (PROXMOX_PASSWORD | default('') == '') | ternary(
+            {'Authorization': 'PVEAPIToken=' + PROXMOX_USER + '!' + PROXMOX_TOKEN + '=' + PROXMOX_SECRET}, 
+            {'Cookie': 'PVEAuthCookie=' + proxmox_login.json.data.ticket, 
+              'CSRFPreventionToken': proxmox_login.json.data.CSRFPreventionToken}) }}
 
     - name: Ensure container keys directory on host
       ansible.builtin.file:
@@ -39,12 +69,7 @@
 
     - name: Check container existence
       community.general.proxmox_vm_info:
-        api_host: "{{ PROXMOX_HOST }}"
-        api_user: "{{ PROXMOX_USER }}"
-        api_token_id: "{{ PROXMOX_TOKEN }}"
-        api_token_secret: "{{ PROXMOX_SECRET }}"
-        api_port: 8006
-        node: "pve"
+        <<: *proxmox_credentials
         vmid: "{{ id }}"
       register: container_info
       delegate_to: localhost
@@ -56,13 +81,8 @@
 
     - name: Stop container
       community.general.proxmox:
-        api_host: "{{ PROXMOX_HOST }}"
-        api_user: "{{ PROXMOX_USER }}"
-        api_token_id: "{{ PROXMOX_TOKEN }}"
-        api_token_secret: "{{ PROXMOX_SECRET }}"
-        api_port: 8006
+        <<: *proxmox_credentials
         vmid: "{{ id }}"
-        node: "pve"
         state: stopped
         force: yes
       delegate_to: localhost
@@ -73,8 +93,7 @@
       uri:
         url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/status/current"
         method: GET
-        headers:
-          Authorization: "PVEAPIToken={{ PROXMOX_USER }}!{{ PROXMOX_TOKEN }}={{ PROXMOX_SECRET }}"
+        headers: "{{ proxmox_auth }}"
         validate_certs: no
       register: container_status
       until: container_status.json.data.status == "stopped"
@@ -86,13 +105,8 @@
 
     - name: Remove container
       community.general.proxmox:
-        api_host: "{{ PROXMOX_HOST }}"
-        api_user: "{{ PROXMOX_USER }}"
-        api_token_id: "{{ PROXMOX_TOKEN }}"
-        api_token_secret: "{{ PROXMOX_SECRET }}"
-        api_port: 8006
+        <<: *proxmox_credentials
         vmid: "{{ id }}"
-        node: "pve"
         state: absent
       delegate_to: localhost
       ignore_errors: yes
@@ -103,8 +117,7 @@
       uri:
         url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/status/current"
         method: GET
-        headers:
-          Authorization: "PVEAPIToken={{ PROXMOX_USER }}!{{ PROXMOX_TOKEN }}={{ PROXMOX_SECRET }}"
+        headers: "{{ proxmox_auth }}"
         validate_certs: no
       register: container_status
       until:
@@ -116,26 +129,38 @@
       delegate_to: localhost
       when: container_exists
 
-    - name: Set shared mounts
+    - name: Init mounts
       set_fact:
-        mounts: "{{ mounts | default({}) | combine({ ('mp' ~ idx): (item.split(':')[0] ~ ':' ~ item.split(':')[1] ~ ',mp=/share/' ~ (item.split(':')[2] if item.split(':')[2] != 'share' else '') ) }) }}"
-      loop: "{{ (mount | default('')).split(',') | select('match', '^.+:.+$') }}"
+        mounts: "{{ mounts | default({}) }}"
+
+    - name: Set mounts
+      set_fact:
+        mounts: >-
+          {{ mounts | default({}) | combine({('mp'~idx): 
+            ((item.split(':')[:-1] | join(':')) ~ ',mp=' ~ (item.split(':')[-1])) }) }}
+      loop: "{{ mount.split(',') | select('search', ':') }}"
       loop_control:
         index_var: idx
       when:
         - mount is defined
-        - (share | default(false, true) | bool)
-        - (mount | trim | length) > 0
+        - share | default(true) | bool
+        - mount | trim | length > 0
+
+    - name: Set passthrough
+      set_fact:
+        mounts: "{{ mounts | combine({ ('dev' ~ idx): item }) }}"
+      loop: "{{ mount.split(',') | select('match', '^/[^:]+$') }}"
+      loop_control:
+        index_var: idx
+      when:
+        - mount is defined
+        - share | default(true) | bool
+        - mount | trim | length > 0
 
     - name: Create container
       community.general.proxmox:
-        api_host: "{{ PROXMOX_HOST }}"
-        api_user: "{{ PROXMOX_USER }}"
-        api_token_id: "{{ PROXMOX_TOKEN }}"
-        api_token_secret: "{{ PROXMOX_SECRET }}"
-        api_port: 8006
+        <<: *proxmox_credentials
         vmid: "{{ id }}"
-        node: "pve"
         hostname: "{{ hostname }}"
         ostemplate: "{{ os }}"
         cores: "{{ cores }}"
@@ -143,12 +168,14 @@
         pubkey: "{{ lookup('file', [keys_dir, id ~ '.pub'] | path_join) }}"
         swap: "{{ swap }}"
         disk: "{{ disk }}"
+        mounts: >-
+          {{ (mounts if mounts and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}
+        features: >-
+          {{ (['mount=cifs'] if (share | default(false)) and (mount | default('') | trim != '') 
+            and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}
+        unprivileged: "{{ (share | default(false) and mount | default('') | trim != '') | ternary(false, true) }}"
         netif:
           net0: "name=eth0,gw=192.168.178.1,ip={{ ip }}/24,bridge=vmbr0"
-        mounts: "{{ mounts if (share | default(false, true) | bool) else {} }}"
-        unprivileged: >-
-          {{ true if (share | default(false) | bool) else false 
-            if (mount is defined and (mount | trim | length > 0)) else true }}
         onboot: "{{ boot }}"
         state: present
       delegate_to: localhost
@@ -157,8 +184,7 @@
       uri:
         url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/config"
         method: GET
-        headers:
-          Authorization: "PVEAPIToken={{ PROXMOX_USER }}!{{ PROXMOX_TOKEN }}={{ PROXMOX_SECRET }}"
+        headers: "{{ proxmox_auth }}"
         validate_certs: no
       register: container_status
       until:
@@ -171,14 +197,9 @@
 
     - name: Start container
       community.general.proxmox:
-        api_host: "{{ PROXMOX_HOST }}"
-        api_user: "{{ PROXMOX_USER }}"
-        api_token_id: "{{ PROXMOX_TOKEN }}"
-        api_token_secret: "{{ PROXMOX_SECRET }}"
-        api_port: 8006
+        <<: *proxmox_credentials
         vmid: "{{ id }}"
         hostname: "{{ hostname }}"
-        node: "pve"
         state: started
       delegate_to: localhost
 

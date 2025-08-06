@@ -15,6 +15,9 @@
     keys_dir: "/share/.ssh"
 
   tasks:
+
+    # Preparation
+
     - name: Check container configuration
       ansible.builtin.stat:
         path: "config.json"
@@ -56,6 +59,33 @@
             {'Cookie': 'PVEAuthCookie=' + proxmox_login.json.data.ticket, 
               'CSRFPreventionToken': proxmox_login.json.data.CSRFPreventionToken}) }}
 
+    # Host
+
+    - name: Check container os
+      uri:
+        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/storage/local/content"
+        method: GET
+        headers: "{{ proxmox_auth }}"
+        validate_certs: no
+      register: os_templates
+
+    - name: Download container os if missing
+      uri:
+        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/storage/local/download-url"
+        method: POST
+        headers:
+          - "{{ proxmox_auth }}"
+          - Content-Type: application/json
+        body_format: json
+        body:
+          url: "https://downloads.proxmox.com/images/system/{{ os.split('/')[-1] }}"
+          filename: "{{ os.split('/')[-1] }}"
+          content: "vztmpl"
+        validate_certs: no
+      when: os_templates.json.data | selectattr('volid', 'equalto', os) | list | length == 0
+
+    # Key handling
+
     - name: Ensure container keys directory on host
       ansible.builtin.file:
         path: "{{ keys_dir }}"
@@ -66,6 +96,8 @@
         path: "{{ keys_dir }}/{{ id }}"
         type: ed25519
         force: false
+
+    # Container deletion
 
     - name: Check container existence
       community.general.proxmox_vm_info:
@@ -129,6 +161,8 @@
       delegate_to: localhost
       when: container_exists
 
+    # Container creation
+
     - name: Init mounts
       set_fact:
         mounts: "{{ mounts | default({}) }}"
@@ -137,7 +171,7 @@
       set_fact:
         mounts: >-
           {{ mounts | default({}) | combine({('mp'~idx): 
-            ((item.split(':')[:-1] | join(':')) ~ ',mp=' ~ (item.split(':')[-1])) }) }}
+            ((item.split(':')[:-1] | join(':')) ~ ',mp=' ~ (item.split(':')[-1]) ~ ',ro=0,acl=1') }) }}
       loop: "{{ mount.split(',') | select('search', ':') }}"
       loop_control:
         index_var: idx
@@ -158,7 +192,7 @@
         - mount | trim | length > 0
 
     - name: Create container
-      community.general.proxmox:
+      community.general.proxmox:  &create_container
         <<: *proxmox_credentials
         vmid: "{{ id }}"
         hostname: "{{ hostname }}"
@@ -179,6 +213,30 @@
         onboot: "{{ boot }}"
         state: present
       delegate_to: localhost
+      register: container_creation
+      ignore_errors: true
+
+    - name: Download container os if missing
+      uri:
+        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/storage/local/download-url"
+        method: POST
+        headers:
+          - "{{ proxmox_auth }}"
+          - Content-Type: application/json
+        body_format: json
+        body:
+          url: "https://downloads.proxmox.com/images/system/{{ os.split('/')[-1] }}"
+          filename: "{{ os.split('/')[-1] }}"
+          content: "vztmpl"
+        validate_certs: no
+      when:
+        - container_creation.failed
+        - os in container_creation.msg | default('')
+      register: os_downloaded
+
+    - name: Retry create container with os downloaded
+      community.general.proxmox: *create_container
+      when: os_downloaded.changed
 
     - name: Wait for container to be created
       uri:

@@ -43,12 +43,13 @@ runs:
         ansible-playbook default.yml -e "ip=${{ inputs.ip }}" -e "id=${{ inputs.id }}" \
           -e "hostname=${{ inputs.hostname }}" -e "cores=${{ inputs.cores }}" -e "memory=${{ inputs.memory }}" \
           -e "swap=${{ inputs.swap }}" -e "disk=${{ inputs.disk }}" -e "boot=${{ inputs.boot }}" \
-          -e "mount=${{ inputs.mount }}" -e "share=${{ inputs.share }}"
+          -e "mount=${{ inputs.mount }}" -e "share=${{ env.PROXMOX_PASSWORD && inputs.share || 'false' }}"
       env:
         HOST: ${{ vars.HOST }}
         LOGIN: ${{ vars.LOGIN }}
         PASSWORD: ${{ vars.PASSWORD }}
         PROXMOX_HOST: ${{ vars.PROXMOX_HOST }}
         PROXMOX_USER: ${{ vars.PROXMOX_USER }}
+        PROXMOX_PASSWORD: ${{ vars.PROXMOX_PASSWORD }}
         PROXMOX_TOKEN: ${{ vars.PROXMOX_TOKEN }}
         PROXMOX_SECRET: ${{ vars.PROXMOX_SECRET }}

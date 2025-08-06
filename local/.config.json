@@ -3,10 +3,8 @@
   "proxmox":
     {
       "host": "",
-      "api": "",
       "user": "",
-      "token": "",
-      "secret": ""
+      "password": ""
     },
 
   "login": "",

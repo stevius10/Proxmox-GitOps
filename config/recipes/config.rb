@@ -28,17 +28,17 @@ ruby_block 'config_set_key' do
     (JSON.parse(Utils.request(url, user: login, pass: password).body) rescue []).each do |k|
       Utils.request("#{url}/#{k['id']}", method: Net::HTTP::Delete, user: login, pass: password) if k['key'] && k['key'].strip == key
     end
-    response = Utils.request(url, body: { title: "config-#{login}", key: key }.to_json,
-      user: login, pass: password, method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' })
-    Log.request!("Set new key failed", url, response) unless [201, 422].include?(response.code.to_i)
+    status_code = (response = Utils.request(url, body: { title: "config-#{login}", key: key }.to_json,
+      user: login, pass: password, method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' })).code.to_i
+    Logs.request!("Set key failed", url, response) unless [201, 422].include?(status_code)
   end
   action :run
   only_if { ::File.exist?("#{node['key']}.pub") }
   not_if do
     next false unless ::File.exist?("#{node['key']}.pub")
     begin
-      resp = Utils.request("#{node['git']['api']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys", user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
-      (JSON.parse(resp.body) rescue []).any? { |k| k['key'] && k['key'].strip == ::File.read("#{node['key']}.pub").strip }
+      response = Utils.request("#{node['git']['api']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys", user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
+      (JSON.parse(response.body) rescue []).any? { |k| k['key'] && k['key'].strip == ::File.read("#{node['key']}.pub").strip }
     end
   end
 end
@@ -96,7 +96,7 @@ end
         user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
         body: { username: org }.to_json
       )).code.to_i
-      Log.request!("Create organization '#{org}' failed", uri, response) unless [201, 409, 422].include? status_code
+      Logs.request!("Create organization '#{org}' failed", uri, response) unless [201, 409, 422].include? status_code
     end
     action :run
   end

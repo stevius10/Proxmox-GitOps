@@ -49,7 +49,7 @@ execute 'zigbee2mqtt_build' do
   user node['app']['user']
   group node['app']['group']
   cwd node['bridge']['dir']
-  environment('HOME' => "/home/#{node['app']['user']}")
+  # environment('HOME' => "/home/#{node['app']['user']}")
   only_if { latest_version }
 end
 

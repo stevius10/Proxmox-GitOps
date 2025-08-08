@@ -42,14 +42,13 @@ module Env
 
   private_class_method def self.request(node, key, body = nil)
     uri = URI("#{endpoint(node)}/orgs/#{or_default(node.dig('git', 'org', 'main'), 'main')}/actions/variables/#{key}")
-    (body ? [Net::HTTP::Put, Net::HTTP::Post] : [Net::HTTP::Get]).each do |m|
-      req = m.new(uri)
+    (body ? [Net::HTTP::Put, Net::HTTP::Post] : [Net::HTTP::Get]).each do |method|
+      req = method.new(uri)
       req.basic_auth(*creds(node))
       req['Content-Type'] = 'application/json'
       req.body = body if body
-      response = Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }
-      response.code.to_i != 404 ? Logs.request(uri, response) : Logs.request!(uri, response)
-      return response unless body && response.code.to_i == 404
+      Logs.request(uri, response=(Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }))
+      return response unless body && response.code.to_i == 404 or Logs.request!(uri, response)
     end
   end
 end

@@ -24,8 +24,9 @@ fruit:posix_rename = yes
 fruit:veto_appledouble = no
 fruit:nfs_aces = no
 
-<% @shares.each do |path| -%>
-  <% name = File.basename(path.to_s.chomp('/')) -%>  path = <%= path %>
+<% Array(@shares).each do |path| -%>
+  [<%= File.basename(path.to_s.chomp('/')) %>]
+  path = <%= path %>
   valid users = <%= @login %>
   force user = <%= @login %>
   force group = <%= @login %>

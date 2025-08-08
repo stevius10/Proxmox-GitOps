@@ -16,12 +16,12 @@ user login do
   action :create
 end
 
-node['share']['mount'].each do |path|
+Array(node.dig('share','mount')).each do |path|
   directory path do
     owner login
     group login
     mode '2775'
-    recursive false # folded mounts
+    recursive false
     action :create
   end
 end

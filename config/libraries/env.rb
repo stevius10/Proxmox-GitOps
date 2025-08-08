@@ -5,26 +5,26 @@ require 'json'
 module Env
 
   def self.creds(node, login_key = 'login', password_key = 'password')
-    [login = ENV[login_key.upcase] || node[login_key.to_sym], pass = ENV[password_key.upcase] || node[password_key.to_sym]].tap { Chef::Log.info(mask(login)); Chef::Log.info(mask(pass)) }
+    [login = ENV[login_key.upcase] || node[login_key.to_sym], pass = ENV[password_key.upcase] || node[password_key.to_sym]].tap { Log.info(mask(login)); Log.info(mask(pass)) }
   end
 
   def self.get(node, key)
-    Chef::Log.info("[#{__method__}] #{key}: #{mask(val = node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key))}"); val
+    Log.info("#{key}: #{mask(val = node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key))}"); val
   rescue => e
-    Chef::Log.warn("[#{__method__}] #{e.message} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
+    Log.warn("#{e.message} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
   end
 
   def self.get_variable(node, key)
     JSON.parse(request(node, key).body)['data']
   rescue => e
-    Chef::Log.warn("[#{__method__}] #{e.message} failed get '#{key}' on #{endpoint(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
+    Log.warn("#{e.message} failed get '#{key}' on #{endpoint(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
   end
 
   def self.set_variable(node, key, val)
     request(node, key, { name: key, value: val.to_s }.to_json)
   rescue => e
-    Chef::Log.warn("[#{__method__}] #{e.message} failed set '#{key}' on #{endpoint(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
-    raise
+    Log.warn("#{e.message} failed set '#{key}' on #{endpoint(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
+    
   end
 
   class << self
@@ -48,7 +48,7 @@ module Env
       req['Content-Type'] = 'application/json'
       req.body = body if body
       response = Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }
-      Chef::Log.info("[#{__method__}] request #{uri}: #{response.code} #{response.message}")
+      Log.info("request #{uri}: #{response.code} #{response.message}")
       return response unless body && response.code.to_i == 404
     end
   end

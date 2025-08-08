@@ -8,7 +8,7 @@ default['git']['app']['group']      = 'config'
 default['git']['dir']['install']    = '/app/git'
 default['git']['dir']['data']       = '/app/git/data'
 default['git']['home']              = "/home/#{node['git']['app']['user']}/git"
-default['git']['workspace']         = '/share/workspace'
+default['git']['workspace']         = "/home/#{node['git']['app']['user']}/workspace"
 
 default['git']['port']['http']      = 8080
 default['git']['port']['ssh']       = 2222

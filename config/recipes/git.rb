@@ -1,6 +1,6 @@
-Common.download(self, "#{node['git']['dir']['install']}/gitea",
-  url: -> { ver = Common.latest('https://github.com/go-gitea/gitea/releases/latest')
-    "https://github.com/go-gitea/gitea/releases/download/v#{ver}/gitea-#{ver}-linux-#{Common.arch(node)}" },
+Utils.download(self, "#{node['git']['dir']['install']}/gitea",
+  url: -> { ver = Utils.latest('https://github.com/go-gitea/gitea/releases/latest')
+    "https://github.com/go-gitea/gitea/releases/download/v#{ver}/gitea-#{ver}-linux-#{Utils.arch(node)}" },
   owner: node['git']['app']['user'],
   group: node['git']['app']['group'],
   mode: '0755' )

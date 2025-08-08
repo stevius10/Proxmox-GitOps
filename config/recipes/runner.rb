@@ -1,8 +1,8 @@
 Common.directories(self, node['runner']['dir']['install'], owner: node['git']['app']['user'], group: node['git']['app']['group'])
 
-Common.download(self, "#{node['runner']['dir']['install']}/act_runner",
-  url: -> { ver = Common.latest('https://gitea.com/gitea/act_runner/releases/latest')
-    "https://gitea.com/gitea/act_runner/releases/download/v#{ver}/act_runner-#{ver}-linux-#{Common.arch(node)}" },
+Utils.download(self, "#{node['runner']['dir']['install']}/act_runner",
+  url: -> { ver = Utils.latest('https://gitea.com/gitea/act_runner/releases/latest')
+    "https://gitea.com/gitea/act_runner/releases/download/v#{ver}/act_runner-#{ver}-linux-#{Utils.arch(node)}" },
   owner: node['git']['app']['user'],
   group: node['git']['app']['group'],
   mode: '0755'
@@ -27,7 +27,7 @@ ruby_block 'runner_register' do
     uri = URI("http://localhost:#{node['git']['port']['http']}")
     connected = 15.times.any? do
       begin
-        res = Common.request(uri)
+        res = Utils.request(uri)
         res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
       rescue Errno::ECONNREFUSED, SocketError
         false
@@ -35,7 +35,7 @@ ruby_block 'runner_register' do
         sleep 5
       end
     end
-    raise 'Gitea not responding' unless connected
+     'Gitea not responding' unless connected
 
     (token = Mixlib::ShellOut.new(
       "#{node['git']['dir']['install']}/gitea actions --config #{node['git']['dir']['install']}/app.ini generate-runner-token",

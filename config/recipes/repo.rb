@@ -20,12 +20,12 @@ Common.directories(self, [destination, working], recreate: true,
   path_working = "#{working}/#{name_repo}"
   path_destination = monorepo ? destination : File.expand_path(name_repo, destination)
 
-  Chef::Log.info("#{repository} (#{name_repo})")
+  Log.info("#{repository} (#{name_repo})")
 
   ruby_block "repo_exists_#{name_repo}" do
     block do
       node.run_state["#{name_repo}_repo_exists"] =
-        (Common.request("#{node['git']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
+        (Utils.request("#{node['git']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
           user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
         ).code.to_i != 404
     end
@@ -44,31 +44,31 @@ Common.directories(self, [destination, working], recreate: true,
     EOH
     user node['git']['app']['user']
     environment 'HOME' => home
-    only_if { Chef::Log.info("[#{repository} (#{name_repo})]: delete repository after snapshot")
+    only_if { Log.info("[#{repository} (#{name_repo})]: delete repository after snapshot")
       node.run_state["#{name_repo}_repo_exists"] }
   end
 
   ruby_block "repo_exists_reset_#{name_repo}" do
     block do
-      unless [204, 404].include?(status_code = (result = Common.request("#{node['git']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
+      unless [204, 404].include?(status_code = (response = Utils.request("#{node['git']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
         method: Net::HTTP::Delete, user:   Env.get(node, 'login'), pass:   Env.get(node, 'password'))).code.to_i)
-        raise "Failed to delete #{name_repo} (#{status_code}): #{result.body}"
+        Log.request!("Failed to delete #{name_repo}", uri, response)
       end
     end
     action :run
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
-  Chef::Log.info("[#{repository} (#{name_repo})]: request repository")
+  Log.info("[#{repository} (#{name_repo})]: request repository")
   ruby_block "repo_request_#{name_repo}" do
     block do
       require 'json'
-      (result = Common.request(
-        "#{node['git']['endpoint']}/admin/users/#{node['git']['org']['main']}/repos",
+      (response = Utils.request(
+        uri="#{node['git']['endpoint']}/admin/users/#{node['git']['org']['main']}/repos",
         method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
         user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
         body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.to_json
-      )).code.to_i == 201 or raise "Error creating repository '#{name_repo}': #{result.code} #{result.message} #{result.body}"
+      )).code.to_i == 201 or Log.request!("Error creating repository '#{name_repo}'", uri, response)
     end
     action :run
   end
@@ -91,7 +91,7 @@ Common.directories(self, [destination, working], recreate: true,
     only_if { ::File.directory?("#{path_destination}/.git") }
   end
 
-  Chef::Log.info("[#{repository} (#{name_repo})]: base commit")
+  Log.info("[#{repository} (#{name_repo})]: base commit")
   execute "repo_git_empty_#{name_repo}" do
     command <<-EOH
       git commit --allow-empty -m "base commit [skip ci]" && git checkout -b release
@@ -112,7 +112,7 @@ Common.directories(self, [destination, working], recreate: true,
     cwd path_destination
     user node['git']['app']['user']
     environment 'HOME' => home
-    only_if { Chef::Log.info("[#{repository} (#{name_repo})]: snapshot commit")
+    only_if { Log.info("[#{repository} (#{name_repo})]: snapshot commit")
       node.run_state["#{name_repo}_repo_exists"] }
   end
 
@@ -134,32 +134,34 @@ Common.directories(self, [destination, working], recreate: true,
     action :run
   end
 
-  directory "#{path_destination}/.gitea" do
+  directory "#{path_destination}/.gitea/workflows" do
     action :create
+    recursive true
   end
 
-  template "#{path_destination}/.gitea/sync.yml" do
+  template "#{path_destination}/.gitea/workflows/sync.yml" do
     source 'pipeline_generic_sync.yml.erb'
     owner node['git']['app']['user']
     group node['git']['app']['group']
     mode '0644'
     action :create
-    not_if { File.exist?("#{path_destination}/.gitea/sync.yml") }
+    not_if { monorepo }
+    not_if { File.exist?("#{path_destination}/.gitea/workflows/sync.yml") }
   end
 
-  template "#{path_destination}/.gitea/pipeline.yml" do
+  template "#{path_destination}/.gitea/workflows/pipeline.yml" do
     source 'pipeline_generic_pipeline.yml.erb'
     owner node['git']['app']['user']
     group node['git']['app']['group']
     mode '0644'
     action :create
     only_if { repository.include?('libs/') and File.exist?("#{path_destination}/config.env") }
-    not_if { File.exist?("#{path_destination}/.gitea/pipeline.yml") }
+    not_if { File.exist?("#{path_destination}/.gitea/workflows/pipeline.yml") }
   end
 
   if monorepo
     submodules = repositories.reject { |r| r == "./" } # without itself
-    Chef::Log.info("#{repository} (monorepository): referencing #{submodules}")
+    Log.info("#{repository} (monorepository): referencing #{submodules}")
 
     ruby_block 'repo_mono_submodule_rewritten' do
       block do
@@ -186,7 +188,7 @@ Common.directories(self, [destination, working], recreate: true,
         action :delete
       end
 
-      Chef::Log.info("#{repository} (monorepository): referencing #{path_module} (#{module_name})")
+      Log.info("#{repository} (monorepository): referencing #{path_module} (#{module_name})")
 
       execute "repo_mono_submodule_references_#{module_name}" do
         cwd path_destination
@@ -209,6 +211,7 @@ Common.directories(self, [destination, working], recreate: true,
   end
 
   # Repositories
+
   execute "repo_push_#{name_repo}" do
     cwd path_destination
     user node['git']['app']['user']
@@ -244,11 +247,11 @@ Common.directories(self, [destination, working], recreate: true,
 
   ruby_block "repo_stage_fork_clean_#{name_repo}" do
     block do
-      if Common.request("#{node['git']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
+      if Utils.request("#{node['git']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
         user: Env.get(node, 'login'), pass: Env.get(node, 'password')).code.to_i != 404
-        status_code = (Common.request("#{node['git']['endpoint']}/repos/#{node['git']['org']['stage']}/#{name_repo}",
+        status_code = (response = Utils.request(uri="#{node['git']['endpoint']}/repos/#{node['git']['org']['stage']}/#{name_repo}",
           method: Net::HTTP::Delete, user: Env.get(node, 'login'), pass: Env.get(node, 'password'))).code.to_i
-        raise "Failed to clean test/#{name_repo} (#{status_code})" unless [204, 404].include?(status_code)
+        Log.request!("Failed to clean test/#{name_repo} (#{status_code})", uri, response) unless [204, 404].include?(status_code)
       end
     end
     action :run
@@ -256,12 +259,12 @@ Common.directories(self, [destination, working], recreate: true,
 
   ruby_block "repo_stage_fork_create_#{name_repo}" do
     block do
-      status_code = Common.request("#{node['git']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}/forks",
+      status_code = Utils.request("#{node['git']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}/forks",
         method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
         user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
         body: { name: name_repo, organization: node['git']['org']['stage'] }.to_json
       ).code.to_i
-      raise "Forking to #{node['git']['org']['stage']}/#{name_repo} failed (#{status_code})" unless [201, 202].include?(status_code)
+      Log.request!("Forking to #{node['git']['org']['stage']}/#{name_repo} failed", uri, response) unless [201, 202].include?(status_code)
     end
     action :run
   end

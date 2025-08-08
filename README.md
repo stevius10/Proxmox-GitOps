@@ -108,24 +108,6 @@ DISK=local-lvm:8
 BOOT=yes
 ```
 
-- Paste generic pipeline in container's `.gitea/workflows`:
-```yaml
-on:
-  workflow_dispatch:
-  push:
-    branches: [ release, main, develop ]
-
-jobs:
-  include:
-    runs-on: shell
-    steps:
-      - id: init
-        uses: main/config/.gitea/workflows@main
-        with:
-          repo: ${{ gitea.repository }}
-          ref: ${{ gitea.ref_name }}
-```
-
 - Add your cookbook to the container definition root:
 ```ruby
 # libs/apache/recipes/default.rb
@@ -138,14 +120,12 @@ file '/var/www/html/index.html' do
   group 'config' # each container is configured identically 
 end
 
-Common.application 'apache2' # provided by convention
+Common.application(self, 'apache2') # provided by convention
 ```
 
 - Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
 
-- a) **Deploy**: Push to the `release` branch of a new repository
-
-- b) **Add to Monorepository**: Redeploy
+- Add to Monorepository and redeploy.
 
 The container can be tested locally running `./local/run.sh [container]` (_wip_)
 

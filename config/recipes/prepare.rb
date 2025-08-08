@@ -1,7 +1,7 @@
 # Filesystem
 
 Common.directories(self, [ "/home/#{node['git']['app']['user']}",
-  "#{node['git']['home']}",
+  "#{node['git']['dir']['home']}",
   "#{node['git']['dir']['install']}",
   "#{node['git']['dir']['data']}",
   "#{node['git']['dir']['data']}/custom",
@@ -11,7 +11,7 @@ Common.directories(self, [ "/home/#{node['git']['app']['user']}",
   "#{node['git']['dir']['data']}/custom/conf",
   "#{node['runner']['dir']['install']}",
   "#{::File.dirname(node['key'])}",
-  "#{node['git']['workspace']}"
+  "#{node['git']['dir']['workspace']}"
 ], owner: node['git']['app']['user'], group: node['git']['app']['group'])
 
 Common.packages(self, %w(git acl python3-pip ansible nodejs npm python3-proxmoxer))

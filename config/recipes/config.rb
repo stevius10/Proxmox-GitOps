@@ -14,7 +14,7 @@ execute 'config_set_user' do
     fi
     $base create $create $user
   EOH
-  not_if { Utils.request("#{node['git']['endpoint']}/user", user: Env.get(node, 'login'), pass: Env.get(node, 'password'), expect: true) }
+  not_if { Utils.request("#{node['git']['api']['endpoint']}/user", user: Env.get(node, 'login'), pass: Env.get(node, 'password'), expect: true) }
 end
 
 ruby_block 'config_set_key' do
@@ -22,7 +22,7 @@ ruby_block 'config_set_key' do
     require 'json'
     login = Env.get(node, 'login')
     password = Env.get(node, 'password')
-    url = "#{node['git']['endpoint']}/admin/users/#{login}/keys"
+    url = "#{node['git']['api']['endpoint']}/admin/users/#{login}/keys"
     key = ::File.read("#{node['key']}.pub").strip
 
     (JSON.parse(Utils.request(url, user: login, pass: password).body) rescue []).each do |k|
@@ -37,7 +37,7 @@ ruby_block 'config_set_key' do
   not_if do
     next false unless ::File.exist?("#{node['key']}.pub")
     begin
-      resp = Utils.request("#{node['git']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys", user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
+      resp = Utils.request("#{node['git']['api']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys", user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
       (JSON.parse(resp.body) rescue []).any? { |k| k['key'] && k['key'].strip == ::File.read("#{node['key']}.pub").strip }
     end
   end
@@ -91,7 +91,7 @@ end
   ruby_block "config_git_org_#{org}" do
     block do
       require 'json'
-      status_code = (response = Utils.request(uri="#{node['git']['endpoint']}/orgs",
+      status_code = (response = Utils.request(uri="#{node['git']['api']['endpoint']}/orgs",
         method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
         user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
         body: { username: org }.to_json

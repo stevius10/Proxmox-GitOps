@@ -5,7 +5,8 @@ require 'json'
 module Env
 
   def self.creds(node, login_key = 'login', password_key = 'password')
-    [login = ENV[login_key.upcase] || node[login_key.to_sym], pass = ENV[password_key.upcase] || node[password_key.to_sym]].tap { Logs.assignment(login, pass) }
+    [ Logs.assignment(login, login=ENV[login_key.upcase] || node[login_key.to_sym]),
+      Logs.assignment(password, pass=ENV[password_key.upcase] || node[password_key.to_sym]) ]
   end
 
   def self.get(node, key)
@@ -41,8 +42,8 @@ module Env
 
   private_class_method def self.request(node, key, body = nil)
     uri = "#{endpoint(node)}/orgs/#{or_default(node.dig('git', 'repo', 'org'), 'main')}/actions/variables/#{key}"
-    login, pass = creds(node)
-    status_code = (response = Utils.request(uri, user: login, pass: pass, headers: {'Content-Type' => 'application/json'},
+    login, password = creds(node)
+    status_code = (response = Utils.request(uri, user: login, pass: password, headers: {'Content-Type' => 'application/json'},
      body: body, method: body ? [Net::HTTP::Put, Net::HTTP::Post] : Net::HTTP::Get).code.to_i )
     status_code != 404 ? Logs.request(uri, response) : Logs.request!(uri, response)
     return response unless body && response.code.to_i == 404

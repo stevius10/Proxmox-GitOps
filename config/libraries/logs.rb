@@ -1,4 +1,4 @@
-module Log
+module Logs
 
   FORMAT_WITH = "\e[1m[%s] %s (%s:%d)\e[0m"
   FORMAT_NO   = "%s (%s:%d)"
@@ -30,24 +30,26 @@ module Log
   def self.warn(msg); log(:warn, msg) end
   def self.error(msg); log(:error, msg) end
   def self.request(uri, response); info("request #{uri}: #{response.code} #{response.message}") end
-  def self.assignment(key, val); info("#{key}: #{mask(val)}") end
+  def self.assignment(key, val); info("#{key}: #{mask(val)}"); return val end
+
+  def self.debug(level, msg, *pairs)
+    ctx = pairs.flatten.each_slice(2).map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
+    log(level, [msg, ctx].reject(&:empty?).join(" "))
+  end
 
   def self.fail!(msg)
     error(msg)
     c = callsite
     label = method_label(c)
-    label ? "[#{label}] #{msg}" : msg
+    raise(label ? "[#{label}] #{msg}" : msg)
   end
 
-  def self.request!(msg, uri, response)
+  def self.request!(uri, response, msg="failed request")
     warn(msg)
     c = callsite
     label = method_label(c)
-    if label
-      "[#{label}] #{msg} (#{uri}: #{response.code} #{response.message})"
-    else
-      "#{msg} (#{uri}: #{response.code} #{response.message})"
-    end
+    s = "#{msg} (#{uri}: #{response.code} #{response.message})"
+    raise(label ? "[#{label}] #{s}" : s)
   end
 
   def self.mask(str, term = nil)

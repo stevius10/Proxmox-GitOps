@@ -62,7 +62,7 @@ CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp  \
 log "container" "started:${CONTAINER_ID}"
 sleep "$DOCKER_WAIT"
 
-cmd="cinc-client -l debug --local-mode --config-option node_path=/tmp/nodes \
+cmd="cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
   --config-option cookbook_path=${COOKBOOK_PATH} ${CONFIG_FILE} --chef-license accept -o ${RECIPE}"
 docker exec "$CONTAINER_ID" bash -c "$cmd" || log "error" "exec_failed"
 

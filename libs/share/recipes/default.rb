@@ -33,7 +33,7 @@ end
 
 template '/etc/samba/smb.conf' do
   source 'smb.conf.erb'
-  variables(login: login, shares: node['mount'])
+  variables(login: login, shares: Array(node['share']['mount']))
   notifies :restart, 'service[smb]'
 end
 

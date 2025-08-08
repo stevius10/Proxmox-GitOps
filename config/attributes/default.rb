@@ -19,8 +19,8 @@ default['git']['host']['http']      = "http://#{node['host']}:#{node['git']['por
 default['git']['port']['ssh']       = 2222
 default['git']['host']['ssh']       = "#{node['host']}:#{node['git']['port']['ssh']}"
 
-default['git']['api']['endpoint']   = "http://#{node['host']}:#{node['git']['port']['http']}/api/#{node['git']['api']['version']}"
 default['git']['api']['version']    = "v1"
+default['git']['api']['endpoint']   = "http://#{node['host']}:#{node['git']['port']['http']}/api/#{node['git']['api']['version']}"
 
 default['git']['org']['main']       = 'main'
 default['git']['org']['stage']      = 'stage'

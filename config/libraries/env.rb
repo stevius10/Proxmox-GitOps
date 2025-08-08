@@ -5,8 +5,8 @@ require 'json'
 module Env
 
   def self.creds(node, login_key = 'login', password_key = 'password')
-    [ Logs.assignment(login, login=ENV[login_key.upcase] || node[login_key.to_sym]),
-      Logs.assignment(password, pass=ENV[password_key.upcase] || node[password_key.to_sym]) ]
+    [ Logs.assignment(login_key, (login=ENV[login_key.upcase] || node[login_key.to_sym])),
+      Logs.assignment(password_key, (password=ENV[password_key.upcase] || node[password_key.to_sym])) ]
   end
 
   def self.get(node, key)
@@ -36,19 +36,22 @@ module Env
   end
 
   private_class_method def self.endpoint(node, port=or_default(node.dig('git', 'port', 'http'), '8080'))
-    or_default(node.dig('git', 'endpoint'),
+    or_default(node.dig('git', 'api', 'endpoint'),
 "http://#{or_default(node['host'].to_s.presence || ENV['HOST'].to_s.presence, '127.0.0.1')}:#{port}/api/#{or_default(node.dig('git', 'version'), 'v1')}")
   end
 
   private_class_method def self.request(node, key, body = nil)
-    uri = "#{endpoint(node)}/orgs/#{or_default(node.dig('git', 'repo', 'org'), 'main')}/actions/variables/#{key}"
-    login, password = creds(node)
-    status_code = (response = Utils.request(uri, user: login, pass: password, headers: {'Content-Type' => 'application/json'},
-     body: body, method: body ? [Net::HTTP::Put, Net::HTTP::Post] : Net::HTTP::Get).code.to_i )
-    status_code != 404 ? Logs.request(uri, response) : Logs.request!(uri, response)
-    return response unless body && response.code.to_i == 404
+    uri = URI("#{endpoint(node)}/orgs/#{or_default(node.dig('git', 'org', 'main'), 'main')}/actions/variables/#{key}")
+    (body ? [Net::HTTP::Put, Net::HTTP::Post] : [Net::HTTP::Get]).each do |m|
+      req = m.new(uri)
+      req.basic_auth(*creds(node))
+      req['Content-Type'] = 'application/json'
+      req.body = body if body
+      response = Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }
+      response.code.to_i != 404 ? Logs.request(uri, response) : Logs.request!(uri, response)
+      return response unless body && response.code.to_i == 404
+    end
   end
-
 end
 
 class Object

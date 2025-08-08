@@ -89,7 +89,7 @@ module Common
       action :create
     end
   rescue => e
-    Log.warn("Skipping #{dir}: #{e}")
+    Logs.warn("Skipping #{dir}: #{e}")
   end
 
     def self.delete_dir(ctx, dir)

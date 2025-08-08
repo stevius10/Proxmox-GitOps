@@ -5,26 +5,25 @@ require 'json'
 module Env
 
   def self.creds(node, login_key = 'login', password_key = 'password')
-    [login = ENV[login_key.upcase] || node[login_key.to_sym], pass = ENV[password_key.upcase] || node[password_key.to_sym]].tap { Log.info(mask(login)); Log.info(mask(pass)) }
+    [login = ENV[login_key.upcase] || node[login_key.to_sym], pass = ENV[password_key.upcase] || node[password_key.to_sym]].tap { Logs.assignment(login, pass) }
   end
 
   def self.get(node, key)
-    Log.info("#{key}: #{mask(val = node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key))}"); val
+    Logs.assignment(key, val=(node[key].to_s.presence || ENV[key.to_s.upcase].presence || get_variable(node, key))); val
   rescue => e
-    Log.warn("#{e.message} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
+    Logs.debug(:warn, "failed get '#{key}'", :node_key, node[key], :env_key, ENV[key.to_s.upcase])
   end
 
   def self.get_variable(node, key)
     JSON.parse(request(node, key).body)['data']
   rescue => e
-    Log.warn("#{e.message} failed get '#{key}' on #{endpoint(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
+    Logs.debug(:warn, "failed get variable '#{key}'", :error, e.message, :endpoint, endpoint(node), :node_key, node[key], :env_key, ENV[key.to_s.upcase])
   end
 
   def self.set_variable(node, key, val)
     request(node, key, { name: key, value: val.to_s }.to_json)
   rescue => e
-    Log.warn("#{e.message} failed set '#{key}' on #{endpoint(node)} node[#{key}]: #{node[key].inspect} ENV[#{key}]: #{ENV[key.to_s.upcase].inspect}")
-    
+    Logs.debug(:warn, "failed set #{Logs.mask(val)} for variable '#{key}'", :error, e.message, :endpoint, endpoint(node), :node_key, node[key], :env_key, ENV[key.to_s.upcase])
   end
 
   class << self
@@ -41,16 +40,12 @@ module Env
   end
 
   private_class_method def self.request(node, key, body = nil)
-    uri = URI("#{endpoint(node)}/orgs/#{or_default(node.dig('git', 'repo', 'org'), 'main')}/actions/variables/#{key}")
-    (body ? [Net::HTTP::Put, Net::HTTP::Post] : [Net::HTTP::Get]).each do |m|
-      req = m.new(uri)
-      req.basic_auth(*creds(node))
-      req['Content-Type'] = 'application/json'
-      req.body = body if body
-      response = Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }
-      Log.info("request #{uri}: #{response.code} #{response.message}")
-      return response unless body && response.code.to_i == 404
-    end
+    uri = "#{endpoint(node)}/orgs/#{or_default(node.dig('git', 'repo', 'org'), 'main')}/actions/variables/#{key}"
+    login, pass = creds(node)
+    status_code = (response = Utils.request(uri, user: login, pass: pass, headers: {'Content-Type' => 'application/json'},
+     body: body, method: body ? [Net::HTTP::Put, Net::HTTP::Post] : Net::HTTP::Get).code.to_i )
+    status_code != 404 ? Logs.request(uri, response) : Logs.request!(uri, response)
+    return response unless body && response.code.to_i == 404
   end
 
 end
@@ -68,8 +63,4 @@ end
 class NilClass
   def blank?; true; end
   def presence; nil; end
-end
-
-def mask(str)
-  str.to_s.length <= 2 ? '*' * str.to_s.length : "#{str[0]}#{'*' * (str.length - 2)}#{str[-1]}"
 end

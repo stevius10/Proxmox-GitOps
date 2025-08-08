@@ -23,10 +23,10 @@ execute 'enable_corepack' do
 end
 
 installed_version = ::File.exist?("#{node['bridge']['dir']}/.version") ? ::File.read("#{node['bridge']['dir']}/.version").strip : nil
-Log.info("installed version: #{installed_version}")
+Logs.info("installed version: #{installed_version}")
 
 latest_version = Utils.latest('https://github.com/Koenkk/zigbee2mqtt/releases/latest')
-Log.info("latest version: #{latest_version}") if latest_version
+Logs.info("latest version: #{latest_version}") if latest_version
 
 latest_version = false unless installed_version.nil? || Gem::Version.new(latest_version) > Gem::Version.new(installed_version)
 

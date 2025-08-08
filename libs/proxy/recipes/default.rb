@@ -12,7 +12,7 @@ ruby_block 'proxmox_containers' do
       ip = config['net0'] ? config['net0'].match(/ip=([\d\.]+)/)&.[](1) : "404"
       "#{name}.#{domain} #{ip}"
     end
-    Log.info(node.run_state['proxy_hosts'])
+    Logs.info(node.run_state['proxy_hosts'])
   end
 end
 

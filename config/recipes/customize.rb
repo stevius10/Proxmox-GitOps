@@ -1,0 +1,1 @@
+Chef::Log.info("")

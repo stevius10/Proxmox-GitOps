@@ -23,19 +23,19 @@ execute 'enable_corepack' do
 end
 
 installed_version = ::File.exist?("#{node['bridge']['dir']}/.version") ? ::File.read("#{node['bridge']['dir']}/.version").strip : nil
-Chef::Log.info("installed version: #{installed_version}")
+Logs.info("installed version: #{installed_version}")
 
-latest_version = Common.latest('https://github.com/Koenkk/zigbee2mqtt/releases/latest')
-Chef::Log.info("latest version: #{latest_version}") if latest_version
+latest_version = Utils.latest('https://github.com/Koenkk/zigbee2mqtt/releases/latest')
+Logs.info("latest version: #{latest_version}") if latest_version
 
 latest_version = false unless installed_version.nil? || Gem::Version.new(latest_version) > Gem::Version.new(installed_version)
 
-Common.download(self, "/tmp/zigbee2mqtt.zip",
+Utils.download(self, "/tmp/zigbee2mqtt.zip",
   url: "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{latest_version}.zip",
   owner: node['app']['user'], group: node['app']['group'], mode: '0644')
 .notifies :stop, "service[zigbee2mqtt]", :immediately if resources("service[zigbee2mqtt]") rescue nil if latest_version
 
-Common.snapshot(self, node['bridge']['data']) if latest_version
+Utils.snapshot(self, node['bridge']['data']) if latest_version
 
 execute 'zigbee2mqtt_files' do
   command lazy { "unzip -o #{"/tmp/zigbee2mqtt.zip"} -d #{node['bridge']['dir']} && mv #{node['bridge']['dir']}/zigbee2mqtt*/* #{node['bridge']['dir']}/ && rm -rf #{node['bridge']['dir']}/zigbee2mqtt" }
@@ -49,7 +49,7 @@ execute 'zigbee2mqtt_build' do
   user node['app']['user']
   group node['app']['group']
   cwd node['bridge']['dir']
-  environment('HOME' => "/home/#{node['app']['user']}")
+  # environment('HOME' => "/home/#{node['app']['user']}")
   only_if { latest_version }
 end
 
@@ -72,7 +72,7 @@ template "#{node['bridge']['data']}/configuration.yaml" do
   not_if { ::File.exist?("#{node['bridge']['data']}/configuration.yaml") }
 end
 
-Common.snapshot(self, node['bridge']['data'], restore: true)
+Utils.snapshot(self, node['bridge']['data'], restore: true)
 
 Common.application(self, 'zigbee2mqtt',
   user: node['app']['user'], cwd: node['bridge']['dir'],

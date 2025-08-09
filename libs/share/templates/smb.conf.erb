@@ -1,12 +1,31 @@
 [global]
+server min protocol = SMB2
+server max protocol = SMB3
+
 security = user
 passdb backend = tdbsam
 map to guest = bad user
 usershare allow guests = no
 
-<% @shares.each do |entry| -%>
-  <% name, path = entry.split(':', 2) -%>
-  [<%= name %>]
+socket options = TCP_NODELAY SO_RCVBUF=524288 SO_SNDBUF=524288
+
+aio read size = 1
+aio write size = 1
+
+vfs objects = catia fruit streams_xattr
+fruit:metadata = stream
+fruit:resource = file
+fruit:model = MacSamba
+fruit:locking = none
+
+dirsort = yes
+
+fruit:posix_rename = yes
+fruit:veto_appledouble = no
+fruit:nfs_aces = no
+
+<% Array(@shares).each do |path| -%>
+  [<%= File.basename(path.to_s.chomp('/')) %>]
   path = <%= path %>
   valid users = <%= @login %>
   force user = <%= @login %>

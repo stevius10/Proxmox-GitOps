@@ -1,5 +1,5 @@
 name: <%= node['hostname'] %>
-labels: ["<%= node['runner']['labels'] %>"]
+labels: ["<%= node['runner']['conf']['label'] %>"]
 
 log:
   level: warn
@@ -8,7 +8,7 @@ runner:
   file: .runner
   capacity: 1
   timeout: 1h
-  labels: ["<%= node['runner']['labels'] %>"]
+  labels: ["<%= node['runner']['conf']['label'] %>"]
 
 cache:
   enabled: false

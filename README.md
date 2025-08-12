@@ -66,23 +66,25 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - Docker
 - Proxmox VE 8.4-9.0
-- Proxmox API token
 - See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
 ### Lifecycle
 
-- **Self-contained Monorepository** Artifact for **Version-Controlled Mirroring**
-  - `git clone --recurse-submodules` (store /share for persistence, disable network access for security)
+#### Self-contained Monorepository
+Suited for **Version-Controlled Mirroring**
 
-- **Backup**: See previous
+- `git clone --recurse-submodules` (store /share for persistence, disable its network access for security)
 
-- **Update**: See previous, and redeploy merged
+- **Backup**: See [Self-contained Monorepository](#self-contained-monorepository)
 
-- **Rollback**: See previous, or set `snapshot` to `release` at runtime
+- **Update**: See [Self-contained Monorepository](#self-contained-monorepository), and redeploy merged
+
+- **Rollback**: See [Self-contained Monorepository](#self-contained-monorepository), or set `snapshot` to `release` at runtime
 
 ### Getting Started
 
-- Set **credentials and Proxmox API token** in [`local/.config.json`](local/.config.json) as `./local/config.json`
+- Set **Proxmox** and **global usage credentials** in [`local/.config.json`](local/.config.json) as `./local/config.json`
+- Ensure **container configuration** in [`config.env`](config.env) and verify storage
 - Run `./local/run.sh` for local Docker environment
 - Accept the Pull Request at `localhost:8080/main/config/pulls/1` to deploy on Proxmox VE
 

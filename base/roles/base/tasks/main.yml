@@ -74,11 +74,11 @@
         deb: /tmp/cinc.deb
         state: present
 
-- name: System Preparation
+- name: Application Preparation
   block:
-    - name: Create application directory
+    - name: Create application and key directory
       file:
-        path: "/app"
+        path: "/app/.ssh"
         state: directory
         owner: app
         group: config
@@ -104,20 +104,12 @@
         backup: yes
         state: present
 
-- name: SSH key management
+- name: Container accessibility
   block:
     - name: Store container key
       ansible.builtin.set_fact:
         private_key: "{{ private_key ~ (private_key.endswith('\n') | ternary('', '\n')) }}"
         public_key: "{{ public_key ~ (public_key.endswith('\n') | ternary('', '\n')) }}"
-
-    - name: Ensure container key directory
-      file:
-        path: "/root/.ssh"
-        state: directory
-        owner: root
-        group: root
-        recurse: yes
 
     - name: Save container private key
       copy:
@@ -149,7 +141,7 @@
         exclusive: no
       loop: "{{ ssh_users }}"
 
-- name: Customization
+- name: Default configuration
   block:
     - name: Copy bash configuration for root
       copy:

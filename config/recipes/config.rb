@@ -46,7 +46,7 @@ end
 directory "#{ENV['HOME']}/.ssh" do
   owner node['git']['app']['user']
   group node['git']['app']['group']
-  mode '0700'
+  mode '0711'
   action :create
 end
 

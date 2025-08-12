@@ -64,7 +64,6 @@
     - name: Ensure container keys directory on host
       ansible.builtin.file:
         path: "{{ keys_dir }}"
-        mode: '0700'
         state: directory
 
     - name: Generate container key on host

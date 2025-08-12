@@ -1,6 +1,6 @@
 default['id']                       = ENV['ID']
 default['host']                     = ENV['IP'].to_s.presence ? ENV['IP'] : "127.0.0.1"
-default['key']                      = ENV['KEY'].to_s.presence ? ENV['KEY'] : "/share/.ssh/#{node['id']}"
+default['key']                      = ENV['KEY'].to_s.presence ? ENV['KEY'] : "/app/.ssh/#{node['id']}"
 
 default['git']['app']['user']       = 'app'
 default['git']['app']['group']      = 'config'

@@ -1,7 +1,6 @@
 require 'find'
 require 'fileutils'
 
-home = "/home/#{node['git']['app']['user']}"
 source = ENV['PWD']
 destination = node['git']['dir']['workspace']
 working = "#{destination}/workdir"
@@ -9,7 +8,7 @@ working = "#{destination}/workdir"
 Common.directories(self, [destination, working], recreate: true,
   owner: node['git']['app']['user'], group: node['git']['app']['group'])
 
-(repositories = node['git']['repositories']
+(repositories = node['git']['conf']['repo']
   .flat_map { |r| (r == './libs') ? Dir.glob(File.join(source, r, '*')).select { |d| File.directory?(d) }.map { |p| p.sub(source, '.') } : r }
   .sort_by { |r| r == "./" ? 1 : 0 }).each do |repository| # dynamically resolved libs before monorepo
 
@@ -43,7 +42,6 @@ Common.directories(self, [destination, working], recreate: true,
       fi
     EOH
     user node['git']['app']['user']
-    environment 'HOME' => home
     only_if { Logs.info("[#{repository} (#{name_repo})]: delete repository after snapshot")
       node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -78,7 +76,6 @@ Common.directories(self, [destination, working], recreate: true,
       mkdir -p #{path_destination} && cd #{path_destination} && git init -b main
     EOH
     user node['git']['app']['user']
-    environment 'HOME' => home
   end
 
   template "#{path_destination}/.git/config" do
@@ -99,7 +96,6 @@ Common.directories(self, [destination, working], recreate: true,
     EOH
     cwd path_destination
     user node['git']['app']['user']
-    environment 'HOME' => home
   end
 
   execute "repo_exists_snapshot_push_#{name_repo}" do
@@ -111,7 +107,6 @@ Common.directories(self, [destination, working], recreate: true,
     EOH
     cwd path_destination
     user node['git']['app']['user']
-    environment 'HOME' => home
     only_if { Logs.info("[#{repository} (#{name_repo})]: snapshot commit")
       node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -140,7 +135,7 @@ Common.directories(self, [destination, working], recreate: true,
   end
 
   template "#{path_destination}/.gitea/workflows/sync.yml" do
-    source 'pipeline_generic_sync.yml.erb'
+    source 'repo_sync.yml.erb'
     owner node['git']['app']['user']
     group node['git']['app']['group']
     mode '0644'
@@ -150,7 +145,7 @@ Common.directories(self, [destination, working], recreate: true,
   end
 
   template "#{path_destination}/.gitea/workflows/pipeline.yml" do
-    source 'pipeline_generic_pipeline.yml.erb'
+    source 'repo_pipeline.yml.erb'
     owner node['git']['app']['user']
     group node['git']['app']['group']
     mode '0644'
@@ -193,7 +188,6 @@ Common.directories(self, [destination, working], recreate: true,
       execute "repo_mono_submodule_references_#{module_name}" do
         cwd path_destination
         user node['git']['app']['user']
-        environment 'HOME' => home
         command <<-EOH
           if ! git config --file .gitmodules --get-regexp path | grep -q "^submodule\\.#{module_name}\\.path"; then
             echo "submodule add: #{module_url} -> #{path_module}"
@@ -215,7 +209,6 @@ Common.directories(self, [destination, working], recreate: true,
   execute "repo_push_#{name_repo}" do
     cwd path_destination
     user node['git']['app']['user']
-    environment 'HOME' => home
     command <<-EOH
     git add --all
     if ! git diff --quiet || ! git diff --cached --quiet; then

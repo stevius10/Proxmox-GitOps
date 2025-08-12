@@ -25,6 +25,7 @@
         shell: "{{ item.shell | default('/bin/bash') }}"
         groups: "{{ item.groups | default(omit) }}"
         create_home: "{{ item.create_home | default(true) }}"
+        home: "{{ item.home | default(omit) }}"
         state: present
       loop: "{{ default_users }}"
       register: created_users
@@ -81,7 +82,7 @@
         state: directory
         owner: app
         group: config
-        mode: 0755
+        mode: 0775
 
 - name: SSH configuration
   notify: Restart SSH
@@ -161,8 +162,9 @@
     - name: Copy bash configuration for users
       copy:
         src: .bashrc
-        dest: "/home/{{ item }}/.bashrc"
-        owner: "{{ item }}"
-        group: "{{ item }}"
+        dest: "{{ (item.home | default('/home/' + item.name)) }}/.bashrc"
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
         mode: '0644'
-      loop: "{{ ssh_users }}"
+      loop: "{{ default_users }}"
+      when: item.name in ssh_users

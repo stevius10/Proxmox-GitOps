@@ -1,8 +1,8 @@
 Common.directories(self, [ (app = node['git']['dir']['app']),
    node['git']['dir']['workspace'], node['runner']['dir']['app'],
   "#{app}/custom", "#{app}/data", "#{app}/gitea-repositories", "#{app}/log" ],
- owner: node['git']['app']['user'],
- group: node['git']['app']['group'])
+ owner: node['git']['user']['app'] ,
+ group: node['git']['user']['group'])
 
 Common.packages(self, %w(git acl python3-pip ansible ansible-core nodejs npm python3-proxmoxer))
 
@@ -20,10 +20,17 @@ end
 
 # Self-management
 
+directory File.dirname(node['key']) do
+  owner node['git']['user']['app'] 
+  group node['git']['user']['group']
+  mode '0711'
+  action :create
+end
+
 file node['key'] do
   content lazy { ::File.read('/root/id_rsa') }
-  owner node['git']['app']['user']
-  group node['git']['app']['group']
+  owner node['git']['user']['app'] 
+  group node['git']['user']['group']
   mode '0600'
   sensitive true
   action :create
@@ -33,12 +40,23 @@ end
 
 file "#{node['key']}.pub" do
   content lazy { ::File.read('/root/id_rsa.pub') }
-  owner node['git']['app']['user']
-  group node['git']['app']['group']
+  owner node['git']['user']['app'] 
+  group node['git']['user']['group']
   mode '0644'
   action :create
   only_if { ::File.exist?('/root/id_rsa.pub') }
   not_if { ::File.exist?("#{node['key']}.pub") }
 end
 
-
+file "#{File.dirname(node['key'])}/config" do
+  content <<~CONF
+    Host #{node['host']}
+      HostName #{node['host']}
+      IdentityFile #{node['key']}
+      StrictHostKeyChecking no
+  CONF
+  owner node['git']['user']['app']
+  group node['git']['user']['group']
+  mode '0600'
+  action :create_if_missing
+end

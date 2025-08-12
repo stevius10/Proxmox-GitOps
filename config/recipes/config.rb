@@ -3,7 +3,7 @@ ruby_block 'config_wait_http' do
 end
 
 execute 'config_set_user' do
-  user node['git']['app']['user']
+  user node['git']['user']['app'] 
   command <<-EOH
     login="#{Env.get(node, 'login')}"
     base="#{node['git']['dir']['app']}/gitea admin user --config #{node['git']['dir']['app']}/app.ini"
@@ -43,30 +43,6 @@ ruby_block 'config_set_key' do
   end
 end
 
-directory "#{ENV['HOME']}/.ssh" do
-  owner node['git']['app']['user']
-  group node['git']['app']['group']
-  mode '0711'
-  action :create
-end
-
-file "#{ENV['HOME']}/.ssh/config" do
-  content <<~CONF
-    Host #{node['host']}
-      HostName #{node['host']}
-      IdentityFile #{node['key']}
-      StrictHostKeyChecking no
-  CONF
-  owner node['git']['app']['user']
-  group node['git']['app']['group']
-  mode '0600'
-  action :create_if_missing
-end
-
-ruby_block 'config_wait_ssh' do
-  block do Utils.wait("#{Env.get(node, 'login')}@#{node['host']}:#{node['git']['port']['ssh']}") end
-end
-
 execute 'config_git_safe_directory' do
   command <<-SH
     git config --global --add safe.directory "*" && \
@@ -82,7 +58,7 @@ execute 'config_git_user' do
     git config --global user.email "#{Env.get(node, 'email')}"
     git config --global core.excludesfile #{ENV['PWD']}/.gitignore
   SH
-  user node['git']['app']['user']
+  user node['git']['user']['app'] 
   environment 'HOME' => ENV['HOME']
   action :run
 end

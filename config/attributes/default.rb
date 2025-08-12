@@ -2,8 +2,9 @@ default['id']                       = ENV['ID']
 default['host']                     = ENV['IP'].to_s.presence ? ENV['IP'] : "127.0.0.1"
 default['key']                      = ENV['KEY'].to_s.presence ? ENV['KEY'] : "/app/.ssh/#{node['id']}"
 
-default['git']['app']['user']       = 'app'
-default['git']['app']['group']      = 'config'
+default['git']['user']['app']       = 'app'
+default['git']['user']['group']     = 'config'
+default['git']['user']['ssh']       = 'config'
 
 default['git']['conf']['customize'] = true
 default['git']['conf']['repo']      = [ "./", "./base", "./config/libraries", "./libs" ]

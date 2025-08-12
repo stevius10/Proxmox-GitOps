@@ -78,11 +78,11 @@
   block:
     - name: Create application and key directory
       file:
-        path: "/app/.ssh"
+        path: "/app"
         state: directory
         owner: app
         group: config
-        mode: 0775
+        mode: 0755
 
 - name: SSH configuration
   notify: Restart SSH

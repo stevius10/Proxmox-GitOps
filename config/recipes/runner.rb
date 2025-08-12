@@ -1,23 +1,23 @@
-Common.directories(self, node['runner']['dir']['app'], owner: node['git']['app']['user'], group: node['git']['app']['group'])
+Common.directories(self, node['runner']['dir']['app'], owner: node['git']['user']['app'] , group: node['git']['user']['group'])
 
 Utils.download(self, "#{node['runner']['dir']['app']}/act_runner",
   url: -> { ver = Utils.latest('https://gitea.com/gitea/act_runner/releases/latest')
     "https://gitea.com/gitea/act_runner/releases/download/v#{ver}/act_runner-#{ver}-linux-#{Utils.arch(node)}" },
-  owner: node['git']['app']['user'],
-  group: node['git']['app']['group'],
+  owner: node['git']['user']['app'] ,
+  group: node['git']['user']['group'],
   mode: '0755'
 )
 
 template "#{node['runner']['dir']['app']}/config.yaml" do
   source 'runner.config.yaml.erb'
-  owner node['git']['app']['user']
-  group node['git']['app']['group']
+  owner node['git']['user']['app'] 
+  group node['git']['user']['group']
   mode '0644'
   action :create
 end
 
 Common.application(self, 'runner',
-  user: node['git']['app']['user'], action: [:enable], cwd: node['runner']['dir']['app'],
+  user: node['git']['user']['app'] , action: [:enable], cwd: node['runner']['dir']['app'],
   exec: "#{node['runner']['dir']['app']}/act_runner daemon --config #{node['runner']['dir']['app']}/config.yaml",
   subscribe: ["template[#{node['runner']['dir']['app']}/config.yaml]", "remote_file[#{node['runner']['dir']['app']}/act_runner]"] )
 
@@ -39,7 +39,7 @@ ruby_block 'runner_register' do
 
     (token = Mixlib::ShellOut.new(
       "#{node['git']['dir']['app']}/gitea actions --config #{node['git']['dir']['app']}/app.ini generate-runner-token",
-      user: node['git']['app']['user']
+      user: node['git']['user']['app'] 
     )).run_command
     token.error!
     token = token.stdout.strip
@@ -52,7 +52,7 @@ ruby_block 'runner_register' do
         "--labels shell " \
         "--config #{node['runner']['dir']['app']}/config.yaml",
       cwd: node['runner']['dir']['app'],
-      user: node['git']['app']['user']
+      user: node['git']['user']['app'] 
     )).run_command
     register.error!
   end

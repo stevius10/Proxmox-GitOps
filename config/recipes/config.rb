@@ -6,7 +6,7 @@ execute 'config_set_user' do
   user node['git']['app']['user']
   command <<-EOH
     login="#{Env.get(node, 'login')}"
-    base="#{node['git']['dir']['install']}/gitea admin user --config #{node['git']['dir']['install']}/app.ini"
+    base="#{node['git']['dir']['app']}/gitea admin user --config #{node['git']['dir']['app']}/app.ini"
     user="--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')}"
     create="--email #{Env.get(node, 'email')} --admin --must-change-password=false"
     if $base list | awk '{print $2}' | grep -q "^#{Env.get(node, 'login')}$"; then
@@ -43,14 +43,14 @@ ruby_block 'config_set_key' do
   end
 end
 
-directory "/home/#{node['git']['app']['user']}/.ssh" do
+directory "#{ENV['HOME']}/.ssh" do
   owner node['git']['app']['user']
   group node['git']['app']['group']
   mode '0700'
   action :create
 end
 
-file "/home/#{node['git']['app']['user']}/.ssh/config" do
+file "#{ENV['HOME']}/.ssh/config" do
   content <<~CONF
     Host #{node['host']}
       HostName #{node['host']}
@@ -72,7 +72,7 @@ execute 'config_git_safe_directory' do
     git config --global --add safe.directory "*" && \
     git config --system --add safe.directory "*"
   SH
-  environment 'HOME' => "/home/#{node['git']['app']['user']}"
+  environment 'HOME' => ENV['HOME']
   action :run
 end
 
@@ -83,7 +83,7 @@ execute 'config_git_user' do
     git config --global core.excludesfile #{ENV['PWD']}/.gitignore
   SH
   user node['git']['app']['user']
-  environment 'HOME' => "/home/#{node['git']['app']['user']}"
+  environment 'HOME' => ENV['HOME']
   action :run
 end
 

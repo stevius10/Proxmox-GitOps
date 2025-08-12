@@ -1,6 +1,6 @@
-Common.directories(self, node['runner']['dir']['install'], owner: node['git']['app']['user'], group: node['git']['app']['group'])
+Common.directories(self, node['runner']['dir']['app'], owner: node['git']['app']['user'], group: node['git']['app']['group'])
 
-Utils.download(self, "#{node['runner']['dir']['install']}/act_runner",
+Utils.download(self, "#{node['runner']['dir']['app']}/act_runner",
   url: -> { ver = Utils.latest('https://gitea.com/gitea/act_runner/releases/latest')
     "https://gitea.com/gitea/act_runner/releases/download/v#{ver}/act_runner-#{ver}-linux-#{Utils.arch(node)}" },
   owner: node['git']['app']['user'],
@@ -8,7 +8,7 @@ Utils.download(self, "#{node['runner']['dir']['install']}/act_runner",
   mode: '0755'
 )
 
-template "#{node['runner']['dir']['install']}/config.yaml" do
+template "#{node['runner']['dir']['app']}/config.yaml" do
   source 'runner.config.yaml.erb'
   owner node['git']['app']['user']
   group node['git']['app']['group']
@@ -17,9 +17,9 @@ template "#{node['runner']['dir']['install']}/config.yaml" do
 end
 
 Common.application(self, 'runner',
-  user: node['git']['app']['user'], action: [:enable], cwd: node['runner']['dir']['install'],
-  exec: "#{node['runner']['dir']['install']}/act_runner daemon --config #{node['runner']['dir']['install']}/config.yaml",
-  subscribe: ["template[#{node['runner']['dir']['install']}/config.yaml]", "remote_file[#{node['runner']['dir']['install']}/act_runner]"] )
+  user: node['git']['app']['user'], action: [:enable], cwd: node['runner']['dir']['app'],
+  exec: "#{node['runner']['dir']['app']}/act_runner daemon --config #{node['runner']['dir']['app']}/config.yaml",
+  subscribe: ["template[#{node['runner']['dir']['app']}/config.yaml]", "remote_file[#{node['runner']['dir']['app']}/act_runner]"] )
 
 ruby_block 'runner_register' do
   block do
@@ -38,29 +38,24 @@ ruby_block 'runner_register' do
      'Gitea not responding' unless connected
 
     (token = Mixlib::ShellOut.new(
-      "#{node['git']['dir']['install']}/gitea actions --config #{node['git']['dir']['install']}/app.ini generate-runner-token",
-      user: node['git']['app']['user'],
-      environment: { 'HOME' => "/home/#{node['git']['app']['user']}" }
+      "#{node['git']['dir']['app']}/gitea actions --config #{node['git']['dir']['app']}/app.ini generate-runner-token",
+      user: node['git']['app']['user']
     )).run_command
     token.error!
     token = token.stdout.strip
 
     (register = Mixlib::ShellOut.new(
-      "#{node['runner']['dir']['install']}/act_runner register " \
+      "#{node['runner']['dir']['app']}/act_runner register " \
         "--instance http://localhost:#{node['git']['port']['http']} " \
         "--token #{token} " \
         "--no-interactive " \
         "--labels shell " \
-        "--config #{node['runner']['dir']['install']}/config.yaml",
-      cwd: node['runner']['dir']['install'],
-      user: node['git']['app']['user'],
-      environment: { 'HOME' => "/home/#{node['git']['app']['user']}" }
+        "--config #{node['runner']['dir']['app']}/config.yaml",
+      cwd: node['runner']['dir']['app'],
+      user: node['git']['app']['user']
     )).run_command
     register.error!
-
-    # File.write(node['runner']['marker_file'], Time.now.to_s)
   end
-  # not_if { ::File.exist?(node['runner']['marker_file']) } # stability over convention
 end
 
 Common.application(self, 'runner')

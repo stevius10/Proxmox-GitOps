@@ -1,19 +1,19 @@
 ; Gitea Application Configuration
 
 APP_NAME = Gitea
-RUN_USER = <%= node['git']['app']['user'] %>
+RUN_USER = <%= @run_user %>
 RUN_MODE = prod
 
 [server]
-DOMAIN       = <%= node['host'] %>
-HTTP_PORT    = <%= node['git']['port']['http'] %>
-ROOT_URL     = http://<%= node['host'] %>:<%= node['git']['port']['http'] %>/
-SSH_PORT     = <%= node['git']['port']['ssh'] %>
+DOMAIN       = <%= @host %>
+HTTP_PORT    = <%= @http_port %>
+ROOT_URL     = http://<%= @host %>:<%= @http_port %>/
+SSH_PORT     = <%= @ssh_port %>
 START_SSH_SERVER = true
 
 [database]
 DB_TYPE  = sqlite3
-PATH     = <%= node['git']['dir']['data'] %>/gitea.db
+PATH     = <%= @app_dir %>/gitea.db
 
 [security]
 INSTALL_LOCK = true
@@ -25,7 +25,7 @@ DEFAULT_ACTIONS_URL=self
 LOG_RETENTION_DAYS = 7
 
 [repository]
-ROOT = <%= node['git']['dir']['data'] %>/gitea-repositories
+ROOT = <%= @app_dir %>/gitea-repositories
 REPOSITORY_AVATAR_FALLBACK = none
 DISABLE_STARS = true
 DISABLE_MIGRATIONS = true
@@ -40,10 +40,11 @@ SHOW_USER_EMAIL = false
 DISABLE_AVATAR = true
 
 [git]
+HOME_PATH=<%= @home_dir %>
 MAX_GIT_DIFF_LINES = 500
 MAX_GIT_DIFF_FILES = 50
 GC_ARGS = --aggressive
 
 [log]
 MODE = console
-LEVEL = Warn
+LEVEL = Error

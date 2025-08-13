@@ -1,0 +1,65 @@
+- name: Init mounts
+  set_fact:
+    mounts: "{{ mounts | default({}) }}"
+
+- name: Set mounts
+  set_fact:
+    mounts: >-
+      {{ mounts | default({}) | combine({('mp'~idx): 
+        ((item.split(':')[:-1] | join(':')) ~ ',mp=' ~ (item.split(':')[-1]) ~ ',ro=0,acl=1') }) }}
+  loop: "{{ mount.split(',') | select('search', ':') }}"
+  loop_control:
+    index_var: idx
+  when:
+    - mount is defined
+    - share | default(true) | bool
+    - mount | trim | length > 0
+
+- name: Set passthrough
+  set_fact:
+    mounts: "{{ mounts | combine({ ('dev' ~ idx): item }) }}"
+  loop: "{{ mount.split(',') | select('match', '^/[^:]+$') }}"
+  loop_control:
+    index_var: idx
+  when:
+    - mount is defined
+    - share | default(true) | bool
+    - mount | trim | length > 0
+
+- name: Create container
+  community.general.proxmox:  &create_container
+    <<: "{{ proxmox_credentials }}"
+    vmid: "{{ id }}"
+    hostname: "{{ hostname }}"
+    ostemplate: "{{ os }}"
+    cores: "{{ cores }}"
+    memory: "{{ memory }}"
+    pubkey: "{{ lookup('file', [key_dir, id ~ '.pub'] | path_join) }}"
+    swap: "{{ swap }}"
+    disk: "{{ disk }}"
+    mounts: >-
+      {{ (mounts if mounts and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}
+    features: >-
+      {{ (['mount=cifs'] if (share | default(false)) and (mount | default('') | trim != '') 
+        and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}
+    unprivileged: "{{ (share | default(false) and mount | default('') | trim != '') | ternary(false, true) }}"
+    netif:
+      net0: "name=eth0,gw=192.168.178.1,ip={{ ip }}/24,bridge=vmbr0"
+    onboot: "{{ boot }}"
+    state: present
+  delegate_to: localhost
+  register: container_creation
+  ignore_errors: true
+
+- name: Download container os if missing
+  include_tasks: os.yml
+  when:
+    - container_creation.failed
+    - os in (container_creation.msg | default('') )
+
+- name: Retry create container with os downloaded
+  community.general.proxmox: *create_container
+  when: os_available is defined and os in (os_available.json.data | map(attribute='volid') | list)
+
+- name: Start container
+  include_tasks: start.yml

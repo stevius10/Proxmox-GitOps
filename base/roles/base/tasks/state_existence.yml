@@ -4,6 +4,7 @@
       - { path: "{{ key_dir }}", state: "directory", mode: "0711", owner: "app", group: "config" }
       - { path: "{{ key_dir }}/{{ id }}", state: "file", mode: "0600", owner: "app", group: "config" }
       - { path: "{{ key_dir }}/{{ id }}.pub", state: "file", mode: "0644", owner: "app", group: "config" }
+  when: defaults is not defined
 
 - name: Gather files and directories
   set_fact:

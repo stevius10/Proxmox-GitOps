@@ -1,0 +1,28 @@
+- name: Check technical user configured
+  command: "ssh -o BatchMode=yes -o ConnectTimeout=5 -i {{ key_dir }}/{{ id }} config@{{ ip }} echo success"
+  register: ssh_config_test
+  failed_when: false
+  changed_when: false
+  when: container_exists
+
+- name: Set technical user
+  set_fact:
+    ssh_user: "{{ 'config' if (container_exists and (ssh_config_test.rc | default(1)) == 0) else 'root' }}"
+
+- name: Add container
+  add_host:
+    name: container
+    id: "{{ id }}"
+    ansible_host: "{{ ip }}"
+    ansible_user: "{{ ssh_user }}"
+    ansible_ssh_private_key_file: "{{ [key_dir, id] | path_join }}"
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+    public_key: "{{ lookup('file', [key_dir, id ~ '.pub'] | path_join) }}"
+    private_key: "{{ lookup('file', [key_dir, id] | path_join) }}"
+
+- name: Reset known hosts
+  ansible.builtin.known_hosts:
+    name: "{{ ip }}"
+    state: absent
+  delegate_to: localhost
+  become: false

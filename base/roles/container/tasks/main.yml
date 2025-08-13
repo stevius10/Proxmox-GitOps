@@ -1,0 +1,55 @@
+- name: Get Proxmox configuration
+  ansible.builtin.set_fact:
+    PROXMOX_HOST: "{{ lookup('env', 'PROXMOX_HOST') }}"
+    PROXMOX_USER: "{{ lookup('env', 'PROXMOX_USER') }}"
+    PROXMOX_PASSWORD: "{{ lookup('env', 'PROXMOX_PASSWORD') }}"
+    PROXMOX_TOKEN: "{{ lookup('env', 'PROXMOX_TOKEN') }}"
+    PROXMOX_SECRET: "{{ lookup('env', 'PROXMOX_SECRET') }}"
+  when:
+    - (config_file.stat.exists and config.proxmox is defined) or (not config_file.stat.exists)
+
+- name: Get Proxmox ticket
+  uri:
+    url: "https://{{ PROXMOX_HOST }}:8006/api2/json/access/ticket"
+    method: POST
+    body:
+      username: "{{ PROXMOX_USER }}"
+      password: "{{ PROXMOX_PASSWORD }}"
+    body_format: json
+    validate_certs: no
+  register: proxmox_login
+  when: PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != ''
+
+- name: Set Proxmox credentials
+  set_fact:
+    proxmox_auth: >-
+      {{ (PROXMOX_PASSWORD | default('') == '') | ternary(
+        {'Authorization': 'PVEAPIToken=' + PROXMOX_USER + '!' + PROXMOX_TOKEN + '=' + PROXMOX_SECRET}, 
+        {'Cookie': 'PVEAuthCookie=' + proxmox_login.json.data.ticket, 
+          'CSRFPreventionToken': proxmox_login.json.data.CSRFPreventionToken}) }}
+    proxmox_credentials:
+      api_host: "{{ PROXMOX_HOST }}"
+      api_user: "{{ PROXMOX_USER }}"
+      api_password: "{{ PROXMOX_PASSWORD | default(omit) }}"
+      api_token_id: "{{ (PROXMOX_PASSWORD | default('') == '') | ternary(PROXMOX_TOKEN, omit) }}"
+      api_token_secret: "{{ (PROXMOX_PASSWORD | default('') == '') | ternary(PROXMOX_SECRET, omit) }}"
+      api_port: 8006
+      node: "pve"
+  delegate_to: localhost
+
+- name: Check container
+  community.general.proxmox_vm_info:
+    proxmox_credentials: "{{ proxmox_credentials }}"
+    vmid: "{{ id }}"
+  register: container_exists
+  delegate_to: localhost
+
+- name: Remove existing container
+  include_tasks: stop.yml
+  when: container_exists is success and (container_exists.proxmox_vms | length) > 0
+
+- name: Create container
+  include_tasks: create.yml
+
+- name: Add container
+  include_tasks: add.yml

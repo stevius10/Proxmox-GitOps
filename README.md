@@ -10,8 +10,9 @@
   - [Design](#design)
   - [Trade-offs](#trade-offs)
 - [Usage](#usage)
-  - [Requirements](#requirements)
   - [Lifecycle](#lifecycle)
+    - [Self-contained Monorepository](#self-contained-monorepository)
+  - [Requirements](#requirements)
   - [Getting Started](#getting-started)
     - [Development and Container Extension](#development-and-container-extension)
 
@@ -62,24 +63,25 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 ## Usage
 
+### Lifecycle
+
+#### Self-contained Monorepository
+
+- `git clone --recurse-submodules` 
+  - e. g., **Version-Controlled Mirrored**
+
+- **Backup**: See [Self-contained Monorepository](#self-contained-monorepository)
+  - store /share for persistence, disable network access for security
+
+- **Update**: See [Self-contained Monorepository](#self-contained-monorepository), and redeploy merged
+
+- **Rollback**: See [Self-contained Monorepository](#self-contained-monorepository), or set `snapshot` branch to `release` at runtime
+
 ### Requirements
 
 - Docker
 - Proxmox VE 8.4-9.0
 - See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
-
-### Lifecycle
-
-#### Self-contained Monorepository
-
-- `git clone --recurse-submodules` (store /share for persistence, disable its network access for security)
-  - e. g., integrated in **Version-Controlled Mirroring** 
-
-- **Backup**: See [Self-contained Monorepository](#self-contained-monorepository)
-
-- **Update**: See [Self-contained Monorepository](#self-contained-monorepository), and redeploy merged
-
-- **Rollback**: See [Self-contained Monorepository](#self-contained-monorepository), or set `snapshot` to `release` at runtime
 
 ### Getting Started
 

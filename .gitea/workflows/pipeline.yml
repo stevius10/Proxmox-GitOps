@@ -50,7 +50,7 @@ jobs:
           boot: ${{ needs.init.outputs.boot }}
           mount: ${{ needs.init.outputs.mount }}
           share: true
-    if: ${{ gitea.ref == 'refs/heads/release' }}
+        if: ${{ gitea.ref == 'refs/heads/release' }}
 
   share:
     runs-on: [ "shell" ]
@@ -74,11 +74,11 @@ jobs:
             $(sudo -u config env) IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
               cinc-client -l info --local-mode --chef-license accept --config-option \
                 cookbook_path="[\"'"/tmp/config"'\", \"'"/tmp/config/libs"'\"]" -o share'
-    if: ${{ gitea.ref != 'refs/heads/release' or needs.base.result == 'success' }}
+    if: ${{ gitea.ref != 'refs/heads/release' || success() }}
 
   config:
     runs-on: [ "shell" ]
-    needs: [ init, base, share ]
+    needs: [ init, base ]
     steps:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
@@ -98,4 +98,4 @@ jobs:
               $(sudo -u config env) IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" PWD="/tmp/config" \
                 cinc-client -l info --local-mode $( [ -f /tmp/config/local/config.json ] && echo "-j /tmp/config/local/config.json" ) \
                   --config-option cookbook_path="/tmp/config" --chef-license accept -o config'
-    if: ${{ gitea.ref != 'refs/heads/release' or needs.base.result == 'success' }}
+    if: ${{ gitea.ref != 'refs/heads/release' || success() }}

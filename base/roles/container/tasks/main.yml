@@ -27,7 +27,7 @@
         {'Authorization': 'PVEAPIToken=' + PROXMOX_USER + '!' + PROXMOX_TOKEN + '=' + PROXMOX_SECRET}, 
         {'Cookie': 'PVEAuthCookie=' + proxmox_login.json.data.ticket, 
           'CSRFPreventionToken': proxmox_login.json.data.CSRFPreventionToken}) }}
-    proxmox_credentials:
+    proxmox_cred:
       api_host: "{{ PROXMOX_HOST }}"
       api_user: "{{ PROXMOX_USER }}"
       api_password: "{{ PROXMOX_PASSWORD | default(omit) }}"
@@ -35,14 +35,12 @@
       api_token_secret: "{{ (PROXMOX_PASSWORD | default('') == '') | ternary(PROXMOX_SECRET, omit) }}"
       api_port: 8006
       node: "pve"
-  delegate_to: localhost
 
 - name: Check container
   community.general.proxmox_vm_info:
-    proxmox_credentials: "{{ proxmox_credentials }}"
+    <<: "{{ proxmox_cred }}"
     vmid: "{{ id }}"
   register: container_exists
-  delegate_to: localhost
 
 - name: Remove existing container
   include_tasks: stop.yml

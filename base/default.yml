@@ -6,6 +6,11 @@
     os: "{{ OS | default('local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst') }}"
     key_dir: "{{ key_dir | default('/share/.ssh') }}"
   tasks:
+    - name: Ensure key directory
+      file:
+        path: "{{ key_dir }}"
+        state: directory
+
     - name: Generate container key on host
       community.crypto.openssh_keypair:
         path: "{{ key_dir }}/{{ id }}"

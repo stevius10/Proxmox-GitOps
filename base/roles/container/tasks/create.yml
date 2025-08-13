@@ -28,7 +28,7 @@
 
 - name: Create container
   community.general.proxmox:  &create_container
-    <<: "{{ proxmox_credentials }}"
+    <<: "{{ proxmox_cred }}"
     vmid: "{{ id }}"
     hostname: "{{ hostname }}"
     ostemplate: "{{ os }}"
@@ -47,8 +47,7 @@
       net0: "name=eth0,gw=192.168.178.1,ip={{ ip }}/24,bridge=vmbr0"
     onboot: "{{ boot }}"
     state: present
-  delegate_to: localhost
-  register: container_creation
+    register: container_creation
   ignore_errors: true
 
 - name: Download container os if missing

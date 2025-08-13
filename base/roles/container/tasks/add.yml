@@ -24,5 +24,4 @@
   ansible.builtin.known_hosts:
     name: "{{ ip }}"
     state: absent
-  delegate_to: localhost
-  become: false
+    become: false

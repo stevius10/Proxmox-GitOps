@@ -4,7 +4,7 @@
   gather_facts: no
   vars:
     os: "{{ OS | default('local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst') }}"
-    key_dir: "{{ KEYDIR | default('/share/.ssh') }}"
+    key_dir: "{{ KEYS_DIR | default('/share/.ssh') }}"
   tasks:
     - name: Ensure key directory
       file:
@@ -27,6 +27,16 @@
         file: "config.json"
         name: config
       when: config_file.stat.exists
+
+    - name: Set Proxmox configuration
+      ansible.builtin.set_fact:
+        PROXMOX_HOST: "{{ lookup('env', 'PROXMOX_HOST') }}"
+        PROXMOX_USER: "{{ lookup('env', 'PROXMOX_USER') }}"
+        PROXMOX_PASSWORD: "{{ lookup('env', 'PROXMOX_PASSWORD') }}"
+        PROXMOX_TOKEN: "{{ lookup('env', 'PROXMOX_TOKEN') }}"
+        PROXMOX_SECRET: "{{ lookup('env', 'PROXMOX_SECRET') }}"
+      when:
+        - (config_file.stat.exists and config.proxmox is defined) or (not config_file.stat.exists)
 
     - name: Container
       ansible.builtin.include_role:

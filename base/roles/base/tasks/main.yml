@@ -2,7 +2,7 @@
   block:
     - name: Set variables
       set_fact:
-        key_dir: "{{ KEYDIR | default('/share/.ssh') }}"
+        key_dir: "{{ KEYS_DIR | default('/share/.ssh') }}"
 
     - name: Update system
       apt:
@@ -48,17 +48,17 @@
       loop: "{{ ssh_users }}"
 
 - name: Ensure files and directories
-  include_tasks: state_existence.yml
+  include_tasks: state.yml
   vars:
     extra:
       - { path: "/app", state: "directory", mode: "0755", owner: "app", group: "config" }
       - { path: "/app/.ssh", state: "directory", mode: "0711", owner: "app", group: "config" }
 
 - name: Container accessibility
-  import_tasks: container_accessibility.yml
+  import_tasks: access.yml
 
 - name: Configuration management
-  import_tasks: configuration_management.yml
+  import_tasks: tools.yml
 
 - name: User default settings
-  import_tasks: user_defaults.yml
+  import_tasks: defaults.yml

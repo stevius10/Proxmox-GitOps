@@ -2,8 +2,6 @@ default_packages:
   - vim
   - wget
   - sudo
-#  - net-tools
-#  - procps
   - curl
 
 default_groups: ["config"]

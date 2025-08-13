@@ -1,0 +1,19 @@
+- name: User defaults
+  block:
+    - name: Set root bash configuration
+      copy:
+        src: .bashrc
+        dest: /root/.bashrc
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Set user bash configuration
+      copy:
+        src: .bashrc
+        dest: "{{ (item.home | default('/home/' + item.name)) }}/.bashrc"
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0644'
+      loop: "{{ default_users }}"
+      when: item.name in ssh_users

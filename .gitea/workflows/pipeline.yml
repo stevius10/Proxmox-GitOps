@@ -2,7 +2,6 @@ on:
   workflow_dispatch:
   push:
     branches: [ release, main ]
-
 jobs:
 
   init:
@@ -55,7 +54,7 @@ jobs:
 
   share:
     runs-on: [ "shell" ]
-    needs: init
+    needs: [ init, base ]
     steps:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
@@ -74,10 +73,11 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" \
             'sudo tar xz -C /tmp && sudo env IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
              cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="[\"'"/tmp/config"'\", \"'"/tmp/config/libs"'\"]" -o share'
+    if: ${{ needs.init.result == 'success' && (needs.base.result == 'success' || needs.base.result == 'skipped') }}
 
   config:
     runs-on: [ "shell" ]
-    needs: [init]
+    needs: [ init, base ]
     steps:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
@@ -98,3 +98,4 @@ jobs:
                  IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" PWD="/tmp/config" \
                cinc-client -l info --local-mode --chef-license accept --config-option \
                  cookbook_path="/tmp/config" $( [ -f /tmp/config/local/config.json ] && echo "-j /tmp/config/local/config.json" ) -o config'
+    if: ${{ needs.init.result == 'success' && (needs.base.result == 'success' || needs.base.result == 'skipped') }}

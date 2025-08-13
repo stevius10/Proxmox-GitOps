@@ -29,7 +29,7 @@ RUN mkdir -p /app/.ssh /share/.ssh && ssh-keygen -t ed25519 -f "/share/.ssh/${ID
 
 COPY ../base/roles /tmp/base
 RUN ansible localhost -m include_role -a name=base -e \
-    "ip=${IP}" -e "id=${ID}" -e "KEYDIR=/share/.ssh" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
+    "ip=${IP}" -e "id=${ID}" -e "KEYS_DIR=/share/.ssh" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
     -e "private_key='$(cat /share/.ssh/${ID})\n'" -e "public_key='$(cat /share/.ssh/${ID}.pub)\n'"
 
 RUN chown -R app:config /app

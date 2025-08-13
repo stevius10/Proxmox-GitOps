@@ -48,7 +48,6 @@ execute 'config_git_safe_directory' do
     git config --global --add safe.directory "*" && \
     git config --system --add safe.directory "*"
   SH
-  environment 'HOME' => ENV['HOME']
   action :run
 end
 
@@ -59,7 +58,6 @@ execute 'config_git_user' do
     git config --global core.excludesfile #{ENV['PWD']}/.gitignore
   SH
   user node['git']['user']['app'] 
-  environment 'HOME' => ENV['HOME']
   action :run
 end
 

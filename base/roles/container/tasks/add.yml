@@ -1,13 +1,13 @@
 - name: Container addition
   block:
-  - name: Check technical user configured
+  - name: Check config user
     command: "ssh -o BatchMode=yes -o ConnectTimeout=5 -i {{ key_dir }}/{{ id }} config@{{ ip }} echo success"
     register: ssh_config_test
     failed_when: false
     changed_when: false
     when: container_exists
 
-  - name: Set technical user
+  - name: Set configuration user
     set_fact:
       ssh_user: "{{ 'config' if (container_exists and (ssh_config_test.rc | default(1)) == 0) else 'root' }}"
 

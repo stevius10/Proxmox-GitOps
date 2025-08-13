@@ -1,6 +1,6 @@
 - name: Base container configuration
   block:
-    - name: Set variables
+    - name: Set key directory
       set_fact:
         key_dir: "{{ KEYS_DIR | default('/share/.ssh') }}"
 

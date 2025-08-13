@@ -68,10 +68,12 @@
       changed_when: false
       failed_when: verify.rc != 0
 
-    - name: Set container authorized key
+    - name: Set container authorized keys
       ansible.posix.authorized_key:
         user: "{{ item }}"
         key: "{{ public_key }}"
         state: present
         exclusive: no
+        manage_dir: false
+        path: "/etc/ssh/authorized_keys/{{ item }}"
       loop: "{{ ssh_users }}"

@@ -47,18 +47,18 @@
         create: yes
       loop: "{{ ssh_users }}"
 
+- name: Ensure files and directories
+  include_tasks: state_existence.yml
+  vars:
+    extra:
+      - { path: "/app", state: "directory", mode: "0755", owner: "app", group: "config" }
+      - { path: "/app/.ssh", state: "directory", mode: "0711", owner: "app", group: "config" }
+
 - name: Container accessibility
   import_tasks: container_accessibility.yml
 
 - name: Configuration management
   import_tasks: configuration_management.yml
 
-- name: User defaults
+- name: User default settings
   import_tasks: user_defaults.yml
-
-- name: Ensure files and directories
-  include_tasks: state_existence.yml
-  vars:
-    extra:
-      - { path: "/app", state: "directory", mode: "0755", owner: "app", group: "config" }
-      - { path: "/app/.ssh/authorized_keys", state: "file", mode: "0750", owner: "config", group: "config" }

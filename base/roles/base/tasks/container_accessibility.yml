@@ -49,3 +49,9 @@
         state: present
         exclusive: no
       loop: "{{ ssh_users }}"
+
+- name: Ensure files and directories
+  include_tasks: state_existence.yml
+  vars:
+    defaults:
+      - { path: "/app/.ssh/authorized_keys", state: "file", mode: "0750", owner: "config", group: "config" }

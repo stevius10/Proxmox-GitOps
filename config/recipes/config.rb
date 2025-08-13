@@ -32,7 +32,6 @@ ruby_block 'config_set_key' do
       user: login, pass: password, method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' })).code.to_i
     Logs.request!("Set key failed", url, response) unless [201, 422].include?(status_code)
   end
-  action :run
   only_if { ::File.exist?("#{node['key']}.pub") }
   not_if do
     next false unless ::File.exist?("#{node['key']}.pub")
@@ -48,7 +47,6 @@ execute 'config_git_safe_directory' do
     git config --global --add safe.directory "*" && \
     git config --system --add safe.directory "*"
   SH
-  action :run
 end
 
 execute 'config_git_user' do
@@ -58,7 +56,6 @@ execute 'config_git_user' do
     git config --global core.excludesfile #{ENV['PWD']}/.gitignore
   SH
   user node['git']['user']['app'] 
-  action :run
 end
 
 [node['git']['org']['main'], node['git']['org']['stage']].each do |org|
@@ -72,7 +69,6 @@ end
       )).code.to_i
       Logs.request!("Create organization '#{org}' failed", uri, response) unless [201, 409, 422].include? status_code
     end
-    action :run
   end
 end
 
@@ -92,5 +88,4 @@ ruby_block 'config_git_environment' do
       end
     end
   end
-  action :run
 end

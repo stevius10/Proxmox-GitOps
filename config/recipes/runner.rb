@@ -13,7 +13,6 @@ template "#{node['runner']['dir']['app']}/config.yaml" do
   owner node['git']['user']['app'] 
   group node['git']['user']['group']
   mode '0644'
-  action :create
 end
 
 Common.application(self, 'runner',

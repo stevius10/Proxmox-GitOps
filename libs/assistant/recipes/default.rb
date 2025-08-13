@@ -16,7 +16,6 @@ link '/config' do
   to node['homeassistant']['dir']['config']
   owner node['app']['user']
   group node['app']['group']
-  action :create
 end
 
 Utils.download(self, '/tmp/Python-3.13.5.tgz', url: 'https://www.python.org/ftp/python/3.13.5/Python-3.13.5.tgz')

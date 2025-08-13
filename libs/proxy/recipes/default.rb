@@ -25,7 +25,6 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
     hosts: lazy { node.run_state['proxy_hosts'] || [] },
     log_dir: node['proxy']['dir']['logs']
   )
-  action :create
 end
 
 Common.application(self, 'caddy', user: node['app']['user'],

@@ -30,5 +30,4 @@ file "#{node['git']['dir']['home']}/.ssh/config" do
   owner node['git']['user']['app']
   group node['git']['user']['group']
   mode '0600'
-  action :create_if_missing
 end

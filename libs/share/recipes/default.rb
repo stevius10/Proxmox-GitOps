@@ -5,7 +5,6 @@ password = Env.get(node, 'password')
 
 group login do
   gid node['share']['user']['gid']
-  action :create
 end
 
 user login do
@@ -13,7 +12,6 @@ user login do
   gid node['share']['user']['gid']
   shell '/bin/false'
   manage_home false
-  action :create
 end
 
 Array(node.dig('share','mount')).each do |path|
@@ -22,7 +20,6 @@ Array(node.dig('share','mount')).each do |path|
     group login
     mode '2775'
     recursive false
-    action :create
   end
 end
 

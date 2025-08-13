@@ -1,0 +1,38 @@
+- name: Container removal
+  block:
+  - name: Stop container
+    community.general.proxmox:
+      vmid: "{{ id }}"
+      state: stopped
+      force: yes
+
+  - name: Wait for container to be stopped
+    uri:
+      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/status/current"
+      method: GET
+      headers: "{{ proxmox_auth }}"
+      validate_certs: no
+    register: container_status
+    until: container_status.json.data.status == "stopped"
+    retries: 5
+    delay: 2
+
+  - name: Remove container
+    community.general.proxmox:
+      vmid: "{{ id }}"
+      state: absent
+    register: removal
+
+  - name: Wait for container to be removed
+    uri:
+      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/status/current"
+      method: GET
+      headers: "{{ proxmox_auth }}"
+      validate_certs: no
+    register: container_status
+    until:
+      - container_status.status == 500
+      - "'does not exist' in container_status.json.message"
+    retries: 5
+    delay: 4
+    failed_when: false

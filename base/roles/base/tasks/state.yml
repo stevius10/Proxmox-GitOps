@@ -1,0 +1,38 @@
+- name: Set files and directories
+  set_fact:
+    defaults:
+      - { path: "{{ key_dir }}", state: "directory", mode: "0711", owner: "app", group: "config" }
+      - { path: "{{ key_dir }}/{{ id }}", state: "file", mode: "0600", owner: "app", group: "config" }
+      - { path: "{{ key_dir }}/{{ id }}.pub", state: "file", mode: "0644", owner: "app", group: "config" }
+  when: defaults is not defined
+
+- name: Gather files and directories
+  set_fact:
+    objects: "{{ defaults + (extra | default([])) }}"
+
+- name: Ensure directories exists
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ objects }}"
+  when: item.state == 'directory'
+
+- name: Check if files exist
+  stat:
+    path: "{{ item.path }}"
+  register: file
+  loop: "{{ objects }}"
+  when: item.state == 'file'
+
+- name: Ensure permissions on existing files
+  file:
+    path: "{{ item.item.path }}"
+    state: file
+    owner: "{{ item.item.owner }}"
+    group: "{{ item.item.group }}"
+    mode: "{{ item.item.mode }}"
+  loop: "{{ file.results }}"
+  when: item.stat is defined and item.stat.exists

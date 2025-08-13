@@ -3,10 +3,10 @@ ruby_block 'config_wait_http' do
 end
 
 execute 'config_set_user' do
-  user node['git']['app']['user']
+  user node['git']['user']['app'] 
   command <<-EOH
     login="#{Env.get(node, 'login')}"
-    base="#{node['git']['dir']['install']}/gitea admin user --config #{node['git']['dir']['install']}/app.ini"
+    base="#{node['git']['dir']['app']}/gitea admin user --config #{node['git']['dir']['app']}/app.ini"
     user="--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')}"
     create="--email #{Env.get(node, 'email')} --admin --must-change-password=false"
     if $base list | awk '{print $2}' | grep -q "^#{Env.get(node, 'login')}$"; then
@@ -32,7 +32,6 @@ ruby_block 'config_set_key' do
       user: login, pass: password, method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' })).code.to_i
     Logs.request!("Set key failed", url, response) unless [201, 422].include?(status_code)
   end
-  action :run
   only_if { ::File.exist?("#{node['key']}.pub") }
   not_if do
     next false unless ::File.exist?("#{node['key']}.pub")
@@ -43,37 +42,11 @@ ruby_block 'config_set_key' do
   end
 end
 
-directory "/home/#{node['git']['app']['user']}/.ssh" do
-  owner node['git']['app']['user']
-  group node['git']['app']['group']
-  mode '0700'
-  action :create
-end
-
-file "/home/#{node['git']['app']['user']}/.ssh/config" do
-  content <<~CONF
-    Host #{node['host']}
-      HostName #{node['host']}
-      IdentityFile #{node['key']}
-      StrictHostKeyChecking no
-  CONF
-  owner node['git']['app']['user']
-  group node['git']['app']['group']
-  mode '0600'
-  action :create_if_missing
-end
-
-ruby_block 'config_wait_ssh' do
-  block do Utils.wait("#{Env.get(node, 'login')}@#{node['host']}:#{node['git']['port']['ssh']}") end
-end
-
 execute 'config_git_safe_directory' do
   command <<-SH
     git config --global --add safe.directory "*" && \
     git config --system --add safe.directory "*"
   SH
-  environment 'HOME' => "/home/#{node['git']['app']['user']}"
-  action :run
 end
 
 execute 'config_git_user' do
@@ -82,9 +55,7 @@ execute 'config_git_user' do
     git config --global user.email "#{Env.get(node, 'email')}"
     git config --global core.excludesfile #{ENV['PWD']}/.gitignore
   SH
-  user node['git']['app']['user']
-  environment 'HOME' => "/home/#{node['git']['app']['user']}"
-  action :run
+  user node['git']['user']['app'] 
 end
 
 [node['git']['org']['main'], node['git']['org']['stage']].each do |org|
@@ -98,7 +69,6 @@ end
       )).code.to_i
       Logs.request!("Create organization '#{org}' failed", uri, response) unless [201, 409, 422].include? status_code
     end
-    action :run
   end
 end
 
@@ -118,5 +88,4 @@ ruby_block 'config_git_environment' do
       end
     end
   end
-  action :run
 end

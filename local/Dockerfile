@@ -25,14 +25,14 @@ RUN rm -rf /lib/systemd/system/multi-user.target.wants/* && \
 RUN python3 -m pip install --upgrade ansible --break-system-packages
 RUN ansible-galaxy collection install community.general --force
 
-RUN mkdir -p /share/.ssh && ssh-keygen -t ed25519 -f "/share/.ssh/${ID}" -N ''
+RUN mkdir -p /app/.ssh /share/.ssh && ssh-keygen -t ed25519 -f "/share/.ssh/${ID}" -N ''
 
 COPY ../base/roles /tmp/base
 RUN ansible localhost -m include_role -a name=base -e \
-    "ip=${IP}" -e "id=${ID}" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
+    "ip=${IP}" -e "id=${ID}" -e "KEYS_DIR=/share/.ssh" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
     -e "private_key='$(cat /share/.ssh/${ID})\n'" -e "public_key='$(cat /share/.ssh/${ID}.pub)\n'"
 
-RUN chown -R app:app /share
+RUN chown -R app:config /app
 
 WORKDIR /
 

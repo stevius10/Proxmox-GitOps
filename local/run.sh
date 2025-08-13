@@ -62,12 +62,13 @@ CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp  \
 log "container" "started:${CONTAINER_ID}"
 sleep "$DOCKER_WAIT"
 
-cmd="cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
-  --config-option cookbook_path=${COOKBOOK_PATH} ${CONFIG_FILE} --chef-license accept -o ${RECIPE}"
-docker exec "$CONTAINER_ID" bash -c "$cmd" || log "error" "exec_failed"
+command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID \
+  cinc-client -l info --local-mode --chef-license accept --config-option node_path=/tmp/nodes \
+    --config-option cookbook_path='"$COOKBOOK_PATH"' '"$CONFIG_FILE"'  -o '"$RECIPE"''
+docker exec "$CONTAINER_ID" bash -c "$command"  || log "error" "exec_failed"
 
-[[ -z "${COOKBOOK_OVERRIDE}" ]] && cmd+="::repo"
+[[ -z "${COOKBOOK_OVERRIDE}" ]] && command+="::repo"
 while true; do
     log "rerun" "$RECIPE" && read -r
-    docker exec "$CONTAINER_ID" bash -c "$cmd" || log "error" "exec_failed"
+    docker exec "$CONTAINER_ID" bash -c "$command" || log "error" "exec_failed"
 done

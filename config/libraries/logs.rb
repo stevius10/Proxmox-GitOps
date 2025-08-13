@@ -37,6 +37,11 @@ module Logs
     log(level, [msg, ctx].reject(&:empty?).join(" "))
   end
 
+  def self.info?(msg)
+    log(:info, msg)
+    true
+  end
+
   def self.fail!(msg)
     error(msg)
     c = callsite

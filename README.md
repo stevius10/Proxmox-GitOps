@@ -10,8 +10,9 @@
   - [Design](#design)
   - [Trade-offs](#trade-offs)
 - [Usage](#usage)
-  - [Requirements](#requirements)
   - [Lifecycle](#lifecycle)
+    - [Self-contained Monorepository](#self-contained-monorepository)
+  - [Requirements](#requirements)
   - [Getting Started](#getting-started)
     - [Development and Container Extension](#development-and-container-extension)
 
@@ -62,27 +63,30 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 ## Usage
 
+### Lifecycle
+
+#### Self-contained Monorepository
+
+- `git clone --recurse-submodules` 
+  - e. g., **Version-Controlled Mirrored**
+
+- **Backup**: See [Self-contained Monorepository](#self-contained-monorepository)
+  - store /share for persistence, disable network access for security
+
+- **Update**: See [Self-contained Monorepository](#self-contained-monorepository), and redeploy merged
+
+- **Rollback**: See [Self-contained Monorepository](#self-contained-monorepository), or set `snapshot` branch to `release` at runtime
+
 ### Requirements
 
 - Docker
 - Proxmox VE 8.4-9.0
-- Proxmox API token
 - See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
-
-### Lifecycle
-
-- **Self-contained Monorepository** Artifact for **Version-Controlled Mirroring**
-  - `git clone --recurse-submodules` (store /share for persistence, disable network access for security)
-
-- **Backup**: See previous
-
-- **Update**: See previous, and redeploy merged
-
-- **Rollback**: See previous, or set `snapshot` to `release` at runtime
 
 ### Getting Started
 
-- Set **credentials and Proxmox API token** in [`local/.config.json`](local/.config.json) as `./local/config.json`
+- Set **Proxmox** and **global usage credentials** in [`local/.config.json`](local/.config.json) as `./local/config.json`
+- Ensure **container configuration** in [`config.env`](config.env) and verify storage
 - Run `./local/run.sh` for local Docker environment
 - Accept the Pull Request at `localhost:8080/main/config/pulls/1` to deploy on Proxmox VE
 

@@ -1,0 +1,37 @@
+- name: Proxmox authorization
+  block:
+    - name: Get Proxmox ticket
+      uri:
+        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/access/ticket"
+        method: POST
+        body:
+          username: "{{ PROXMOX_USER }}"
+          password: "{{ PROXMOX_PASSWORD }}"
+        body_format: json
+        validate_certs: no
+      register: proxmox_login
+      when: PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != ''
+
+- name: Container orchestration
+  block:
+  - name: Check container
+    community.general.proxmox_vm_info:
+      vmid: "{{ id }}"
+    register: container_exists
+
+  - name: Remove existing container
+    include_tasks: remove.yml
+    when: container_exists is success and (container_exists.proxmox_vms | length) > 0
+
+  - name: Create container
+    include_tasks: create.yml
+
+  - name: Start container
+    include_tasks: start.yml
+
+  - name: Add container
+    include_tasks: add.yml
+
+  module_defaults:
+    community.general.proxmox: "{{ proxmox_cred }}"
+    community.general.proxmox_vm_info: "{{ proxmox_cred }}"

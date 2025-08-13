@@ -1,0 +1,27 @@
+- name: Container start
+  block:
+  - name: Wait for container to be created
+    uri:
+      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/config"
+      method: GET
+      headers: "{{ proxmox_auth }}"
+      validate_certs: no
+    register: container_status
+    until:
+      - container_status.status == 200
+      - "'hostname' in container_status.json.data"
+    retries: 5
+    delay: 6
+    ignore_errors: yes
+
+  - name: Start container
+    community.general.proxmox:
+      vmid: "{{ id }}"
+      hostname: "{{ hostname }}"
+      state: started
+
+  - name: Wait for container to be connectable
+    wait_for:
+      port: 22
+      host: "{{ ip }}"
+      timeout: 180

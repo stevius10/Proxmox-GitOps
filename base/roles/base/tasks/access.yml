@@ -1,0 +1,79 @@
+- name: SSH configuration
+  notify: Restart SSH
+  when: (configure_ssh | default(true) | bool)
+  block:
+    - name: Disable root login
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PermitRootLogin"
+        line: "PermitRootLogin no"
+        backup: yes
+        state: present
+
+    - name: Disable password authentication
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PasswordAuthentication"
+        line: "PasswordAuthentication no"
+        backup: yes
+        state: present
+
+    - name: Enable public key authentication
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PubkeyAuthentication'
+        line: 'PubkeyAuthentication yes'
+        state: present
+        backup: yes
+
+    - name: Authorized keys
+      block:
+        - name: Create global authorized keys
+          file:
+            path: /etc/ssh/authorized_keys
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Set global authorized keys
+          ansible.builtin.lineinfile:
+            path: /etc/ssh/sshd_config
+            regexp: '^#?AuthorizedKeysFile'
+            line: 'AuthorizedKeysFile /etc/ssh/authorized_keys/%u'
+            state: present
+            backup: yes
+
+- name: Container accessibility
+  block:
+    - name: Store container key
+      ansible.builtin.set_fact:
+        private_key: "{{ private_key ~ (private_key.endswith('\n') | ternary('', '\n')) }}"
+        public_key: "{{ public_key ~ (public_key.endswith('\n') | ternary('', '\n')) }}"
+
+    - name: Save container keys
+      copy:
+        content: "{{ item.content }}"
+        dest: "{{ key_dir }}/{{ item.name }}"
+        owner: app
+        group: config
+        mode: "{{ item.mode }}"
+      loop:
+        - { name: "{{ id }}", content: "{{ private_key }}", mode: "0600" }
+        - { name: "{{ id }}.pub", content: "{{ public_key }}",  mode: "0644" }
+
+    - name: Verify container key
+      shell: "ssh-keygen -y -f {{ key_dir }}/{{ id }} | diff - {{ key_dir }}/{{ id }}.pub"
+      register: verify
+      changed_when: false
+      failed_when: verify.rc != 0
+
+    - name: Set container authorized keys
+      ansible.posix.authorized_key:
+        user: "{{ item }}"
+        key: "{{ public_key }}"
+        state: present
+        exclusive: no
+        manage_dir: false
+        path: "/etc/ssh/authorized_keys/{{ item }}"
+      loop: "{{ ssh_users }}"

@@ -1,0 +1,20 @@
+PROXMOX_HOST: "{{ lookup('env', 'PROXMOX_HOST') }}"
+PROXMOX_USER: "{{ lookup('env', 'PROXMOX_USER') }}"
+PROXMOX_PASSWORD: "{{ lookup('env', 'PROXMOX_PASSWORD') }}"
+PROXMOX_TOKEN: "{{ lookup('env', 'PROXMOX_TOKEN') }}"
+PROXMOX_SECRET: "{{ lookup('env', 'PROXMOX_SECRET') }}"
+
+proxmox_auth: >-
+  {{ (PROXMOX_PASSWORD | default('') == '') | ternary(
+    {'Authorization': 'PVEAPIToken=' + PROXMOX_USER + '!' + PROXMOX_TOKEN + '=' + PROXMOX_SECRET},
+    {'Cookie': 'PVEAuthCookie=' + proxmox_login.json.data.ticket,
+     'CSRFPreventionToken': proxmox_login.json.data.CSRFPreventionToken}) }}
+
+proxmox_cred:
+  api_host: "{{ PROXMOX_HOST }}"
+  api_user: "{{ PROXMOX_USER }}"
+  api_password: "{{ PROXMOX_PASSWORD | default(omit) }}"
+  api_token_id: "{{ (PROXMOX_PASSWORD | default('') == '') | ternary(PROXMOX_TOKEN, omit) }}"
+  api_token_secret: "{{ (PROXMOX_PASSWORD | default('') == '') | ternary(PROXMOX_SECRET, omit) }}"
+  api_port: 8006
+  node: "pve"

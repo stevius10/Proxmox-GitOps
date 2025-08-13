@@ -1,15 +1,14 @@
 require 'find'
 require 'fileutils'
 
-home = "/home/#{node['git']['app']['user']}"
 source = ENV['PWD']
 destination = node['git']['dir']['workspace']
 working = "#{destination}/workdir"
 
 Common.directories(self, [destination, working], recreate: true,
-  owner: node['git']['app']['user'], group: node['git']['app']['group'])
+  owner: node['git']['user']['app'] , group: node['git']['user']['group'])
 
-(repositories = node['git']['repositories']
+(repositories = node['git']['conf']['repo']
   .flat_map { |r| (r == './libs') ? Dir.glob(File.join(source, r, '*')).select { |d| File.directory?(d) }.map { |p| p.sub(source, '.') } : r }
   .sort_by { |r| r == "./" ? 1 : 0 }).each do |repository| # dynamically resolved libs before monorepo
 
@@ -20,30 +19,27 @@ Common.directories(self, [destination, working], recreate: true,
   path_working = "#{working}/#{name_repo}"
   path_destination = monorepo ? destination : File.expand_path(name_repo, destination)
 
-  Logs.info("#{repository} (#{name_repo})")
-
   ruby_block "repo_exists_#{name_repo}" do
+    only_if { Logs.info?("#{repository} (#{name_repo})") }
     block do
       node.run_state["#{name_repo}_repo_exists"] =
         (Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
           user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
         ).code.to_i != 404
     end
-    action :run
   end
 
   execute "repo_exists_snapshot_create_#{name_repo}" do
     command <<-EOH
-      if git ls-remote ssh://#{node['git']['app']['user']}@#{node['git']['host']['ssh']}/#{node['git']['org']['main']}/#{name_repo}.git HEAD | grep -q .; then
-        git clone --recurse-submodules ssh://#{node['git']['app']['user']}@#{node['git']['host']['ssh']}/#{node['git']['org']['main']}/#{name_repo}.git #{path_working}
+      if git ls-remote ssh://#{node['git']['user']['app'] }@#{node['git']['host']['ssh']}/#{node['git']['org']['main']}/#{name_repo}.git HEAD | grep -q .; then
+        git clone --recurse-submodules ssh://#{node['git']['user']['app'] }@#{node['git']['host']['ssh']}/#{node['git']['org']['main']}/#{name_repo}.git #{path_working}
         cd #{path_working} && git submodule update --init --recursive
         find . -type d -name .git -exec rm -rf {} +
       else
         mkdir -p #{path_working}
       fi
     EOH
-    user node['git']['app']['user']
-    environment 'HOME' => home
+    user node['git']['user']['app'] 
     only_if { Logs.info("[#{repository} (#{name_repo})]: delete repository after snapshot")
       node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -55,12 +51,11 @@ Common.directories(self, [destination, working], recreate: true,
         Logs.request!("Failed to delete #{name_repo}", uri, response)
       end
     end
-    action :run
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
-  Logs.info("[#{repository} (#{name_repo})]: request repository")
   ruby_block "repo_request_#{name_repo}" do
+    only_if { Logs.info?("[#{repository} (#{name_repo})] create repository") }
     block do
       require 'json'
       (response = Utils.request(
@@ -70,36 +65,32 @@ Common.directories(self, [destination, working], recreate: true,
         body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.to_json
       )).code.to_i == 201 or Logs.request!("Error creating repository '#{name_repo}'", uri, response)
     end
-    action :run
   end
 
   execute "repo_git_init_#{name_repo}" do
     command <<-EOH
       mkdir -p #{path_destination} && cd #{path_destination} && git init -b main
     EOH
-    user node['git']['app']['user']
-    environment 'HOME' => home
+    user node['git']['user']['app'] 
   end
 
   template "#{path_destination}/.git/config" do
     source 'repo_config.erb'
-    owner node['git']['app']['user']
-    group node['git']['app']['group']
+    owner node['git']['user']['app'] 
+    group node['git']['user']['group']
     mode '0644'
-    variables(repo: name_repo, git_user: node['git']['app']['user'])
-    action :create
+    variables(repo: name_repo, git_user: node['git']['user']['app'] )
     only_if { ::File.directory?("#{path_destination}/.git") }
   end
 
-  Logs.info("[#{repository} (#{name_repo})]: base commit")
   execute "repo_git_empty_#{name_repo}" do
+    only_if { Logs.info?("[#{repository} (#{name_repo})] base commit") }
     command <<-EOH
       git commit --allow-empty -m "base commit [skip ci]" && git checkout -b release
       git push -u origin main && git push -u origin release
     EOH
     cwd path_destination
-    user node['git']['app']['user']
-    environment 'HOME' => home
+    user node['git']['user']['app'] 
   end
 
   execute "repo_exists_snapshot_push_#{name_repo}" do
@@ -110,8 +101,7 @@ Common.directories(self, [destination, working], recreate: true,
       git push -f origin snapshot && (rm -rf #{path_working} || true)
     EOH
     cwd path_destination
-    user node['git']['app']['user']
-    environment 'HOME' => home
+    user node['git']['user']['app'] 
     only_if { Logs.info("[#{repository} (#{name_repo})]: snapshot commit")
       node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -129,41 +119,38 @@ Common.directories(self, [destination, working], recreate: true,
           FileUtils.cp(path_src, path_dst, verbose: true)
         end
       end
-      FileUtils.chown_R(node['git']['app']['user'], node['git']['app']['group'], path_destination)
+      FileUtils.chown_R(node['git']['user']['app'] , node['git']['user']['group'], path_destination)
     end
-    action :run
   end
 
   directory "#{path_destination}/.gitea/workflows" do
-    action :create
     recursive true
   end
 
   template "#{path_destination}/.gitea/workflows/sync.yml" do
-    source 'pipeline_generic_sync.yml.erb'
-    owner node['git']['app']['user']
-    group node['git']['app']['group']
+    source 'repo_sync.yml.erb'
+    owner node['git']['user']['app'] 
+    group node['git']['user']['group']
     mode '0644'
-    action :create
     not_if { monorepo }
     not_if { File.exist?("#{path_destination}/.gitea/workflows/sync.yml") }
   end
 
   template "#{path_destination}/.gitea/workflows/pipeline.yml" do
-    source 'pipeline_generic_pipeline.yml.erb'
-    owner node['git']['app']['user']
-    group node['git']['app']['group']
+    source 'repo_pipeline.yml.erb'
+    owner node['git']['user']['app'] 
+    group node['git']['user']['group']
     mode '0644'
-    action :create
     only_if { repository.include?('libs/') and File.exist?("#{path_destination}/config.env") }
     not_if { File.exist?("#{path_destination}/.gitea/workflows/pipeline.yml") }
   end
 
   if monorepo
     submodules = repositories.reject { |r| r == "./" } # without itself
-    Logs.info("#{repository} (monorepository): referencing #{submodules}")
+
 
     ruby_block 'repo_mono_submodule_rewritten' do
+      only_if { Logs.info?("#{repository} (monorepository): referencing #{submodules}") }
       block do
         path_dst_gitmodules = File.join(destination, '.gitmodules')
         if File.exist?(path_dst_gitmodules)
@@ -172,8 +159,7 @@ Common.directories(self, [destination, working], recreate: true,
               .gsub(/(url\s*=\s*http:\/\/)([^:\/\s]+)/) { "#{$1}#{node['host']}" })
         end
       end
-      action :run
-    end
+      end
 
     # Submodule handling in Monorepository
     submodules.each do |submodule|
@@ -188,12 +174,8 @@ Common.directories(self, [destination, working], recreate: true,
         action :delete
       end
 
-      Logs.info("#{repository} (monorepository): referencing #{path_module} (#{module_name})")
-
       execute "repo_mono_submodule_references_#{module_name}" do
-        cwd path_destination
-        user node['git']['app']['user']
-        environment 'HOME' => home
+        only_if { Logs.info?("#{repository} (monorepository): referencing #{path_module} (#{module_name})") }
         command <<-EOH
           if ! git config --file .gitmodules --get-regexp path | grep -q "^submodule\\.#{module_name}\\.path"; then
             echo "submodule add: #{module_url} -> #{path_module}"
@@ -205,6 +187,8 @@ Common.directories(self, [destination, working], recreate: true,
             git add -f local/config.json
           fi
         EOH
+        cwd path_destination
+        user node['git']['user']['app']
       end
     end
 
@@ -214,8 +198,7 @@ Common.directories(self, [destination, working], recreate: true,
 
   execute "repo_push_#{name_repo}" do
     cwd path_destination
-    user node['git']['app']['user']
-    environment 'HOME' => home
+    user node['git']['user']['app'] 
     command <<-EOH
     git add --all
     if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -234,7 +217,6 @@ Common.directories(self, [destination, working], recreate: true,
       fi
     fi
     EOH
-    action :run
   end
 
   directory path_destination do
@@ -254,7 +236,6 @@ Common.directories(self, [destination, working], recreate: true,
         Logs.request!("Failed to clean test/#{name_repo} (#{status_code})", uri, response) unless [204, 404].include?(status_code)
       end
     end
-    action :run
   end
 
   ruby_block "repo_stage_fork_create_#{name_repo}" do
@@ -266,7 +247,6 @@ Common.directories(self, [destination, working], recreate: true,
       ).code.to_i
       Logs.request!("Forking to #{node['git']['org']['stage']}/#{name_repo} failed", uri, response) unless [201, 202].include?(status_code)
     end
-    action :run
   end
 
 end

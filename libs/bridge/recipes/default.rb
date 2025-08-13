@@ -49,8 +49,7 @@ execute 'zigbee2mqtt_build' do
   user node['app']['user']
   group node['app']['group']
   cwd node['bridge']['dir']
-  # environment('HOME' => "/home/#{node['app']['user']}")
-  only_if { latest_version }
+  not_if { !latest_version }
 end
 
 template "#{node['bridge']['data']}/configuration.yaml" do
@@ -68,7 +67,7 @@ template "#{node['bridge']['data']}/configuration.yaml" do
     broker_user: Env.get(node, 'login'),
     broker_password: Env.get(node, 'password')
   )
-  only_if { latest_version }
+  not_if { !latest_version }
   not_if { ::File.exist?("#{node['bridge']['data']}/configuration.yaml") }
 end
 

@@ -22,7 +22,6 @@ file node['broker']['file']['user'] do
   owner node['app']['user']
   group node['app']['group']
   mode '0640'
-  action :create_if_missing
 end
 
 execute "user-add_#{Env.get(node, 'login')}" do

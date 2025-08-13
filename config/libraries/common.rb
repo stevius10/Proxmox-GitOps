@@ -86,7 +86,6 @@ module Common
       group group
       mode  mode
       recursive recursive
-      action :create
     end
   rescue => e
     Logs.warn("Skipping #{dir}: #{e}")

@@ -2,7 +2,15 @@
   notify: Restart SSH
   when: (configure_ssh | default(true) | bool)
   block:
-    - name: Disable SSH password authentication
+    - name: Disable root login
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "^#?PermitRootLogin"
+        line: "PermitRootLogin no"
+        backup: yes
+        state: present
+
+    - name: Disable password authentication
       ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
         regexp: "^#?PasswordAuthentication"
@@ -10,13 +18,31 @@
         backup: yes
         state: present
 
-    - name: Disable SSH root login
+    - name: Enable public key authentication
       ansible.builtin.lineinfile:
         path: /etc/ssh/sshd_config
-        regexp: "^#?PermitRootLogin"
-        line: "PermitRootLogin no"
-        backup: yes
+        regexp: '^#?PubkeyAuthentication'
+        line: 'PubkeyAuthentication yes'
         state: present
+        backup: yes
+
+    - name: Authorized keys
+      block:
+        - name: Create global authorized keys
+          file:
+            path: /etc/ssh/authorized_keys
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Set global authorized keys
+          ansible.builtin.lineinfile:
+            path: /etc/ssh/sshd_config
+            regexp: '^#?AuthorizedKeysFile'
+            line: 'AuthorizedKeysFile /etc/ssh/authorized_keys/%u'
+            state: present
+            backup: yes
 
 - name: Container accessibility
   block:
@@ -49,9 +75,3 @@
         state: present
         exclusive: no
       loop: "{{ ssh_users }}"
-
-- name: Ensure files and directories
-  include_tasks: state.yml
-  vars:
-    defaults:
-      - { path: "/app/.ssh/authorized_keys", state: "file", mode: "0750", owner: "config", group: "config" }

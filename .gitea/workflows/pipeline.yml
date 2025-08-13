@@ -70,14 +70,15 @@ jobs:
           password: ${{ vars.PASSWORD }}
         run: |
           tar -c config -cz . | \
-          ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" \
-            'sudo tar xz -C /tmp && sudo env IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
-             cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="[\"'"/tmp/config"'\", \"'"/tmp/config/libs"'\"]" -o share'
-    if: ${{ needs.init.result == 'success' && (needs.base.result == 'success' || needs.base.result == 'skipped') }}
+          ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" 'sudo tar xz -C /tmp && sudo \
+            $(sudo -u config env) IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
+              cinc-client -l info --local-mode --chef-license accept --config-option \
+                cookbook_path="[\"'"/tmp/config"'\", \"'"/tmp/config/libs"'\"]" -o share'
+    if: ${{ gitea.ref != 'refs/heads/release' or needs.base.result == 'success' }}
 
   config:
     runs-on: [ "shell" ]
-    needs: [ init, base ]
+    needs: [ init, base, share ]
     steps:
       - name: Checkout repository
         uses: https://gitea.com/actions/checkout@v4
@@ -93,9 +94,8 @@ jobs:
         run: |
           git -C config submodule update --remote --recursive
           tar -c config -cz . | \
-            ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" \
-              'sudo tar xz -C /tmp && sudo env \
-                 IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" PWD="/tmp/config" \
-               cinc-client -l info --local-mode --chef-license accept --config-option \
-                 cookbook_path="/tmp/config" $( [ -f /tmp/config/local/config.json ] && echo "-j /tmp/config/local/config.json" ) -o config'
-    if: ${{ needs.init.result == 'success' && (needs.base.result == 'success' || needs.base.result == 'skipped') }}
+            ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" 'sudo tar xz -C /tmp && sudo \
+              $(sudo -u config env) IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" PWD="/tmp/config" \
+                cinc-client -l info --local-mode $( [ -f /tmp/config/local/config.json ] && echo "-j /tmp/config/local/config.json" ) \
+                  --config-option cookbook_path="/tmp/config" --chef-license accept -o config'
+    if: ${{ gitea.ref != 'refs/heads/release' or needs.base.result == 'success' }}

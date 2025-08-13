@@ -2,7 +2,7 @@
   block:
     - name: Set variables
       set_fact:
-        key_dir: "{{ key_dir | default('/share/.ssh') }}"
+        key_dir: "{{ KEYDIR | default('/share/.ssh') }}"
 
     - name: Update system
       apt:

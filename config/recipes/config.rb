@@ -74,17 +74,16 @@ end
 
 ruby_block 'config_git_environment' do
   block do
-    %w(proxmox login password email host).each do |parent_key|
-      value = node[parent_key]
+    %w(proxmox login password email host).each do |parent|
+      value = node[parent]
       next if value.nil? || value.to_s.strip.empty?
       if value.is_a?(Hash)
-        value.each do |subkey, subvalue|
-          next if subvalue.nil? || subvalue.to_s.strip.empty?
-          combined_key = "#{parent_key}_#{subkey}"
-          Env.set_variable(Chef.run_context.node, combined_key, subvalue)
+        value.each do |child, child_value|
+          next if child_value.nil? || child_value.to_s.strip.empty?
+          Env.set_variable(node, "#{parent}_#{child}", child_value)
         end
       else
-        Env.set_variable(Chef.run_context.node, parent_key, value)
+        Env.set_variable(Chef.node, parent, value)
       end
     end
   end

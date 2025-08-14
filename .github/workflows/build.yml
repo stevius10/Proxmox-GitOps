@@ -84,6 +84,6 @@ jobs:
           ID: ${{ needs.init.outputs.id }}
           PWD: ${{ github.workspace }}
         run: |
-            sudo $(sudo -u config env) IP="$IP" ID="$ID" PWD="$PWD" \
+            sudo -E IP="$IP" ID="$ID" PWD="$PWD" \
             cinc-client -l info --local-mode --chef-license accept --config-option \
               cookbook_path="." -j ./local/config.json -o config

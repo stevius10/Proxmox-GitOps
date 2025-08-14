@@ -1,16 +1,5 @@
-- name: Proxmox authorization
-  block:
-    - name: Get Proxmox ticket
-      uri:
-        url: "https://{{ PROXMOX_HOST }}:8006/api2/json/access/ticket"
-        method: POST
-        body:
-          username: "{{ PROXMOX_USER }}"
-          password: "{{ PROXMOX_PASSWORD }}"
-        body_format: json
-        validate_certs: no
-      register: proxmox_login
-      when: PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != ''
+- name: Environment
+  include_tasks: env.yml
 
 - name: Container orchestration
   block:

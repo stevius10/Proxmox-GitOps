@@ -1,9 +1,3 @@
-PROXMOX_HOST: "{{ lookup('env', 'PROXMOX_HOST') }}"
-PROXMOX_USER: "{{ lookup('env', 'PROXMOX_USER') }}"
-PROXMOX_PASSWORD: "{{ lookup('env', 'PROXMOX_PASSWORD') }}"
-PROXMOX_TOKEN: "{{ lookup('env', 'PROXMOX_TOKEN') }}"
-PROXMOX_SECRET: "{{ lookup('env', 'PROXMOX_SECRET') }}"
-
 proxmox_auth: >-
   {{ (PROXMOX_PASSWORD | default('') == '') | ternary(
     {'Authorization': 'PVEAPIToken=' + PROXMOX_USER + '!' + PROXMOX_TOKEN + '=' + PROXMOX_SECRET},

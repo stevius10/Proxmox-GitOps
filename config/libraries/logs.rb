@@ -29,7 +29,7 @@ module Logs
   def self.info(msg); log(:info, msg) end
   def self.warn(msg); log(:warn, msg) end
   def self.error(msg); log(:error, msg) end
-  def self.request(uri, response); info("request #{uri}: #{response.code} #{response.message}") end
+  def self.request(uri, response); info("request #{uri}: #{response&.code} #{response&.message}"); return response end
   def self.assignment(key, val); info("#{key}: #{mask(val)}"); return val end
 
   def self.debug(level, msg, *pairs)

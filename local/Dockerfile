@@ -1,11 +1,7 @@
 FROM debian:bookworm
 ARG TARGETARCH=arm64
 
-ENV IP=127.0.0.1 \
- ID=254 \
- ANSIBLE_ROLES_PATH=/tmp/base \
- LC_ALL=C.UTF-8
-
+ENV IP=127.0.0.1 ID=254 ANSIBLE_ROLES_PATH=/tmp/config/base LC_ALL=C.UTF-8
 STOPSIGNAL SIGRTMIN+3
 
 RUN apt update -y && \
@@ -27,9 +23,9 @@ RUN ansible-galaxy collection install community.general --force
 
 RUN mkdir -p /app/.ssh /share/.ssh && ssh-keygen -t ed25519 -f "/share/.ssh/${ID}" -N ''
 
-COPY ../base/roles /tmp/base
-RUN ansible localhost -m include_role -a name=base -e \
-    "ip=${IP}" -e "id=${ID}" -e "KEYS_DIR=/share/.ssh" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
+COPY ../base/roles /tmp/config/base
+RUN ansible localhost -m include_role -a name=base \
+    -e "ip=${IP}" -e "id=${ID}" -e "KEYS_DIR=/share/.ssh" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
     -e "private_key='$(cat /share/.ssh/${ID})\n'" -e "public_key='$(cat /share/.ssh/${ID}.pub)\n'"
 
 RUN chown -R app:config /app

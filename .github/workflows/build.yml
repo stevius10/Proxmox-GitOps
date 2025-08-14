@@ -75,7 +75,7 @@ jobs:
       - name: Mock config.json
         run: |
           cat <<EOF > ./local/config.json
-          { "proxmox": { "host": "localhost", "api": "test", "user": "test", "token": "test", "secret": "test" },
+          { "proxmox": { "host": "localhost", "user": "test", "password": "test" },
             "login": "test", "password": "test", "email": "test@example.com", "pub": "" }
           EOF
       - name: Deploy config

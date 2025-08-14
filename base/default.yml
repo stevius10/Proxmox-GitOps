@@ -17,27 +17,6 @@
         type: ed25519
         force: false
 
-    - name: Check container configuration
-      ansible.builtin.stat:
-        path: "config.json"
-      register: config_file
-
-    - name: Load container configuration
-      ansible.builtin.include_vars:
-        file: "config.json"
-        name: config
-      when: config_file.stat.exists
-
-    - name: Set Proxmox configuration
-      ansible.builtin.set_fact:
-        PROXMOX_HOST: "{{ lookup('env', 'PROXMOX_HOST') }}"
-        PROXMOX_USER: "{{ lookup('env', 'PROXMOX_USER') }}"
-        PROXMOX_PASSWORD: "{{ lookup('env', 'PROXMOX_PASSWORD') }}"
-        PROXMOX_TOKEN: "{{ lookup('env', 'PROXMOX_TOKEN') }}"
-        PROXMOX_SECRET: "{{ lookup('env', 'PROXMOX_SECRET') }}"
-      when:
-        - (config_file.stat.exists and config.proxmox is defined) or (not config_file.stat.exists)
-
     - name: Container
       ansible.builtin.include_role:
         name: container

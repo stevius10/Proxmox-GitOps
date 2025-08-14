@@ -1,0 +1,8 @@
+CHEF_NODE_NAME=$(hostname -f)
+
+CHEF_LICENSE=accept
+
+CHEF_LOG_LEVEL=info
+CHEF_LOG_LOCATION=STDOUT
+
+CHEF_CACHE_PATH=/var/cache/cinc

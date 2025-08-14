@@ -30,17 +30,15 @@ esac
 export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/${TARGETARCH}}"
 
 DOCKERFILE_PATH="${DEVELOP_DIR}/Dockerfile"
-[[ -f "${DOCKERFILE_PATH}" ]] || fail "dockerfile_missing:${DOCKERFILE_PATH}"
-DOCKERFILE_HASH=$(md5sum "${DOCKERFILE_PATH}" | awk '{print $1}')
+BASE=$(find "base" -type f -not -path "*/.git/*" -print0 | sort -z | xargs -0 md5sum | md5sum | awk '{print $1}')
+HASH=$(echo "$(md5sum "$DOCKERFILE_PATH" | awk '{print $1}')${BASE}" | md5sum | awk '{print $1}')
 STORED_HASH_FILE="${DEVELOP_DIR}/.${DOCKER_IMAGE_NAME}.hash"
-STORED_HASH=$(cat "${STORED_HASH_FILE}" 2>/dev/null || true)
+STORED_HASH=$(cat "$STORED_HASH_FILE" 2>/dev/null || true)
 
-BUILD_NEEDED=false
-if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "${STORED_HASH}" != "${DOCKERFILE_HASH}" ]]; then
-    BUILD_NEEDED=true
+if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "$STORED_HASH" != "$HASH" ]]; then
     log "image" "build_required"
     docker build --build-arg TARGETARCH="$TARGETARCH" -t "$DOCKER_IMAGE_NAME" -f "$DOCKERFILE_PATH" "$PROJECT_DIR" || fail "build_failed"
-    echo "$DOCKERFILE_HASH" > "$STORED_HASH_FILE"
+    echo "$HASH" > "$STORED_HASH_FILE"
     log "image" "build_complete"
 fi
 
@@ -63,7 +61,7 @@ log "container" "started:${CONTAINER_ID}"
 sleep "$DOCKER_WAIT"
 
 command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID \
-  cinc-client -l info --local-mode --chef-license accept --config-option node_path=/tmp/nodes \
+  cinc-client --local-mode --config-option node_path=/tmp/nodes \
     --config-option cookbook_path='"$COOKBOOK_PATH"' '"$CONFIG_FILE"'  -o '"$RECIPE"''
 docker exec "$CONTAINER_ID" bash -c "$command"  || log "error" "exec_failed"
 

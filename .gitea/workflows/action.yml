@@ -62,9 +62,11 @@ runs:
 
     - name: Configure container
       run: |
-        tar cz . | \
-        ssh -o StrictHostKeyChecking=no -i /share/.ssh/${{ env.id }} config@${{ env.ip }} 'sudo tar xz -C /tmp && env \
-          IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} PWD="$(pwd)" \
-            cinc-client -l info --local-mode $( [[ -f "/tmp/repo/config.json" ]] && echo "-j /tmp/repo/config.json" ) \
-              --chef-license accept --config-option cookbook_path="/tmp" -o repo'
+        tar -c repo -cz . | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" 'sudo tar xz -C /tmp
+          sudo -E IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} PWD="$(pwd)" \
+            cinc-client --local-mode $CONFIG_ARGS --config-option cookbook_path="/tmp" -o repo'
       shell: bash
+
+
+
+

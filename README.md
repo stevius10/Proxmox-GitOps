@@ -86,9 +86,9 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 ### Getting Started
 
 - Set **Proxmox** and **global usage credentials** in [`local/.config.json`](local/.config.json) as `./local/config.json`
-- Ensure **container configuration** in [`config.env`](config.env) and verify storage
+- Ensure **container configuration** in [`config.env`](config.env) and **verify storage**
 - Run `./local/run.sh` for local Docker environment
-- Accept the Pull Request at `localhost:8080/main/config/pulls/1` to deploy on Proxmox VE
+- Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE
 
 <p align="center">
   <img src="./docs/nutshell.png" alt="in a nutshell"/>

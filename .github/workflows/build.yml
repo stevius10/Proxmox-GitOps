@@ -75,8 +75,8 @@ jobs:
       - name: Mock config.json
         run: |
           cat <<EOF > ./local/config.json
-          { "proxmox": { "host": "localhost", "api": "test", "user": "test", "token": "test", "secret": "test" },
-            "login": "test", "password": "test", "email": "test@example.com", "pub": "" }
+          { "proxmox": { "host": "localhost", "user": "test", "password": "test" },
+            "login": "test", "password": "test", "email": "test@example.com" }
           EOF
       - name: Deploy config
         env:
@@ -84,6 +84,6 @@ jobs:
           ID: ${{ needs.init.outputs.id }}
           PWD: ${{ github.workspace }}
         run: |
-            sudo env IP="$IP" ID="$ID" PWD="$PWD" \
-            cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="." \
-              -j ./local/config.json -o config
+            sudo env IP="$IP" ID="$ID" PWD="$PWD" HOME="/app" \
+            cinc-client -l info --local-mode --chef-license accept --config-option \
+              cookbook_path="." -j ./local/config.json -o config

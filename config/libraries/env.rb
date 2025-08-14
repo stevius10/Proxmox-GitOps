@@ -5,8 +5,9 @@ require 'json'
 module Env
 
   def self.creds(node, login_key = 'login', password_key = 'password')
-    [ Logs.assignment(login_key, (login=ENV[login_key.upcase] || node[login_key.to_sym])),
-      Logs.assignment(password_key, (password=ENV[password_key.upcase] || node[password_key.to_sym])) ]
+    user ||= Logs.assignment(login_key, (login=ENV[login_key.upcase] || node[login_key.to_sym]))
+    pass ||= Logs.assignment(password_key, (password=ENV[password_key.upcase] || node[password_key.to_sym]))
+    return user, pass
   end
 
   def self.get(node, key)
@@ -18,39 +19,39 @@ module Env
   def self.get_variable(node, key)
     JSON.parse(request(node, key).body)['data']
   rescue => e
-    Logs.debug(:warn, "failed get variable '#{key}'", :error, e.message, :endpoint, endpoint(node), :node_key, node[key], :env_key, ENV[key.to_s.upcase])
+    Logs.debug(:warn, "failed get variable '#{key}'",
+:error, e.message, :endpoint, endpoint(node), :node_key, node[key], :env_key, ENV[key.to_s.upcase])
   end
 
   def self.set_variable(node, key, val)
-    request(node, key, { name: key, value: val.to_s }.to_json)
+    raise unless Logs.assignment(key, request(node, key, { name: key, value: val.to_s }.to_json, expect: true))
   rescue => e
-    Logs.debug(:warn, "failed set #{Logs.mask(val)} for variable '#{key}'", :error, e.message, :endpoint, endpoint(node), :node_key, node[key], :env_key, ENV[key.to_s.upcase])
+    Logs.debug(:error, "failed set #{Logs.mask(val)} for variable '#{key}'", [:error, e.message, :endpoint, endpoint(node), :node_key, node[key], :env_key, ENV[key.to_s.upcase] ])
   end
 
   class << self
     alias_method :set, :set_variable
   end
 
-  private_class_method def self.or_default(var, default)
-    var.to_s.presence ? var.to_s : default.to_s
+  def self.or_default(var, default)
+    var.to_s.presence || default.to_s
   end
 
-  private_class_method def self.endpoint(node, port=or_default(node.dig('git', 'port', 'http'), '8080'))
+  def self.endpoint(node, port = nil)
+    port ||= or_default(node.dig('git', 'port', 'http'), '8080')
     or_default(node.dig('git', 'api', 'endpoint'),
-"http://#{or_default(node['host'].to_s.presence || ENV['HOST'].to_s.presence, '127.0.0.1')}:#{port}/api/#{or_default(node.dig('git', 'version'), 'v1')}")
+      "http://#{or_default(node['host'].to_s.presence || ENV['HOST'].to_s.presence, '127.0.0.1')}
+      :#{port}/api/#{or_default(node.dig('git', 'version'), 'v1')}")
   end
 
-  private_class_method def self.request(node, key, body = nil)
+  def self.request(node, key, body = nil, expect = false)
+    user, pass = creds(node)
     uri = URI("#{endpoint(node)}/orgs/#{or_default(node.dig('git', 'org', 'main'), 'main')}/actions/variables/#{key}")
     (body ? [Net::HTTP::Put, Net::HTTP::Post] : [Net::HTTP::Get]).each do |method|
-      req = method.new(uri)
-      req.basic_auth(*creds(node))
-      req['Content-Type'] = 'application/json'
-      req.body = body if body
-      Logs.request(uri, response=(Net::HTTP.start(uri.host, uri.port) { |h| h.request(req) }))
-      return response unless body && response.code.to_i == 404 or Logs.request!(uri, response)
+      Utils.request(uri, user: user, pass: pass, expect: expect, headers: { 'Content-Type' => 'application/json' }, method: method, body: body)
     end
   end
+
 end
 
 class Object

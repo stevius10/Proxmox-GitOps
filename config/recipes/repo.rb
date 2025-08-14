@@ -182,6 +182,10 @@ Common.directories(self, [destination, working], recreate: true,
             git submodule add #{module_url} #{path_module}
           fi
           git submodule update --init --recursive
+          # pass variables in bootstrap 
+          if [ "#{Env.get(node, 'host')}" = "127.0.0.1"  ] && [ -f local/config.json ]; then
+            git add -f local/config.json
+          fi
         EOH
         cwd path_destination
         user node['git']['user']['app']

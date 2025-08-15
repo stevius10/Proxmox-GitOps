@@ -107,7 +107,7 @@ module Utils
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
         body: URI.encode_www_form(username: user, password: pass), headers: { 'Content-Type' => 'application/x-www-form-urlencoded' })
       Logs.request!("Proxmox ticket could not be retrieved", uri, response) unless response.is_a?(Net::HTTPSuccess)
-      headers = { 'Cookie' => "PVEAuthCookie=#{JSON.parse(login.body)['data']['ticket']}" }
+      headers = { 'Cookie' => "PVEAuthCookie=#{JSON.parse(response.body)['data']['ticket']}" }
     else
       headers = { 'Authorization' => "PVEAPIToken=#{user}!#{token}=#{secret}" }
     end

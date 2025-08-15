@@ -1,5 +1,5 @@
 default['id']                       = ENV['ID']
-default['host']                     = ENV['IP'].to_s.presence ? ENV['IP'] : "localhost"
+default['host']                     = ENV['IP'].to_s.presence ? ENV['IP'] : "127.0.0.1"
 default['key']                      = ENV['KEY'].to_s.presence ? ENV['KEY'] : "/share/.ssh/#{node['id']}"
 
 default['app']['user']              = Default.user(node, default: true)

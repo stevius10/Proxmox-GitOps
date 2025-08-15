@@ -113,6 +113,7 @@ BOOT=yes
 ```
 
 - Add your cookbook to the container definition root:
+
 ```ruby
 # libs/apache/recipes/default.rb
 package 'apache2'
@@ -120,8 +121,8 @@ package 'apache2'
 file '/var/www/html/index.html' do
   content "<h1>Hello from #{Env.get(node, 'login')}</h1>"
   mode '0644'
-  owner 'app'    # see base/roles/base/tasks/main.yml
-  group 'config' # each container is configured identically 
+  owner Default.user(self)  # see base/roles/base/tasks/main.yml
+  group Default.group(self) # each container is configured identically 
 end
 
 Common.application(self, 'apache2') # provided by convention

@@ -14,7 +14,6 @@
       index_var: idx
     when:
       - mount is defined
-      - share | default(true) | bool
       - mount | trim | length > 0
 
   - name: Set passthrough
@@ -25,7 +24,6 @@
       index_var: idx
     when:
       - mount is defined
-      - share | default(true) | bool
       - mount | trim | length > 0
 
   - name: Create container

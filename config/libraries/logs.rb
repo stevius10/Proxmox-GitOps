@@ -26,11 +26,11 @@ module Logs
     end
   end
 
-  def self.info(msg); log(:info, msg); return msg end
-  def self.warn(msg); log(:warn, msg); return msg end
-  def self.error(msg); log(:error, msg); return msg end
-  def self.request(uri, response); info("request #{uri}: #{response&.code} #{response&.message}"); return response end
-  def self.assignment(key, val); info("#{key}: #{mask(val)}"); return val end
+  def self.info(msg); log(:info, msg) end
+  def self.warn(msg); log(:warn, msg) end
+  def self.error(msg); log(:error, msg) end
+  def self.request(uri, response); info("requested #{uri}: #{response&.code} #{response&.message}"); return response end
+  def self.assignment(key, val, mask=true); info("assigned '#{key}' value '#{mask ? mask(val) : val}'"); return val end
 
   def self.debug(level, msg, *pairs)
     ctx = pairs.flatten.each_slice(2).map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
@@ -59,11 +59,11 @@ module Logs
 
   def self.mask(str, term = nil)
     return obfuscate(str) unless term
-    str.to_s.gsub(term.to_s, obfuscate(term.to_s))
+    str.to_s.gsub(term.to_s, obfuscate(term.to_s)) rescue str
   end
 
   def self.obfuscate(s)
-    s.length <= 2 ? '*' * s.length : "#{s[0]}#{'*'*(s.length-2)}#{s[-1]}"
+    s.length <= 2 ? '*' * s.length : "#{s[0]}#{'*'*(s.length-2)}#{s[-1]}" rescue s
   end
 
 end

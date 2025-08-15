@@ -1,6 +1,9 @@
-require 'net/http'
-require 'uri'
+require 'digest'
+require 'fileutils'
 require 'json'
+require 'net/http'
+require 'tmpdir'
+require 'uri'
 
 module Utils
 
@@ -58,24 +61,37 @@ module Utils
     end
   end
 
-  def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', name: ctx.cookbook_name, restore: false)
+  def self.snapshot(node, dir, snapshot_dir: '/share/snapshots', name: node.cookbook_name, restore: false)
     timestamp = Time.now.strftime('%H%M-%d%m%y')
     file = File.join(snapshot_dir, "#{name}-#{timestamp}.tar.gz")
 
+    md5_dir = ->(path) {
+      Digest::MD5.new.tap do |md5|
+        Dir.glob("#{path}/**/*", File::FNM_DOTMATCH).reject { |f| File.directory?(f) }.sort.each do |f|
+          md5.update(File.read(f))
+        end
+      end.hexdigest
+    }
+    verify = ->(archive, compare_dir) {
+      Dir.mktmpdir do |tmp|
+        raise Logs.error("extraction failed for '#{archive}'") unless system("tar -xzf #{archive} -C #{tmp}")
+        raise "md5 mismatch indicates error" unless md5_dir.(File.join(tmp, File.basename(compare_dir))) == md5_dir.(compare_dir)
+      end
+      true
+    }
     if restore
       latest = Dir[File.join(snapshot_dir, "#{name}-*.tar.gz")].max_by { |f| File.mtime(f) }
-
-      ctx.execute "common_restore_snapshot_#{dir}" do
+      return false unless latest && File.exist?(latest)
+      node.execute("common_restore_snapshot_#{dir}") do
         command "tar -xzf #{latest} -C #{File.dirname(dir)}"
-        only_if { latest && ::File.exist?(latest) }
       end
-      latest
+      verify.(latest, dir)
     else
-      ctx.execute "common_create_snapshot_#{dir}" do
+      return false unless Dir.exist?(dir)
+      node.execute("common_create_snapshot_#{dir}") do
         command "mkdir -p $(dirname #{file}) && tar -czf #{file} -C #{File.dirname(dir)} #{File.basename(dir)}"
-        only_if { ::Dir.exist?(dir) }
       end
-      file
+      verify.(file, dir)
     end
   end
 
@@ -102,28 +118,27 @@ module Utils
 
   # Remote
 
-  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, expect: false)
-    req = method.new(u = URI(uri))
+  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, expect: false, log: true)
+    u = URI(uri)
+    req = method.new(u)
     req.basic_auth(user, pass) if user && pass
     req.body = body if body
     headers.each { |k, v| req[k] = v }
     response = Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https') { |http| http.request(req) }
-    Logs.request(uri, response)
-
-    if response.is_a?(Net::HTTPSuccess)
-      return expect ? true : response
-    end
-    if response.is_a?(Net::HTTPRedirection)
+    if response.is_a?(Net::HTTPRedirection) && response['location']
       loc = response['location']
-      loc = "#{u.scheme}://#{u.host}#{loc}" if loc&.start_with?('/')
-      return request(loc, user: user, pass: pass, headers: headers, method: method, body: body, expect: expect)
+      loc = loc.start_with?('http://', 'https://') ? loc : (loc.start_with?('/') ? "#{u.scheme}://#{u.host}#{loc}" : URI.join("#{u.scheme}://#{u.host}#{u.path}", loc).to_s)
+      response = request(loc, user: user, pass: pass, headers: headers, method: method, body: body, expect: expect, log: log)
     end
-
-    expect ? false : response
+    if log
+      tag = log.is_a?(String) ? " #{log}" : ""
+      Logs.request("#{u}#{tag} (#{body})", response)
+    end
+    return expect ? response.is_a?(Net::HTTPSuccess) : response
   end
 
-  def self.download(ctx, path, url:, owner: 'root', group: 'root', mode: '0644', action: :create)
-    ctx.remote_file path do
+  def self.download(node, path, url:, owner: Default.app(node), group: Default.app(node), mode: '0754', action: :create)
+    node.remote_file path do
       source url.respond_to?(:call) ? lazy { url.call } : url
       owner  owner
       group  group

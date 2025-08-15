@@ -1,5 +1,5 @@
 default['id']                       = ENV['ID']
-default['host']                     = ENV['IP'].to_s.presence ? ENV['IP'] : "127.0.0.1"
+default['host']                     = ENV['IP'].to_s.presence ? ENV['IP'] : "localhost"
 default['key']                      = ENV['KEY'].to_s.presence ? ENV['KEY'] : "/share/.ssh/#{node['id']}"
 
 default['app']['user']              = Default.user(node, default: true)
@@ -10,7 +10,7 @@ default['git']['conf']['customize'] = true
 default['git']['conf']['repo']      = [ "./", "./base", "./config/libraries", "./libs" ]
 
 default['git']['dir']['app']        = '/app/git'
-default['git']['dir']['home']       = ENV['HOME']
+default['git']['dir']['home']       = Dir.home(node['app']['user']) or ENV['HOME']
 default['git']['dir']['workspace']  = "#{node['git']['dir']['home']}/workspace"
 
 default['git']['port']['http']      = 8080

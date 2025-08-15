@@ -1,5 +1,5 @@
-default['app']['user']          = 'app'
-default['app']['group']         = 'config'
+default['app']['user']          = Default.user(node)
+default['app']['group']         = Default.group(node)
 
 default['bridge']['port']       = 8080
 default['bridge']['adapter']    = Env.get(node, 'adapter') || 'zstack' # overwrite

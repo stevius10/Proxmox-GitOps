@@ -15,7 +15,7 @@ module Common
     owner     = opts[:owner]    || Default.app(node)
     group     = opts[:group]    || Default.app(node)
     mode      = opts[:mode]     || '0755'
-    recursive = opts.key?(:recursive) ? opts[:recursive] : true
+    recursive = true
     recreate  = opts[:recreate] || false
 
     if recreate

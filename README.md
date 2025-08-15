@@ -14,7 +14,7 @@
     - [Self-contained Monorepository](#self-contained-monorepository)
   - [Requirements](#requirements)
   - [Getting Started](#getting-started)
-    - [Development and Container Extension](#development-and-container-extension)
+    - [Development and Extension](#development-and-extension)
 
 ---
 
@@ -85,8 +85,8 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 ### Getting Started
 
-- Set **Proxmox** and **global usage credentials** in [`local/.config.json`](local/.config.json) as `./local/config.json`
-- Ensure **container configuration** in [`config.env`](config.env) and **verify storage**
+- Set **Proxmox** and **global usage credentials** in [`local/.config.json`](local/.config.json) as [`./local/config.json`](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-localconfigjson)
+- Ensure **container configuration** in [`config.env`](config.env) and [**verify storage**](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv)
 - Run `./local/run.sh` for local Docker environment
 - Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE
 
@@ -94,11 +94,9 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
   <img src="./docs/nutshell.png" alt="in a nutshell"/>
 </p>
 
-#### Development and Container Extension
+#### Development and Extension
 
-Reusable container definitions are stored in the [`libs`](libs) folder. 
-
-Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
+Reusable container definitions are stored in the [`libs`](libs) folder. Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
 
 - Add `config.env` to your container's root directory (e.g. `./libs/apache`):
 ```dotenv
@@ -113,6 +111,7 @@ BOOT=yes
 ```
 
 - Add your cookbook to the container definition root:
+
 ```ruby
 # libs/apache/recipes/default.rb
 package 'apache2'
@@ -120,14 +119,18 @@ package 'apache2'
 file '/var/www/html/index.html' do
   content "<h1>Hello from #{Env.get(node, 'login')}</h1>"
   mode '0644'
-  owner 'app'    # see base/roles/base/tasks/main.yml
-  group 'config' # each container is configured identically 
+  owner Default.user(self)  # see base/roles/base/tasks/main.yml
+  group Default.group(self) # each container is configured identically 
 end
 
 Common.application(self, 'apache2') # provided by convention
 ```
 
 - Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
+
+<p align="center">
+  <img src="./docs/environment.png" alt="Global Environment"/>
+</p>
 
 - Add to Monorepository and redeploy.
 

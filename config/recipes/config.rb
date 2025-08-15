@@ -1,27 +1,31 @@
+login     = Env.get(node, 'login')
+password  = Env.get(node, 'password')
+email     = Env.get(node, 'email')
+
 ruby_block 'config_wait_http' do
   block do Utils.wait("127.0.0.1:#{node['git']['port']['http']}", timeout: 15, sleep_interval: 1) end
 end
 
 execute 'config_set_user' do
-  user node['git']['user']['app'] 
+  user node['app']['user'] 
   command <<-EOH
-    login="#{Env.get(node, 'login')}"
+    login="#{login}"
     base="#{node['git']['dir']['app']}/gitea admin user --config #{node['git']['dir']['app']}/app.ini"
-    user="--username #{Env.get(node, 'login')} --password #{Env.get(node, 'password')}"
-    create="--email #{Env.get(node, 'email')} --admin --must-change-password=false"
-    if $base list | awk '{print $2}' | grep -q "^#{Env.get(node, 'login')}$"; then
+    user="--username #{login} --password #{password}"
+    create="--email #{email} --admin --must-change-password=false"
+    if $base list | awk '{print $2}' | grep -q "^#{login}$"; then
       $base delete $user 
     fi
     $base create $create $user
   EOH
-  not_if { Utils.request("#{node['git']['api']['endpoint']}/user", user: Env.get(node, 'login'), pass: Env.get(node, 'password'), expect: true) }
+  not_if { Utils.request("#{node['git']['api']['endpoint']}/user", user: login, pass: password, expect: true) }
 end
 
 ruby_block 'config_set_key' do
   block do
     require 'json'
-    login = Env.get(node, 'login')
-    password = Env.get(node, 'password')
+    login = login
+    password = password
     url = "#{node['git']['api']['endpoint']}/admin/users/#{login}/keys"
     key = ::File.read("#{node['key']}.pub").strip
 
@@ -36,7 +40,7 @@ ruby_block 'config_set_key' do
   not_if do
     next false unless ::File.exist?("#{node['key']}.pub")
     begin
-      response = Utils.request("#{node['git']['api']['endpoint']}/admin/users/#{Env.get(node, 'login')}/keys", user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
+      response = Utils.request("#{node['git']['api']['endpoint']}/admin/users/#{login}/keys", user: login, pass: password)
       (JSON.parse(response.body) rescue []).any? { |k| k['key'] && k['key'].strip == ::File.read("#{node['key']}.pub").strip }
     end
   end
@@ -51,11 +55,11 @@ end
 
 execute 'config_git_user' do
   command <<-SH
-    git config --global user.name "#{Env.get(node, 'login')}"
-    git config --global user.email "#{Env.get(node, 'email')}"
+    git config --global user.name "#{login}"
+    git config --global user.email "#{email}"
     git config --global core.excludesfile #{ENV['PWD']}/.gitignore
   SH
-  user node['git']['user']['app'] 
+  user node['app']['user'] 
 end
 
 [node['git']['org']['main'], node['git']['org']['stage']].each do |org|
@@ -64,7 +68,7 @@ end
       require 'json'
       status_code = (response = Utils.request(uri="#{node['git']['api']['endpoint']}/orgs",
         method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
-        user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
+        user: login, pass: password,
         body: { username: org }.to_json
       )).code.to_i
       Logs.request!("Create organization '#{org}' failed", uri, response) unless [201, 409, 422].include? status_code
@@ -74,7 +78,7 @@ end
 
 ruby_block 'config_git_environment' do
   block do
-    %w(proxmox login password email host).each do |parent|
+    %w(proxmox host app login password email).each do |parent|
       value = node[parent]
       next if value.nil? || value.to_s.strip.empty?
       if value.is_a?(Hash)
@@ -83,7 +87,7 @@ ruby_block 'config_git_environment' do
           Env.set_variable(node, "#{parent}_#{child}", child_value)
         end
       else
-        Env.set_variable(Chef.node, parent, value)
+        Env.set_variable(node, parent, value)
       end
     end
   end

@@ -61,7 +61,7 @@ log "container" "started:${CONTAINER_ID}"
 sleep "$DOCKER_WAIT"
 
 command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID \
-  cinc-client --local-mode --config-option node_path=/tmp/nodes \
+  cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
     --config-option cookbook_path='"$COOKBOOK_PATH"' '"$CONFIG_FILE"'  -o '"$RECIPE"''
 docker exec "$CONTAINER_ID" bash -c "$command"  || log "error" "exec_failed"
 

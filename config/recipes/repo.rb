@@ -6,7 +6,7 @@ destination = node['git']['dir']['workspace']
 working = "#{destination}/workdir"
 
 Common.directories(self, [destination, working], recreate: true,
-  owner: node['git']['user']['app'] , group: node['git']['user']['group'])
+  owner: node['app']['user'] , group: node['app']['group'])
 
 (repositories = node['git']['conf']['repo']
   .flat_map { |r| (r == './libs') ? Dir.glob(File.join(source, r, '*')).select { |d| File.directory?(d) }.map { |p| p.sub(source, '.') } : r }
@@ -31,15 +31,15 @@ Common.directories(self, [destination, working], recreate: true,
 
   execute "repo_exists_snapshot_create_#{name_repo}" do
     command <<-EOH
-      if git ls-remote ssh://#{node['git']['user']['app'] }@#{node['git']['host']['ssh']}/#{node['git']['org']['main']}/#{name_repo}.git HEAD | grep -q .; then
-        git clone --recurse-submodules ssh://#{node['git']['user']['app'] }@#{node['git']['host']['ssh']}/#{node['git']['org']['main']}/#{name_repo}.git #{path_working}
+      if git ls-remote ssh://#{node['app']['user'] }@#{node['git']['host']['ssh']}/#{node['git']['org']['main']}/#{name_repo}.git HEAD | grep -q .; then
+        git clone --recurse-submodules ssh://#{node['app']['user'] }@#{node['git']['host']['ssh']}/#{node['git']['org']['main']}/#{name_repo}.git #{path_working}
         cd #{path_working} && git submodule update --init --recursive
         find . -type d -name .git -exec rm -rf {} +
       else
         mkdir -p #{path_working}
       fi
     EOH
-    user node['git']['user']['app'] 
+    user node['app']['user']
     only_if { Logs.info("[#{repository} (#{name_repo})]: delete repository after snapshot")
       node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -71,15 +71,15 @@ Common.directories(self, [destination, working], recreate: true,
     command <<-EOH
       mkdir -p #{path_destination} && cd #{path_destination} && git init -b main
     EOH
-    user node['git']['user']['app'] 
+    user node['app']['user']
   end
 
   template "#{path_destination}/.git/config" do
     source 'repo_config.erb'
-    owner node['git']['user']['app'] 
-    group node['git']['user']['group']
+    owner node['app']['user']
+    group node['app']['group']
     mode '0644'
-    variables(repo: name_repo, git_user: node['git']['user']['app'] )
+    variables(repo: name_repo, git_user: node['app']['user'] )
     only_if { ::File.directory?("#{path_destination}/.git") }
   end
 
@@ -90,18 +90,18 @@ Common.directories(self, [destination, working], recreate: true,
       git push -u origin main && git push -u origin release
     EOH
     cwd path_destination
-    user node['git']['user']['app'] 
+    user node['app']['user']
   end
 
   execute "repo_exists_snapshot_push_#{name_repo}" do
     command <<-EOH
       cp -r #{path_destination}/.git #{path_working}
-      cd #{path_working} && git checkout -b snapshot && git add -A 
+      cd #{path_working} && git checkout -b snapshot && git add -A
       git commit --allow-empty -m "snapshot [skip ci]"
       git push -f origin snapshot && (rm -rf #{path_working} || true)
     EOH
     cwd path_destination
-    user node['git']['user']['app'] 
+    user node['app']['user']
     only_if { Logs.info("[#{repository} (#{name_repo})]: snapshot commit")
       node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -119,7 +119,7 @@ Common.directories(self, [destination, working], recreate: true,
           FileUtils.cp(path_src, path_dst, verbose: true)
         end
       end
-      FileUtils.chown_R(node['git']['user']['app'] , node['git']['user']['group'], path_destination)
+      FileUtils.chown_R(node['app']['user'] , node['app']['group'], path_destination)
     end
   end
 
@@ -129,8 +129,8 @@ Common.directories(self, [destination, working], recreate: true,
 
   template "#{path_destination}/.gitea/workflows/sync.yml" do
     source 'repo_sync.yml.erb'
-    owner node['git']['user']['app'] 
-    group node['git']['user']['group']
+    owner node['app']['user']
+    group node['app']['group']
     mode '0644'
     not_if { monorepo }
     not_if { File.exist?("#{path_destination}/.gitea/workflows/sync.yml") }
@@ -138,8 +138,8 @@ Common.directories(self, [destination, working], recreate: true,
 
   template "#{path_destination}/.gitea/workflows/pipeline.yml" do
     source 'repo_pipeline.yml.erb'
-    owner node['git']['user']['app'] 
-    group node['git']['user']['group']
+    owner node['app']['user']
+    group node['app']['group']
     mode '0644'
     only_if { repository.include?('libs/') and File.exist?("#{path_destination}/config.env") }
     not_if { File.exist?("#{path_destination}/.gitea/workflows/pipeline.yml") }
@@ -182,13 +182,13 @@ Common.directories(self, [destination, working], recreate: true,
             git submodule add #{module_url} #{path_module}
           fi
           git submodule update --init --recursive
-          # pass variables in bootstrap 
+          # pass variables in bootstrap
           if [ "#{Env.get(node, 'host')}" = "127.0.0.1"  ] && [ -f local/config.json ]; then
             git add -f local/config.json
           fi
         EOH
         cwd path_destination
-        user node['git']['user']['app']
+        user node['app']['user']
       end
     end
 
@@ -198,7 +198,7 @@ Common.directories(self, [destination, working], recreate: true,
 
   execute "repo_push_#{name_repo}" do
     cwd path_destination
-    user node['git']['user']['app'] 
+    user node['app']['user']
     command <<-EOH
     git add --all
     if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -217,12 +217,6 @@ Common.directories(self, [destination, working], recreate: true,
       fi
     fi
     EOH
-  end
-
-  directory path_destination do
-    action :delete
-    recursive true
-    only_if { ::Dir.exist?(path_destination) }
   end
 
   # Fork as stage repository
@@ -249,4 +243,18 @@ Common.directories(self, [destination, working], recreate: true,
     end
   end
 
+  directory path_destination do
+    action :delete
+    recursive true
+    only_if { ::Dir.exist?(path_destination) }
+  end
+
+end
+
+ruby_block "repository_variable_dump" do
+  block do
+    Env.dump(node, node['git'], cookbook_name.to_s)
+    Env.dump(node, node['runner'], cookbook_name.to_s)
+  end
+  ignore_failure true
 end

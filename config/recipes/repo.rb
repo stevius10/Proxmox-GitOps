@@ -5,8 +5,6 @@ source = ENV['PWD']
 destination = node['git']['dir']['workspace']
 working = "#{destination}/workdir"
 
-host = Env.get(node, 'host')
-
 Common.directories(self, [destination, working], recreate: true,
   owner: node['app']['user'] , group: node['app']['group'])
 
@@ -41,7 +39,7 @@ Common.directories(self, [destination, working], recreate: true,
         mkdir -p #{path_working}
       fi
     EOH
-    user node['app']['user'] 
+    user node['app']['user']
     only_if { Logs.info("[#{repository} (#{name_repo})]: delete repository after snapshot")
       node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -73,12 +71,12 @@ Common.directories(self, [destination, working], recreate: true,
     command <<-EOH
       mkdir -p #{path_destination} && cd #{path_destination} && git init -b main
     EOH
-    user node['app']['user'] 
+    user node['app']['user']
   end
 
   template "#{path_destination}/.git/config" do
     source 'repo_config.erb'
-    owner node['app']['user'] 
+    owner node['app']['user']
     group node['app']['group']
     mode '0644'
     variables(repo: name_repo, git_user: node['app']['user'] )
@@ -92,18 +90,18 @@ Common.directories(self, [destination, working], recreate: true,
       git push -u origin main && git push -u origin release
     EOH
     cwd path_destination
-    user node['app']['user'] 
+    user node['app']['user']
   end
 
   execute "repo_exists_snapshot_push_#{name_repo}" do
     command <<-EOH
       cp -r #{path_destination}/.git #{path_working}
-      cd #{path_working} && git checkout -b snapshot && git add -A 
+      cd #{path_working} && git checkout -b snapshot && git add -A
       git commit --allow-empty -m "snapshot [skip ci]"
       git push -f origin snapshot && (rm -rf #{path_working} || true)
     EOH
     cwd path_destination
-    user node['app']['user'] 
+    user node['app']['user']
     only_if { Logs.info("[#{repository} (#{name_repo})]: snapshot commit")
       node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -131,7 +129,7 @@ Common.directories(self, [destination, working], recreate: true,
 
   template "#{path_destination}/.gitea/workflows/sync.yml" do
     source 'repo_sync.yml.erb'
-    owner node['app']['user'] 
+    owner node['app']['user']
     group node['app']['group']
     mode '0644'
     not_if { monorepo }
@@ -140,7 +138,7 @@ Common.directories(self, [destination, working], recreate: true,
 
   template "#{path_destination}/.gitea/workflows/pipeline.yml" do
     source 'repo_pipeline.yml.erb'
-    owner node['app']['user'] 
+    owner node['app']['user']
     group node['app']['group']
     mode '0644'
     only_if { repository.include?('libs/') and File.exist?("#{path_destination}/config.env") }
@@ -184,8 +182,8 @@ Common.directories(self, [destination, working], recreate: true,
             git submodule add #{module_url} #{path_module}
           fi
           git submodule update --init --recursive
-          # pass variables in bootstrap 
-          if [ "#{host}" = "127.0.0.1"  ] && [ -f local/config.json ]; then
+          # pass variables in bootstrap
+          if [ "#{Env.get(node, 'host')}" = "127.0.0.1"  ] && [ -f local/config.json ]; then
             git add -f local/config.json
           fi
         EOH
@@ -200,7 +198,7 @@ Common.directories(self, [destination, working], recreate: true,
 
   execute "repo_push_#{name_repo}" do
     cwd path_destination
-    user node['app']['user'] 
+    user node['app']['user']
     command <<-EOH
     git add --all
     if ! git diff --quiet || ! git diff --cached --quiet; then
@@ -208,8 +206,8 @@ Common.directories(self, [destination, working], recreate: true,
       git push -f origin HEAD:main
       sleep 3
       if ! git ls-remote origin refs/for/release | grep -q "$(git rev-parse HEAD)"; then
-        if { [ "#{repository}" != "./" ] && [ "#{host}" != "127.0.0.1" ]; } || \
-           { [ "#{repository}" = "./" ] && [ "#{host}" = "127.0.0.1" ]; }; then
+        if { [ "#{repository}" != "./" ] && [ "#{Env.get(node, 'host')}" != "127.0.0.1" ]; } || \
+           { [ "#{repository}" = "./" ] && [ "#{Env.get(node, 'host')}" = "127.0.0.1" ]; }; then
           git push origin HEAD:refs/for/release \
             -o topic="release" \
             -o title="Release Pull Request" \
@@ -219,7 +217,6 @@ Common.directories(self, [destination, working], recreate: true,
       fi
     fi
     EOH
-    notifies :run, 'ruby_block[repository_variable_dump]', :delayed if monorepo
   end
 
   # Fork as stage repository
@@ -252,4 +249,12 @@ Common.directories(self, [destination, working], recreate: true,
     only_if { ::Dir.exist?(path_destination) }
   end
 
+end
+
+ruby_block "repository_variable_dump" do
+  block do
+    Env.dump(node, node['git'], cookbook_name.to_s)
+    Env.dump(node, node['runner'], cookbook_name.to_s)
+  end
+  ignore_failure true
 end

@@ -138,7 +138,6 @@ Common.directories(self, [destination, working], recreate: true)
     mode '0644'
     variables(host: node['host'])
     not_if { monorepo }
-    not_if { File.exist?("#{path_destination}/.gitea/workflows/sync.yml") }
   end
 
   template "#{path_destination}/.gitea/workflows/pipeline.yml" do

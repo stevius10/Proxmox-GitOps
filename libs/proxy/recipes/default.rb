@@ -1,6 +1,8 @@
-package 'caddy'
+Env.dump(self, cookbook_name, repo: cookbook_name)
 
 Common.directories(self, [node['proxy']['dir']['app'], node['proxy']['dir']['logs']], owner: node['app']['user'], group: node['app']['group'])
+
+package 'caddy'
 
 ruby_block 'proxmox_containers' do
   block do

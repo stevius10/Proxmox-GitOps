@@ -81,7 +81,10 @@ Common.directories(self, [destination, working], recreate: true,
     owner node['app']['user']
     group node['app']['group']
     mode '0644'
-    variables(repo: name_repo, git_user: node['app']['user'] )
+    variables(repo: name_repo,
+      config: node['app']['config'],
+      org: node['git']['org']['main'],
+      ssh: node['git']['host']['ssh'])
     only_if { ::File.directory?("#{path_destination}/.git") }
   end
 
@@ -134,6 +137,7 @@ Common.directories(self, [destination, working], recreate: true,
     owner node['app']['user']
     group node['app']['group']
     mode '0644'
+    variables(host: node['host'])
     not_if { monorepo }
     not_if { File.exist?("#{path_destination}/.gitea/workflows/sync.yml") }
   end

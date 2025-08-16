@@ -1,8 +1,6 @@
 Common.directories(self, [ (app = node['git']['dir']['app']),
    node['git']['dir']['workspace'], node['runner']['dir']['app'],
-  "#{app}/custom", "#{app}/data", "#{app}/gitea-repositories", "#{app}/log" ],
- owner: node['app']['user'] ,
- group: node['app']['group'])
+  "#{app}/custom", "#{app}/data", "#{app}/gitea-repositories", "#{app}/log" ])
 
 Common.packages(self, %w(git acl python3-pip ansible ansible-core nodejs npm python3-proxmoxer))
 

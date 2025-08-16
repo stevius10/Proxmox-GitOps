@@ -1,6 +1,6 @@
 Env.dump(self, cookbook_name, repo: cookbook_name)
 
-Common.directories(self, [node['broker']['dir']['data'], node['broker']['dir']['log']], owner: node['app']['user'], group: node['app']['group'])
+Common.directories(self, [node['broker']['dir']['data'], node['broker']['dir']['log']])
 
 Env.set(self, 'broker', "mqtt://#{node['ip']}:#{node['broker']['port']}")
 
@@ -11,12 +11,8 @@ template node['broker']['file']['config'] do
   owner node['app']['user']
   group node['app']['group']
   mode '0644'
-  variables({ 
-    port: node['broker']['port'], 
-    data_dir: node['broker']['dir']['data'], 
-    log_dir: node['broker']['dir']['log'], 
-    user_file: node['broker']['file']['user']
-   })
+  variables({ port: node['broker']['port'], user_file: node['broker']['file']['user'],
+    data_dir: node['broker']['dir']['data'], log_dir: node['broker']['dir']['log'] })
   notifies :restart, 'service[mosquitto]', :delayed
 end
 
@@ -32,6 +28,6 @@ execute "user_add_#{Env.get(self, 'login')}" do
   sensitive true
 end
 
-Common.application(self, 'mosquitto', user: node['app']['user'],
+Common.application(self, 'mosquitto',
   exec:  "/usr/sbin/mosquitto -c #{node['broker']['file']['config']}",
   subscribe: "template[#{node['broker']['file']['config']}]" )

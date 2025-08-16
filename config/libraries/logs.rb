@@ -34,11 +34,13 @@ module Logs
   def self.return(msg); log(:info, msg.to_s); return msg end
 
   def self.debug(level, msg, *pairs, ctx: nil)
-    input = pairs.flatten.each_slice(2).to_h
-    input['env'] = ENV.to_h;
-    input['ctx'] = ctx.to_h if ctx
-    ctx = input.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
-    log(level, [msg, ctx].reject(&:empty?).join(" "))
+    flat = pairs.flatten
+    raise ArgumentError, "debug requires key value pairs (#{flat.length}: #{flat.inspect})" unless flat.length.even?
+    input = flat.each_slice(2).to_h.transform_keys(&:to_s)
+    input['env'] = ENV.to_h
+    input['ctx'] = ctx.respond_to?(:to_h) ? ctx.to_h : ctx
+    payload = input.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
+    log(level, [msg, payload].reject { |s| s.nil? || s.empty? }.join(" "))
   end
 
   def self.info?(msg)
@@ -47,9 +49,10 @@ module Logs
   end
 
   def self.raise!(msg, *pairs, e:nil, ctx: nil)
+    pairs = pairs.flatten
     c = callsite
     label = method_label(c)
-    debug(:error, msg, *pairs, ctx)
+    debug(:error, msg, *pairs, ctx: ctx)
     raise("[#{label}] #{e.message if e} #{msg}")
   end
 

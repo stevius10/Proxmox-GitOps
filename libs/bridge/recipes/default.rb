@@ -1,6 +1,6 @@
 Env.dump(self, cookbook_name, repo: cookbook_name)
 
-Common.directories(self, [node['bridge']['dir'], node['bridge']['data']], owner: node['app']['user'], group: node['app']['group'])
+Common.directories(self, [node['bridge']['dir'], node['bridge']['data']])
 
 Common.packages(self, %w[unzip curl])
 
@@ -38,11 +38,16 @@ if latest_version
 end
 
 if update_needed
+  if latest_version && ::File.exist?("/etc/systemd/system/zigbee2mqtt.service")
+    execute 'stop_zigbee2mqtt' do
+      command 'systemctl stop zigbee2mqtt || true'
+      action :run
+    end
+  end
+
   Utils.snapshot(self, node['bridge']['data'])
   Utils.download(self, "/tmp/zigbee2mqtt.zip",
-    url: "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{latest_version}.zip",
-    owner: node['app']['user'], group: node['app']['group'])
-    .notifies :stop, "service[zigbee2mqtt]", :immediately if latest_version and resources("service[zigbee2mqtt]")
+    url: "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{latest_version}.zip")
 
   execute 'zigbee2mqtt_files' do
     command lazy { "unzip -o /tmp/zigbee2mqtt.zip -d #{node['bridge']['dir']} && mv #{node['bridge']['dir']}/zigbee2mqtt*/* #{node['bridge']['dir']}/ && rm -rf #{node['bridge']['dir']}/zigbee2mqtt*" }
@@ -82,8 +87,7 @@ end
 
 Utils.snapshot(self, node['bridge']['data'], restore: true)
 
-Common.application(self, 'zigbee2mqtt',
-  user: node['app']['user'], cwd: node['bridge']['dir'],
+Common.application(self, 'zigbee2mqtt', cwd: node['bridge']['dir'],
   exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
   unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
     'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )

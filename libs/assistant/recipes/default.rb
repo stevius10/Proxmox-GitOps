@@ -1,6 +1,6 @@
 Env.dump(self, cookbook_name, repo: cookbook_name)
 
-Common.directories(self, [node['homeassistant']['dir']['config'], '/app/uv-cache'], owner: node['app']['user'], group: node['app']['group'])
+Common.directories(self, [node['homeassistant']['dir']['config'], '/app/uv-cache'])
 
 execute 'fix_broken_apt' do
   command 'apt-get --fix-broken install -y'
@@ -42,7 +42,7 @@ execute 'create_environment' do
   user node['app']['user']
   group node['app']['group']
   environment(
-    'HOME' => "/home/#{node['app']['user']}",
+    # 'HOME' => "/home/#{node['app']['user']}",
     'UV_CACHE_DIR' => '/app/uv-cache'
   )
   not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/activate") }
@@ -52,9 +52,7 @@ execute 'install_environment_pip' do
   command "#{node['homeassistant']['dir']['venv']}/bin/python -m ensurepip"
   user node['app']['user']
   group node['app']['group']
-  environment(
-    'HOME' => "/home/#{node['app']['user']}"
-  )
+  # environment('HOME' => "/home/#{node['app']['user']}")
   not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/pip") }
 end
 
@@ -88,12 +86,10 @@ execute 'install_configurator' do
   not_if { ::File.exist?("#{node['configurator']['dir']}/bin/hass-configurator") }
 end
 
-Common.application(self, 'homeassistant',
-  user: node['app']['user'],  cwd: node['homeassistant']['dir']['config'],
+Common.application(self, 'homeassistant', cwd: node['homeassistant']['dir']['config'],
   exec: "#{node['homeassistant']['dir']['venv']}/bin/python3 -m homeassistant --config #{node['homeassistant']['dir']['config']}",
   unit: { 'Service' => { 'RestartForceExitStatus' => '100',
     'Environment' => "PATH=#{node['homeassistant']['dir']['venv']}/bin:/usr/local/bin:/usr/bin:/usr/local/bin/uv" } } )
 
-Common.application(self, 'hass-configurator',
-  user:  node['app']['user'], cwd: node['homeassistant']['dir']['config'],
+Common.application(self, 'hass-configurator', cwd: node['homeassistant']['dir']['config'],
   exec:  "#{node['configurator']['dir']}/bin/hass-configurator -s -e -b #{node['homeassistant']['dir']['config']}" )

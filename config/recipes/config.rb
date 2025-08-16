@@ -32,7 +32,7 @@ ruby_block 'config_set_key' do
     end
     status_code = (response = Utils.request(url, body: { title: "config-#{login}", key: key }.to_json,
       user: login, pass: password, method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' })).code.to_i
-    Logs.request!(url, response, msg="Set key failed") unless [201, 422].include?(status_code)
+    Logs.request!(url, response, "Set key failed") unless [201, 422].include?(status_code)
   end
   only_if { ::File.exist?("#{node['key']}.pub") }
   not_if do
@@ -69,7 +69,7 @@ end
         user: login, pass: password,
         body: { username: org }.to_json
       )).code.to_i
-      Logs.request!(uri, response, msg="Create organization '#{org}' failed") unless [201, 409, 422].include? status_code
+      Logs.request!(uri, response, "Create organization '#{org}' failed") unless [201, 409, 422].include? status_code
     end
   end
 end

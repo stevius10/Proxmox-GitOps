@@ -1,6 +1,6 @@
 Env.dump(self, cookbook_name, repo: cookbook_name)
 
-Common.directories(self, [node['proxy']['dir']['app'], node['proxy']['dir']['logs']], owner: node['app']['user'], group: node['app']['group'])
+Common.directories(self, [node['proxy']['dir']['app'], node['proxy']['dir']['logs']])
 
 package 'caddy'
 
@@ -24,10 +24,8 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
   group  'root'
   mode   '0644'
   variables(
-    hosts: lazy { node.run_state['proxy_hosts'] || [] },
-    log_dir: node['proxy']['dir']['logs']
-  )
+    log_dir: node['proxy']['dir']['logs'], hosts: lazy { node.run_state['proxy_hosts'] || [] } )
 end
 
-Common.application(self, 'caddy', user: node['app']['user'],
+Common.application(self, 'caddy',
   subscribe: "template[#{node['proxy']['dir']['app']}/Caddyfile]" )

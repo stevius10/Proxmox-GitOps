@@ -2,6 +2,9 @@ require 'digest'
 require 'fileutils'
 require 'json'
 require 'net/http'
+require 'openssl'
+require 'socket'
+require 'timeout'
 require 'tmpdir'
 require 'uri'
 
@@ -12,8 +15,7 @@ module Utils
   def self.wait(condition = nil, timeout: 20, sleep_interval: 5, &block)
     return Kernel.sleep(condition) if condition.is_a?(Integer)
     return Timeout.timeout(timeout) { block.call } if block_given?
-     ArgumentError unless condition
-
+    return Kernel.sleep(timeout) if condition.nil?
     Timeout.timeout(timeout) do
       loop do
         ok = false
@@ -62,40 +64,51 @@ module Utils
   end
 
   def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', name: ctx.cookbook_name, restore: false)
-    timestamp = Time.now.strftime('%H%M-%d%m%y')
-    file = File.join(snapshot_dir, "#{name}-#{timestamp}.tar.gz")
+    begin
+      timestamp = Time.now.strftime('%H%M-%d%m%y')
+      snapshot = File.join(snapshot_dir, name, "#{name}-#{timestamp}.tar.gz")
 
-    md5_dir = ->(path) {
-      Digest::MD5.new.tap do |md5|
-        Dir.glob("#{path}/**/*", File::FNM_DOTMATCH).reject { |f| File.directory?(f) }.sort.each do |f|
-          md5.update(File.read(f))
+      md5_dir = ->(path) { Digest::MD5.new.tap do |md5|
+          Dir.glob("#{path}/**/*", File::FNM_DOTMATCH).reject { |f| File.directory?(f) }.sort.each do |f|
+            md5.update(File.read(f))
+          end
+        end.hexdigest }
+      verify = ->(archive, compare_dir) {
+        Dir.mktmpdir do |tmp|
+          Logs.raise!("extraction failed for '#{archive}'") unless system("tar -xzf #{archive} -C #{tmp}")
+          md5_base = md5_dir.(File.join(tmp, File.basename(compare_dir)))
+          md5_compare = md5_dir.(compare_dir)
+          Logs.raise!("verify snapshot failed",[:base, File.join(tmp, File.basename(compare_dir)),
+            :compare, compare_dir, :md5_base, md5_base, :md5_compare, md5_compare]
+          ) unless md5_base == md5_compare
+        end; true }
+
+      FileUtils.mkdir_p(File.dirname(snapshot))
+      latest = Dir[File.join(snapshot_dir, name, "#{name}*.tar.gz")].max_by { |f| File.mtime(f) }
+      if restore
+        if latest && ::File.exist?(latest)
+          system("tar -czf #{snapshot} -C #{File.dirname(dir)} #{File.basename(dir)}") or
+            Logs.raise!("snapshot restore failed", [:dir, dir, :snapshot, snapshot, :dir, dir], e: e)
+          return verify.(latest, dir)
         end
-      end.hexdigest
-    }
-    verify = ->(archive, compare_dir) {
-      Dir.mktmpdir do |tmp|
-        raise Logs.error("extraction failed for '#{archive}'") unless system("tar -xzf #{archive} -C #{tmp}")
-        raise "md5 mismatch indicates error" unless md5_dir.(File.join(tmp, File.basename(compare_dir))) == md5_dir.(compare_dir)
+        return true # initial
+
+      else
+        if Dir.exists?(dir)
+          system("tar -czf #{snapshot} -C #{File.dirname(dir)} #{File.basename(dir)}") or
+            Logs.raise!("snapshot creation failed", [:dir, dir, :snapshot, snapshot, :dir, dir], e: e)
+          return verify.(snapshot, dir)
+        else
+          return true # initial
+        end
       end
-      true
-    }
-    if restore
-      latest = Dir[File.join(snapshot_dir, "#{name}-*.tar.gz")].max_by { |f| File.mtime(f) }
-      return false unless latest && File.exist?(latest)
-      ctx.execute("common_restore_snapshot_#{dir}") do
-        command "tar -xzf #{latest} -C #{File.dirname(dir)}"
-      end
-      verify.(latest, dir)
-    else
-      return false unless Dir.exist?(dir)
-      ctx.execute("common_create_snapshot_#{dir}") do
-        command "mkdir -p $(dirname #{file}) && tar -czf #{file} -C #{File.dirname(dir)} #{File.basename(dir)}"
-      end
-      verify.(file, dir)
+    rescue => e
+      action = restore ? 'restore' : 'create'
+      Logs.raise!("error in snapshot", [:action, action, :dir, dir, :snapshot, snapshot], e: e)
     end
   end
 
-  def self.proxmox(uri, ctx, path, expect: true)
+  def self.proxmox(uri, ctx, path)
     host = Env.get(ctx, 'proxmox_host')
     user = Env.get(ctx, 'proxmox_user')
     pass = Env.get(ctx, 'proxmox_password')
@@ -106,14 +119,12 @@ module Utils
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
         body: URI.encode_www_form(username: user, password: pass), headers: { 'Content-Type' => 'application/x-www-form-urlencoded' })
-      Logs.request!(uri, response, msg="Proxmox ticket could not be retrieved", ) unless response.is_a?(Net::HTTPSuccess)
+      Logs.request!(uri, response, "Proxmox ticket could not be retrieved") unless response.is_a?(Net::HTTPSuccess)
       headers = { 'Cookie' => "PVEAuthCookie=#{JSON.parse(response.body)['data']['ticket']}" }
     else
       headers = { 'Authorization' => "PVEAPIToken=#{user}!#{token}=#{secret}" }
     end
-
-    res = request(url, headers: headers, expect: expect)
-    expect ? JSON.parse(res.body)['data'] : res
+    JSON.parse(request(url, headers: headers).body)['data']
   end
 
   # Remote
@@ -137,7 +148,7 @@ module Utils
     return expect ? response.is_a?(Net::HTTPSuccess) : response
   end
 
-  def self.download(ctx, path, url:, owner: Default.app(ctx), group: Default.app(ctx), mode: '0754', action: :create)
+  def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0754', action: :create)
     ctx.remote_file path do
       source url.respond_to?(:call) ? lazy { url.call } : url
       owner  owner
@@ -148,7 +159,7 @@ module Utils
   end
 
   def self.latest(url)
-    request(url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1].to_s || "latest"
+    (request(url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1] || "latest").to_s
   end
 
 end

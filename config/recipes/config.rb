@@ -1,6 +1,6 @@
-login     = Env.get(node, 'login')
-password  = Env.get(node, 'password')
-email     = Env.get(node, 'email')
+login     = Env.get(self, 'login')
+password  = Env.get(self, 'password')
+email     = Env.get(self, 'email')
 
 ruby_block 'config_wait_http' do
   block do Utils.wait("127.0.0.1:#{node['git']['port']['http']}", timeout: 15, sleep_interval: 1) end
@@ -24,8 +24,6 @@ end
 ruby_block 'config_set_key' do
   block do
     require 'json'
-    login = login
-    password = password
     url = "#{node['git']['api']['endpoint']}/admin/users/#{login}/keys"
     key = ::File.read("#{node['key']}.pub").strip
 
@@ -34,7 +32,7 @@ ruby_block 'config_set_key' do
     end
     status_code = (response = Utils.request(url, body: { title: "config-#{login}", key: key }.to_json,
       user: login, pass: password, method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' })).code.to_i
-    Logs.request!("Set key failed", url, response) unless [201, 422].include?(status_code)
+    Logs.request!(url, response, msg="Set key failed") unless [201, 422].include?(status_code)
   end
   only_if { ::File.exist?("#{node['key']}.pub") }
   not_if do
@@ -71,24 +69,13 @@ end
         user: login, pass: password,
         body: { username: org }.to_json
       )).code.to_i
-      Logs.request!("Create organization '#{org}' failed", uri, response) unless [201, 409, 422].include? status_code
+      Logs.request!(uri, response, msg="Create organization '#{org}' failed") unless [201, 409, 422].include? status_code
     end
   end
 end
 
 ruby_block 'config_git_environment' do
   block do
-    %w(proxmox host app login password email).each do |parent|
-      value = node[parent]
-      next if value.nil? || value.to_s.strip.empty?
-      if value.is_a?(Hash)
-        value.each do |child, child_value|
-          next if child_value.nil? || child_value.to_s.strip.empty?
-          Env.set_variable(node, "#{parent}_#{child}", child_value)
-        end
-      else
-        Env.set_variable(node, parent, value)
-      end
-    end
+    Env.dump(self, 'proxmox', 'host', 'app', 'login', 'password', 'email')
   end
 end

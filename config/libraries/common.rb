@@ -2,46 +2,46 @@ module Common
 
   # General
 
-  def self.packages(node, *pkgs, action: :install)
+  def self.packages(ctx, *pkgs, action: :install)
     Array(pkgs).flatten.each do |pkg|
-      node.package pkg do
+      ctx.package pkg do
         action action
       end
     end
   end
 
-  def self.directories(node, dirs, opts = {})
+  def self.directories(ctx, dirs, opts = {})
     dirs = Array(dirs)
-    owner     = opts[:owner]    || Default.app(node)
-    group     = opts[:group]    || Default.app(node)
+    owner     = opts[:owner]    || Default.app(ctx)
+    group     = opts[:group]    || Default.app(ctx)
     mode      = opts[:mode]     || '0755'
-    recursive = opts.key?(:recursive) ? opts[:recursive] : true
+    recursive = true
     recreate  = opts[:recreate] || false
 
     if recreate
-      sort_dir(dirs).each { |dir| delete_dir(node, dir) }
+      sort_dir(dirs).each { |dir| delete_dir(ctx, dir) }
     end
-    dirs.each { |dir| create_dir(node, dir, owner, group, mode, recursive) }
+    dirs.each { |dir| create_dir(ctx, dir, owner, group, mode, recursive) }
   end
 
   # System
 
-  def self.daemon(node, name)
-    node.find_resource!(:execute, name)
+  def self.daemon(ctx, name)
+    ctx.find_resource!(:execute, name)
   rescue Chef::Exceptions::ResourceNotFound
-    node.execute name do
+    ctx.execute name do
       command 'systemctl daemon-reload'
       action  :nothing
     end
   end
 
-  def self.application(node, name, user: nil, group: nil, exec: nil, cwd: nil, unit: {}, action: [:enable, :start], restart: 'on-failure', subscribe: nil, reload: 'systemd_reload')
-    user  ||= Default.user(node)
-    group ||= Default.group(node)
+  def self.application(ctx, name, user: nil, group: nil, exec: nil, cwd: nil, unit: {}, action: [:enable, :start], restart: 'on-failure', subscribe: nil, reload: 'systemd_reload')
+    user  ||= Default.user(ctx)
+    group ||= Default.group(ctx)
     user  = user.to_s
     group = group.to_s
     if exec || !unit.empty?
-      daemon(node, reload)
+      daemon(ctx, reload)
 
       service = {
         'Type'    => 'simple',
@@ -69,7 +69,7 @@ module Common
         "[#{section}]\n#{lines}"
       end.join("\n\n")
 
-      node.file "/etc/systemd/system/#{name}.service" do
+      ctx.file "/etc/systemd/system/#{name}.service" do
         owner   'root'
         group   'root'
         mode    '0644'
@@ -78,26 +78,26 @@ module Common
       end
     end
 
-    node.service name do
+    ctx.service name do
       action action
       Array(subscribe).flatten.each { |ref| subscribes :restart, ref, :delayed } if subscribe
     end
   end
 
-  def self.create_dir(node, dir, owner, group, mode, recursive)
-    node.directory dir do owner owner; group group; mode mode; recursive recursive end
+  def self.create_dir(ctx, dir, owner, group, mode, recursive)
+    ctx.directory dir do owner owner; group group; mode mode; recursive recursive end
   rescue => e
     Logs.warn("Skip create #{dir}: #{e}")
   end
 
-  def self.delete_dir(node, dir)
-    node.directory dir do action :delete; recursive true; only_if { ::Dir.exist?(dir) } end
+  def self.delete_dir(ctx, dir)
+    ctx.directory dir do action :delete; recursive true; only_if { ::Dir.exist?(dir) } end
   rescue => e
     Logs.warn("Skip delete #{dir}: #{e}")
   end
 
   def self.sort_dir(dirs)
-    Array(dirs).sort_by { |d| -d.count('/') }
+    Array(dirs).compact.sort_by { |d| -d.count('/') }
   end
 
 end

@@ -15,7 +15,7 @@ runs:
       with:
         repository: "${{ inputs.repo }}"
         ref: "${{ inputs.ref }}"
-        path: repo
+        path: "${{ inputs.repo }}"
 
     - name: Configure container
       id: init
@@ -51,20 +51,20 @@ runs:
       with:
         repository: "${{ inputs.repo }}"
         ref: "${{ gitea.ref_name }}"
-        path: repo
+        path: "${{ inputs.repo }}"
 
     - name: Checkout libraries
       uses: https://gitea.com/actions/checkout@v4
       with:
         repository: 'main/libraries'
         ref: 'main'
-        path: 'repo/libraries'
+        path: "${{ inputs.repo }}/libraries"
 
     - name: Configure container
       run: |
-        tar -c repo -cz . | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${{ env.id }}" "config@${{ env.ip }}" 'sudo tar xz -C /tmp
+        tar -c "${{ inputs.repo }}" -cz . | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${{ env.id }}" "config@${{ env.ip }}" 'sudo tar xz -C /tmp
           sudo -E IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} PWD="$(pwd)" \
-            cinc-client --local-mode $CONFIG_ARGS --config-option cookbook_path="/tmp" -o repo'
+            cinc-client --local-mode $CONFIG_ARGS --config-option cookbook_path="/tmp" -o "${{ inputs.repo }}"'
       shell: bash
 
 

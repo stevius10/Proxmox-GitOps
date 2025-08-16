@@ -1,7 +1,7 @@
 Common.packages(self, %w[samba samba-common samba-client])
 
-login = Env.get(node, 'login')
-password = Env.get(node, 'password')
+login = Env.get(self, 'login')
+password = Env.get(self, 'password')
 
 group login do
   gid node['share']['user']['gid']

@@ -1,8 +1,10 @@
-Env.set(node, 'broker', "mqtt://#{node['ip']}:#{node['broker']['port']}")
-
-package 'mosquitto'
+Env.dump(self, cookbook_name, repo: cookbook_name)
 
 Common.directories(self, [node['broker']['dir']['data'], node['broker']['dir']['log']], owner: node['app']['user'], group: node['app']['group'])
+
+Env.set(self, 'broker', "mqtt://#{node['ip']}:#{node['broker']['port']}")
+
+package 'mosquitto'
 
 template node['broker']['file']['config'] do
   source 'mosquitto.conf.erb'
@@ -24,8 +26,8 @@ file node['broker']['file']['user'] do
   mode '0640'
 end
 
-execute "user-add_#{Env.get(node, 'login')}" do
-  command "mosquitto_passwd -b #{node['broker']['file']['user']} '#{Env.get(node, 'login')}' '#{Env.get(node, 'password')}'"
+execute "user_add_#{Env.get(self, 'login')}" do
+  command "mosquitto_passwd -b #{node['broker']['file']['user']} '#{Env.get(self, 'login')}' '#{Env.get(self, 'password')}'"
   user 'root'
   sensitive true
 end

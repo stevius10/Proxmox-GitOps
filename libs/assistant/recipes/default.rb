@@ -1,3 +1,7 @@
+Env.dump(self, cookbook_name, repo: cookbook_name)
+
+Common.directories(self, [node['homeassistant']['dir']['config'], '/app/uv-cache'], owner: node['app']['user'], group: node['app']['group'])
+
 execute 'fix_broken_apt' do
   command 'apt-get --fix-broken install -y'
   ignore_failure true
@@ -9,8 +13,6 @@ Common.packages(self, %w[mc bluez libffi-dev libssl-dev libjpeg-dev zlib1g-dev a
   libavutil-dev libavfilter-dev libmariadb-dev-compat libatlas-base-dev
   nfs-common wget libncurses5-dev libgdbm-dev libnss3-dev libreadline-dev
   libsqlite3-dev libbz2-dev python3-venv])
-
-Common.directories(self, [node['homeassistant']['dir']['config'], '/app/uv-cache'], owner: node['app']['user'], group: node['app']['group'])
 
 link '/config' do
   to node['homeassistant']['dir']['config']

@@ -50,8 +50,8 @@ module Utils
 
   # System
 
-  def self.arch(node)
-    case node['kernel']['machine'].to_s
+  def self.arch(ctx)
+    case ctx['kernel']['machine'].to_s
     when /arm64|aarch64/
       'arm64'
     when /armv6|armv7l/
@@ -61,7 +61,7 @@ module Utils
     end
   end
 
-  def self.snapshot(node, dir, snapshot_dir: '/share/snapshots', name: node.cookbook_name, restore: false)
+  def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', name: ctx.cookbook_name, restore: false)
     timestamp = Time.now.strftime('%H%M-%d%m%y')
     file = File.join(snapshot_dir, "#{name}-#{timestamp}.tar.gz")
 
@@ -82,31 +82,31 @@ module Utils
     if restore
       latest = Dir[File.join(snapshot_dir, "#{name}-*.tar.gz")].max_by { |f| File.mtime(f) }
       return false unless latest && File.exist?(latest)
-      node.execute("common_restore_snapshot_#{dir}") do
+      ctx.execute("common_restore_snapshot_#{dir}") do
         command "tar -xzf #{latest} -C #{File.dirname(dir)}"
       end
       verify.(latest, dir)
     else
       return false unless Dir.exist?(dir)
-      node.execute("common_create_snapshot_#{dir}") do
+      ctx.execute("common_create_snapshot_#{dir}") do
         command "mkdir -p $(dirname #{file}) && tar -czf #{file} -C #{File.dirname(dir)} #{File.basename(dir)}"
       end
       verify.(file, dir)
     end
   end
 
-  def self.proxmox(uri, node, path, expect: true)
-    host = Env.get(node, 'proxmox_host')
-    user = Env.get(node, 'proxmox_user')
-    pass = Env.get(node, 'proxmox_password')
-    token = Env.get(node, 'proxmox_token')
-    secret = Env.get(node, 'proxmox_secret')
+  def self.proxmox(uri, ctx, path, expect: true)
+    host = Env.get(ctx, 'proxmox_host')
+    user = Env.get(ctx, 'proxmox_user')
+    pass = Env.get(ctx, 'proxmox_password')
+    token = Env.get(ctx, 'proxmox_token')
+    secret = Env.get(ctx, 'proxmox_secret')
 
     url = "https://#{host}:8006/api2/json/#{path}"
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
         body: URI.encode_www_form(username: user, password: pass), headers: { 'Content-Type' => 'application/x-www-form-urlencoded' })
-      Logs.request!("Proxmox ticket could not be retrieved", uri, response) unless response.is_a?(Net::HTTPSuccess)
+      Logs.request!(uri, response, msg="Proxmox ticket could not be retrieved", ) unless response.is_a?(Net::HTTPSuccess)
       headers = { 'Cookie' => "PVEAuthCookie=#{JSON.parse(response.body)['data']['ticket']}" }
     else
       headers = { 'Authorization' => "PVEAPIToken=#{user}!#{token}=#{secret}" }
@@ -137,8 +137,8 @@ module Utils
     return expect ? response.is_a?(Net::HTTPSuccess) : response
   end
 
-  def self.download(node, path, url:, owner: Default.app(node), group: Default.app(node), mode: '0754', action: :create)
-    node.remote_file path do
+  def self.download(ctx, path, url:, owner: Default.app(ctx), group: Default.app(ctx), mode: '0754', action: :create)
+    ctx.remote_file path do
       source url.respond_to?(:call) ? lazy { url.call } : url
       owner  owner
       group  group

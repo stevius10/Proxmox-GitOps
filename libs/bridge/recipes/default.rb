@@ -38,11 +38,17 @@ if latest_version
 end
 
 if update_needed
+  if latest_version && ::File.exist?("/etc/systemd/system/zigbee2mqtt.service")
+    execute 'stop_zigbee2mqtt' do
+      command 'systemctl stop zigbee2mqtt || true'
+      action :run
+    end
+  end
+
   Utils.snapshot(self, node['bridge']['data'])
   Utils.download(self, "/tmp/zigbee2mqtt.zip",
     url: "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{latest_version}.zip",
     owner: node['app']['user'], group: node['app']['group'])
-    .notifies :stop, "service[zigbee2mqtt]", :immediately if latest_version and resources("service[zigbee2mqtt]")
 
   execute 'zigbee2mqtt_files' do
     command lazy { "unzip -o /tmp/zigbee2mqtt.zip -d #{node['bridge']['dir']} && mv #{node['bridge']['dir']}/zigbee2mqtt*/* #{node['bridge']['dir']}/ && rm -rf #{node['bridge']['dir']}/zigbee2mqtt*" }

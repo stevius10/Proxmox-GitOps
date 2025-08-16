@@ -50,7 +50,7 @@ Common.directories(self, [destination, working], recreate: true,
     block do
       unless [204, 404].include?(status_code = (response = Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
         method: Net::HTTP::Delete, user:   Env.get(self, 'login'), pass:   Env.get(self, 'password'))).code.to_i)
-        Logs.request!(uri, response, msg="Failed to delete #{name_repo}")
+        Logs.request!(uri, response, "Failed to delete #{name_repo}")
       end
     end
     only_if { node.run_state["#{name_repo}_repo_exists"] }
@@ -65,7 +65,7 @@ Common.directories(self, [destination, working], recreate: true,
         method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
         user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
         body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.to_json
-      )).code.to_i == 201 or Logs.request!(uri, response, msg="Error creating repository '#{name_repo}'")
+      )).code.to_i == 201 or Logs.request!(uri, response, "Error creating repository '#{name_repo}'")
     end
   end
 
@@ -233,7 +233,7 @@ Common.directories(self, [destination, working], recreate: true,
         user: Env.get(self, 'login'), pass: Env.get(self, 'password')).code.to_i != 404
         status_code = (response = Utils.request(uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['stage']}/#{name_repo}",
           method: Net::HTTP::Delete, user: Env.get(self, 'login'), pass: Env.get(self, 'password'))).code.to_i
-        Logs.request!(uri, response, msg="Failed to clean test/#{name_repo} (#{status_code})") unless [204, 404].include?(status_code)
+        Logs.request!(uri, response, "Failed to clean test/#{name_repo} (#{status_code})") unless [204, 404].include?(status_code)
       end
     end
   end
@@ -245,7 +245,7 @@ Common.directories(self, [destination, working], recreate: true,
         user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
         body: { name: name_repo, organization: node['git']['org']['stage'] }.to_json
       ).code.to_i
-      Logs.request!(uri, response, msg="Forking to #{node['git']['org']['stage']}/#{name_repo} failed") unless [201, 202].include?(status_code)
+      Logs.request!(uri, response, "Forking to #{node['git']['org']['stage']}/#{name_repo} failed") unless [201, 202].include?(status_code)
     end
   end
 

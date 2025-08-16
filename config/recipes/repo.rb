@@ -1,9 +1,11 @@
 require 'find'
 require 'fileutils'
 
-source = ENV['PWD']
+source = ENV['PWD'] || Dir.pwd
 destination = node['git']['dir']['workspace']
 working = "#{destination}/workdir"
+
+is_bootstrap = ['127.0.0.1', 'localhost', '::1'].include?((Env.get(self, 'host')))
 
 Common.directories(self, [destination, working], recreate: true,
   owner: node['app']['user'] , group: node['app']['group'])
@@ -14,7 +16,7 @@ Common.directories(self, [destination, working], recreate: true,
 
   monorepo = (repository == "./")
 
-  path_source = monorepo ? source : File.expand_path(repository, source)
+  path_source = monorepo ? source : File.expand_path(repository.to_s, source.to_s)
   name_repo = File.basename(path_source)
   path_working = "#{working}/#{name_repo}"
   path_destination = monorepo ? destination : File.expand_path(name_repo, destination)
@@ -24,7 +26,7 @@ Common.directories(self, [destination, working], recreate: true,
     block do
       node.run_state["#{name_repo}_repo_exists"] =
         (Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
-          user: Env.get(node, 'login'), pass: Env.get(node, 'password'))
+          user: Env.get(self, 'login'), pass: Env.get(self, 'password'))
         ).code.to_i != 404
     end
   end
@@ -47,8 +49,8 @@ Common.directories(self, [destination, working], recreate: true,
   ruby_block "repo_exists_reset_#{name_repo}" do
     block do
       unless [204, 404].include?(status_code = (response = Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
-        method: Net::HTTP::Delete, user:   Env.get(node, 'login'), pass:   Env.get(node, 'password'))).code.to_i)
-        Logs.request!("Failed to delete #{name_repo}", uri, response)
+        method: Net::HTTP::Delete, user:   Env.get(self, 'login'), pass:   Env.get(self, 'password'))).code.to_i)
+        Logs.request!(uri, response, msg="Failed to delete #{name_repo}")
       end
     end
     only_if { node.run_state["#{name_repo}_repo_exists"] }
@@ -61,9 +63,9 @@ Common.directories(self, [destination, working], recreate: true,
       (response = Utils.request(
         uri="#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['main']}/repos",
         method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
-        user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
+        user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
         body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.to_json
-      )).code.to_i == 201 or Logs.request!("Error creating repository '#{name_repo}'", uri, response)
+      )).code.to_i == 201 or Logs.request!(uri, response, msg="Error creating repository '#{name_repo}'")
     end
   end
 
@@ -108,7 +110,7 @@ Common.directories(self, [destination, working], recreate: true,
 
   ruby_block "repo_files_#{name_repo}" do
     block do
-      Find.find(path_source) do |path_src|
+      Find.find(path_source)  do |path_src|
         next if path_src =~ /(^|\/)\.git(\/|$)/ || path_src =~ /(^|\/)\.gitmodules(\/|$)/
         path_src_rel = path_src.sub(/^#{Regexp.escape(path_source)}\/?/, '')
         path_dst = File.join(path_destination, path_src_rel)
@@ -183,7 +185,7 @@ Common.directories(self, [destination, working], recreate: true,
           fi
           git submodule update --init --recursive
           # pass variables in bootstrap
-          if [ "#{Env.get(node, 'host')}" = "127.0.0.1"  ] && [ -f local/config.json ]; then
+          if [ "#{is_bootstrap}" = "true" ] && [ -f local/config.json ]; then
             git add -f local/config.json
           fi
         EOH
@@ -206,8 +208,8 @@ Common.directories(self, [destination, working], recreate: true,
       git push -f origin HEAD:main
       sleep 3
       if ! git ls-remote origin refs/for/release | grep -q "$(git rev-parse HEAD)"; then
-        if { [ "#{repository}" != "./" ] && [ "#{Env.get(node, 'host')}" != "127.0.0.1" ]; } || \
-           { [ "#{repository}" = "./" ] && [ "#{Env.get(node, 'host')}" = "127.0.0.1" ]; }; then
+        if { [ "#{repository}" != "./" ] && [ "#{is_bootstrap}" = "false" ]; } || \
+           { [ "#{repository}" = "./" ] && [ "#{is_bootstrap}" = "true" ]; }; then
           git push origin HEAD:refs/for/release \
             -o topic="release" \
             -o title="Release Pull Request" \
@@ -224,10 +226,10 @@ Common.directories(self, [destination, working], recreate: true,
   ruby_block "repo_stage_fork_clean_#{name_repo}" do
     block do
       if Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
-        user: Env.get(node, 'login'), pass: Env.get(node, 'password')).code.to_i != 404
+        user: Env.get(self, 'login'), pass: Env.get(self, 'password')).code.to_i != 404
         status_code = (response = Utils.request(uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['stage']}/#{name_repo}",
-          method: Net::HTTP::Delete, user: Env.get(node, 'login'), pass: Env.get(node, 'password'))).code.to_i
-        Logs.request!("Failed to clean test/#{name_repo} (#{status_code})", uri, response) unless [204, 404].include?(status_code)
+          method: Net::HTTP::Delete, user: Env.get(self, 'login'), pass: Env.get(self, 'password'))).code.to_i
+        Logs.request!(uri, response, msg="Failed to clean test/#{name_repo} (#{status_code})") unless [204, 404].include?(status_code)
       end
     end
   end
@@ -236,10 +238,10 @@ Common.directories(self, [destination, working], recreate: true,
     block do
       status_code = Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}/forks",
         method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
-        user: Env.get(node, 'login'), pass: Env.get(node, 'password'),
+        user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
         body: { name: name_repo, organization: node['git']['org']['stage'] }.to_json
       ).code.to_i
-      Logs.request!("Forking to #{node['git']['org']['stage']}/#{name_repo} failed", uri, response) unless [201, 202].include?(status_code)
+      Logs.request!(uri, response, msg="Forking to #{node['git']['org']['stage']}/#{name_repo} failed") unless [201, 202].include?(status_code)
     end
   end
 
@@ -251,10 +253,8 @@ Common.directories(self, [destination, working], recreate: true,
 
 end
 
-ruby_block "repository_variable_dump" do
+ruby_block "#{cookbook_name}_env_dump" do
   block do
-    Env.dump(node, node['git'], cookbook_name.to_s)
-    Env.dump(node, node['runner'], cookbook_name.to_s)
+    Env.dump(self, 'git', 'runner', repo: cookbook_name)
   end
-  ignore_failure true
 end

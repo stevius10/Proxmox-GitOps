@@ -7,8 +7,7 @@ working = "#{destination}/workdir"
 
 is_bootstrap = ['127.0.0.1', 'localhost', '::1'].include?((Env.get(self, 'host')))
 
-Common.directories(self, [destination, working], recreate: true,
-  owner: node['app']['user'] , group: node['app']['group'])
+Common.directories(self, [destination, working], recreate: true)
 
 (repositories = node['git']['conf']['repo']
   .flat_map { |r| (r == './libs') ? Dir.glob(File.join(source, r, '*')).select { |d| File.directory?(d) }.map { |p| p.sub(source, '.') } : r }

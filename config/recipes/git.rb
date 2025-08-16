@@ -1,9 +1,6 @@
 Utils.download(self, "#{node['git']['dir']['app']}/gitea",
   url: -> { ver = Utils.latest('https://github.com/go-gitea/gitea/releases/latest')
-    "https://github.com/go-gitea/gitea/releases/download/v#{ver}/gitea-#{ver}-linux-#{Utils.arch(node)}" },
-  owner: node['app']['user'] ,
-  group: node['app']['group']
-)
+    "https://github.com/go-gitea/gitea/releases/download/v#{ver}/gitea-#{ver}-linux-#{Utils.arch(node)}" } )
 
 template "#{node['git']['dir']['app']}/app.ini" do
   source 'git_app.ini.erb'

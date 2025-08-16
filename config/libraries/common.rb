@@ -12,8 +12,8 @@ module Common
 
   def self.directories(ctx, dirs, opts = {})
     dirs = Array(dirs)
-    owner     = opts[:owner]    || Default.app(ctx)
-    group     = opts[:group]    || Default.app(ctx)
+    owner     = opts[:owner]    || Default.user(ctx)
+    group     = opts[:group]    || Default.group(ctx)
     mode      = opts[:mode]     || '0755'
     recursive = true
     recreate  = opts[:recreate] || false

@@ -1,11 +1,8 @@
-Common.directories(self, node['runner']['dir']['app'], owner: node['app']['user'] , group: node['app']['group'])
+Common.directories(self, node['runner']['dir']['app'])
 
 Utils.download(self, "#{node['runner']['dir']['app']}/act_runner",
   url: -> { ver = Utils.latest('https://gitea.com/gitea/act_runner/releases/latest')
-    "https://gitea.com/gitea/act_runner/releases/download/v#{ver}/act_runner-#{ver}-linux-#{Utils.arch(node)}" },
-  owner: node['app']['user'] ,
-  group: node['app']['group'],
-)
+    "https://gitea.com/gitea/act_runner/releases/download/v#{ver}/act_runner-#{ver}-linux-#{Utils.arch(node)}" } )
 
 template "#{node['runner']['dir']['app']}/config.yaml" do
   source 'runner.config.yaml.erb'

@@ -18,14 +18,14 @@ module Env
     return env_key unless env_key.nil? || env_key.to_s.strip.empty?
     return get_variable(ctx, key)
   rescue => e
-    return Logs.debug(:warn, "failed get '#{key}'",  :error, e.message, ctx: ctx)
+    return Logs.debug(:warn, "failed get '#{key}'",  [:error, e.message], ctx: ctx)
   end
 
   def self.get_variable(ctx, key, repo: nil)
     begin
       response = request(ctx, key, repo: repo); response && response.body ? JSON.parse(response.body)['data'] : nil
     rescue => e
-      Logs.debug(:warn, "failed get variable '#{key}'", :error, e.message, :endpoint, endpoint(ctx), :repo, repo, ctx: ctx)
+      Logs.debug(:warn, "failed get variable '#{key}'", [:error, e.message, :endpoint, endpoint(ctx), :repo, repo], ctx: ctx)
     end
   end
 
@@ -33,7 +33,7 @@ def self.set_variable(ctx, key, val, repo: nil)
   begin
     request(Ctx.node(ctx), key, body: ({ name: key, value: val.to_s }.to_json), repo: repo, expect: true)
   rescue => e
-    Logs.raise!("failed set variable '#{key}' to #{Logs.mask(val)}", :val, val, :repo, repo, e: e)
+    Logs.raise!("failed set variable '#{key}' to #{Logs.mask(val)}", [:val, val, :repo, repo], e: e)
   end
 end
 
@@ -84,7 +84,7 @@ end
       end
       true
     rescue => e
-      Logs.raise!("failed dump variables", :repo, repo, e: e)
+      Logs.raise!("failed dump variables", [:repo, repo], e: e)
     end
   end
 

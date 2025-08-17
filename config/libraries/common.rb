@@ -40,7 +40,7 @@ module Common
     group ||= Default.group(ctx)
     user  = user.to_s
     group = group.to_s
-    if exec || !unit.empty?
+    if exec || unit.present?
       daemon(ctx, reload)
 
       service = {

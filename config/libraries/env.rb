@@ -15,8 +15,8 @@ module Env
     Logs.try!("failed get '#{key}'") do
       node = Ctx.node(ctx)
       env_key = ENV[key.to_s.upcase]
-      return node[key] unless node[key].nil? || node[key].to_s.strip.empty?
-      return env_key unless env_key.nil? || env_key.to_s.strip.empty?
+      return node[key] if node[key].present?
+      return env_key if env_key.present?
       return get_variable(ctx, key)
     end
   end
@@ -42,8 +42,7 @@ module Env
   def self.request(ctx, key, body: nil, repo: nil, expect: false, json: false)
     user, pass = creds(ctx)
     owner = Default.presence_or(ctx.dig('git', 'org', 'main'), 'main')
-    uri = URI("#{endpoint(ctx)}/#{repo.to_s.strip.size>0 ?
-      "repos/#{owner}/#{repo.to_s}" : "orgs/#{owner}"}/actions/variables/#{key}")
+    uri = URI("#{endpoint(ctx)}/#{repo.to_s.strip.size>0 ? "repos/#{owner}/#{repo.to_s}" : "orgs/#{owner}"}/actions/variables/#{key}")
     response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, expect: (not body.nil? or expect), log: false)
     if not body.nil?
       method = (response ? Net::HTTP::Put : Net::HTTP::Post)
@@ -57,16 +56,16 @@ module Env
       node  = Ctx.node(ctx)
       keys.flatten.each do |key|
         value = node[key]
-        next if value.nil? || (value.respond_to?(:empty?) && value.empty?)
+        next if value.blank?
         case value
         when Hash
           value.each do |subkey, subvalue|
-            next if subvalue.nil? || subvalue.to_s.strip.empty?
+            next if subvalue.blank?
             Env.set_variable(node, "#{key}_#{subkey}", subvalue, repo: repo)
           end
         when Array
           value.each_with_index do |item, i|
-            next if item.nil? || item.to_s.strip.empty?
+            next if item.blank?
             Env.set_variable(node, "#{key}_#{i}", item, repo: repo)
           end
         else

@@ -23,6 +23,6 @@ end
 
 module Ctx
   def self.node(obj)
-    obj.respond_to?(:node) ? obj.node : obj
+    obj.try(:node) || obj
   end
 end

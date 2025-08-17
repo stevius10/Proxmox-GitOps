@@ -22,7 +22,7 @@ module Logs
     input = flat.each_slice(2).to_h.transform_keys(&:to_s)
     input['env'] = ENV.to_h; input['ctx'] = ctx.respond_to?(:to_h) ? ctx.to_h : ctx
     payload = input.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
-    log([msg, payload].reject { |s| s.nil? || s.empty? }.join(" "), level: level)
+    log([msg, payload].reject { |s| s.blank? }.join(" "), level: level)
   end
 
   def self.try!(msg, *pairs, e:nil, ctx: nil, raise: false)

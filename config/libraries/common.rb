@@ -72,8 +72,9 @@ module Common
         group   'root'
         mode    '0644'
         content unit_content
-        notifies :run, "execute[#{reload}]", :immediately if Ctx.find(ctx, :execute,  "execute[#{reload}]")
       end
+      Ctx.find(ctx, :execute, reload)
+
     end
 
     Ctx.dsl(ctx).service name do

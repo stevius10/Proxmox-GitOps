@@ -12,57 +12,48 @@ module Env
   end
 
   def self.get(ctx, key)
-    node = Ctx.node(ctx)
-    env_key = ENV[key.to_s.upcase]
-    return node[key] unless node[key].nil? || node[key].to_s.strip.empty?
-    return env_key unless env_key.nil? || env_key.to_s.strip.empty?
-    return get_variable(ctx, key)
-  rescue => e
-    return Logs.debug(:warn, "failed get '#{key}'",  [:error, e.message], ctx: ctx)
-  end
-
-  def self.get_variable(ctx, key, repo: nil)
-    begin
-      response = request(ctx, key, repo: repo); response && response.body ? JSON.parse(response.body)['data'] : nil
-    rescue => e
-      Logs.debug(:warn, "failed get variable '#{key}'", [:error, e.message, :endpoint, endpoint(ctx), :repo, repo], ctx: ctx)
+    Logs.try!("failed get '#{key}'") do
+      node = Ctx.node(ctx)
+      env_key = ENV[key.to_s.upcase]
+      return node[key] unless node[key].nil? || node[key].to_s.strip.empty?
+      return env_key unless env_key.nil? || env_key.to_s.strip.empty?
+      return get_variable(ctx, key)
     end
   end
 
-def self.set_variable(ctx, key, val, repo: nil)
-  begin
-    request(Ctx.node(ctx), key, body: ({ name: key, value: val.to_s }.to_json), repo: repo, expect: true)
-  rescue => e
-    Logs.raise!("failed set variable '#{key}' to #{Logs.mask(val)}", [:val, val, :repo, repo], e: e)
+  def self.get_variable(ctx, key, repo: nil)
+    Logs.try!("failed get variable '#{key}'", [:repo, repo]) do
+      request(ctx, key, repo: repo, json: true)['data']
+    end
   end
-end
 
-  class << self
-    alias_method :set, :set_variable
-  end
+  def self.set_variable(ctx, key, val, repo: nil)
+    Logs.try!("failed set variable '#{key}' to #{val.mask}", [:val, val, :repo, repo], raise: true) do
+      request(Ctx.node(ctx), key, body: ({ name: key, value: val.to_s }.to_json), repo: repo, expect: true)
+    end
+  end; class << self; alias_method :set, :set_variable; end
 
   def self.endpoint(ctx)
     node = Ctx.node(ctx)
-    host = Default.or_default(node.dig('git', 'host', 'http'), "http://#{Default.or_default(Env.get(node, 'host'), '127.0.0.1')}:#{Default.or_default(node.dig('git', 'port', 'http'), 8080)}")
-    "#{host}/api/#{Default.or_default(node.dig('git', 'version'), 'v1')}"
+    host = Default.presence_or(node.dig('git', 'host', 'http'), "http://#{Default.presence_or(Env.get(node, 'host'), '127.0.0.1')}:#{Default.presence_or(node.dig('git', 'port', 'http'), 8080)}")
+    "#{host}/api/#{Default.presence_or(node.dig('git', 'version'), 'v1')}"
   end
 
-  def self.request(ctx, key, body: nil, repo: nil, expect: false)
-    node = Ctx.node(ctx)
-    user, pass = creds(node)
-    owner = Default.or_default(node.dig('git', 'org', 'main'), 'main')
-    uri = URI("#{endpoint(node)}/#{repo.to_s.strip.size>0 ?
+  def self.request(ctx, key, body: nil, repo: nil, expect: false, json: false)
+    user, pass = creds(ctx)
+    owner = Default.presence_or(ctx.dig('git', 'org', 'main'), 'main')
+    uri = URI("#{endpoint(ctx)}/#{repo.to_s.strip.size>0 ?
       "repos/#{owner}/#{repo.to_s}" : "orgs/#{owner}"}/actions/variables/#{key}")
     response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, expect: (not body.nil? or expect), log: false)
     if not body.nil?
       method = (response ? Net::HTTP::Put : Net::HTTP::Post)
-      response = Utils.request(uri, user: user, pass: pass, headers: { 'Content-Type' => 'application/json' }, method: method, body: body, expect: expect, log: "(#{user}:#{Logs.mask(pass)})")
+      response = Utils.request(uri, user: user, pass: pass, headers: Constants::HEADER_JSON, method: method, body: body, expect: expect)
     end
-    response
+    return (json and not expect ? response.json : response)
   end
 
   def self.dump(ctx, *keys, repo: nil)
-    begin
+    Logs.try!("failed dump variables", [:repo, repo], raise: true) do
       node  = Ctx.node(ctx)
       keys.flatten.each do |key|
         value = node[key]
@@ -83,8 +74,6 @@ end
         end
       end
       true
-    rescue => e
-      Logs.raise!("failed dump variables", [:repo, repo], e: e)
     end
   end
 

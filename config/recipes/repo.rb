@@ -25,8 +25,7 @@ Common.directories(self, [destination, working], recreate: true)
     block do
       node.run_state["#{name_repo}_repo_exists"] =
         (Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
-          user: Env.get(self, 'login'), pass: Env.get(self, 'password'))
-        ).code.to_i != 404
+          user: Env.get(self, 'login'), pass: Env.get(self, 'password'))).code.to_i != 404
     end
   end
 
@@ -41,16 +40,15 @@ Common.directories(self, [destination, working], recreate: true)
       fi
     EOH
     user node['app']['user']
-    only_if { Logs.info("[#{repository} (#{name_repo})]: delete repository after snapshot")
+    only_if { Logs.info("[#{repository} (#{name_repo})] delete stored repository")
       node.run_state["#{name_repo}_repo_exists"] }
   end
 
   ruby_block "repo_exists_reset_#{name_repo}" do
     block do
-      unless [204, 404].include?(status_code = (response = Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
-        method: Net::HTTP::Delete, user:   Env.get(self, 'login'), pass:   Env.get(self, 'password'))).code.to_i)
-        Logs.request!(uri, response, "Failed to delete #{name_repo}")
-      end
+      uri = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}"
+      response = Utils.request(uri, method: Net::HTTP::Delete, user: Env.get(self, 'login'), pass: Env.get(self, 'password'))
+      Logs.request!(uri, response, [204, 404], msg: "Delete #{name_repo}")
     end
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -58,13 +56,13 @@ Common.directories(self, [destination, working], recreate: true)
   ruby_block "repo_request_#{name_repo}" do
     only_if { Logs.info?("[#{repository} (#{name_repo})] create repository") }
     block do
-      require 'json'
-      (response = Utils.request(
-        uri="#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['main']}/repos",
-        method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
+      uri="#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['main']}/repos"
+      response = Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
         user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
-        body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.to_json
-      )).code.to_i == 201 or Logs.request!(uri, response, "Error creating repository '#{name_repo}'")
+        body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.json )
+
+      Logs.request!(uri, response, [201], msg: "Create repository '#{name_repo}'")
+      response.json
     end
   end
 
@@ -163,7 +161,7 @@ Common.directories(self, [destination, working], recreate: true)
               .gsub(/(url\s*=\s*http:\/\/)([^:\/\s]+)/) { "#{$1}#{node['host']}" })
         end
       end
-      end
+    end
 
     # Submodule handling in Monorepository
     submodules.each do |submodule|
@@ -227,23 +225,22 @@ Common.directories(self, [destination, working], recreate: true)
 
   ruby_block "repo_stage_fork_clean_#{name_repo}" do
     block do
-      if Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
-        user: Env.get(self, 'login'), pass: Env.get(self, 'password')).code.to_i != 404
-        status_code = (response = Utils.request(uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['stage']}/#{name_repo}",
-          method: Net::HTTP::Delete, user: Env.get(self, 'login'), pass: Env.get(self, 'password'))).code.to_i
-        Logs.request!(uri, response, "Failed to clean test/#{name_repo} (#{status_code})") unless [204, 404].include?(status_code)
+      uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}"
+      if Utils.request(uri, user: Env.get(self, 'login'), pass: Env.get(self, 'password')).code.to_i != 404
+        response = Utils.request(uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['stage']}/#{name_repo}",
+          method: Net::HTTP::Delete, user: Env.get(self, 'login'), pass: Env.get(self, 'password'))
+        Logs.request!(uri, response, [204, 404], msg: "Clean #{node['git']['org']['stage']}/#{name_repo}")
       end
     end
   end
 
   ruby_block "repo_stage_fork_create_#{name_repo}" do
     block do
-      status_code = Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}/forks",
-        method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
+      uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}/forks"
+      Logs.request!(uri, Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
         user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
-        body: { name: name_repo, organization: node['git']['org']['stage'] }.to_json
-      ).code.to_i
-      Logs.request!(uri, response, "Forking to #{node['git']['org']['stage']}/#{name_repo} failed") unless [201, 202].include?(status_code)
+        body: { name: name_repo, organization: node['git']['org']['stage'] }.json ),
+      [201, 202], msg: "Fork to #{node['git']['org']['stage']}/#{name_repo}")
     end
   end
 

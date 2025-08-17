@@ -134,7 +134,7 @@ Common.directories(self, [destination, working], recreate: true)
     owner node['app']['user']
     group node['app']['group']
     mode '0644'
-    variables(host: node['host'])
+    variables(host: node['host'], org: node['git']['org']['main'], name: cookbook_name)
     not_if { monorepo }
   end
 

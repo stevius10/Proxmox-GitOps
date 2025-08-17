@@ -64,47 +64,35 @@ module Utils
   end
 
   def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', name: ctx.cookbook_name, restore: false)
-    begin
-      timestamp = Time.now.strftime('%H%M-%d%m%y')
-      snapshot = File.join(snapshot_dir, name, "#{name}-#{timestamp}.tar.gz")
-
-      md5_dir = ->(path) { Digest::MD5.new.tap do |md5|
-          Dir.glob("#{path}/**/*", File::FNM_DOTMATCH).reject { |f| File.directory?(f) }.sort.each do |f|
-            md5.update(File.read(f))
-          end
-        end.hexdigest }
-      verify = ->(archive, compare_dir) {
-        Dir.mktmpdir do |tmp|
-          Logs.raise!("extraction failed for '#{archive}'") unless system("tar -xzf #{archive} -C #{tmp}")
-          md5_base = md5_dir.(File.join(tmp, File.basename(compare_dir)))
-          md5_compare = md5_dir.(compare_dir)
-          Logs.raise!("verify snapshot failed",[:base, File.join(tmp, File.basename(compare_dir)),
-            :compare, compare_dir, :md5_base, md5_base, :md5_compare, md5_compare]
-          ) unless md5_base == md5_compare
-        end; true }
-
-      FileUtils.mkdir_p(File.dirname(snapshot))
+    timestamp = Time.now.strftime('%H%M-%d%m%y')
+    snapshot = File.join(snapshot_dir, name, "#{name}-#{timestamp}.tar.gz")
+    md5_dir = ->(path) { Digest::MD5.new.tap { |md5| Dir.glob("#{path}/**/*", File::FNM_DOTMATCH).reject { |f| File.directory?(f) }.sort.each { |f| md5.update(File.read(f)) } }.hexdigest }
+    verify = ->(archive, compare_dir) {
+      Dir.mktmpdir do |tmp|
+        Logs.try!("snapshot extraction", [:archive, archive, :tmp, tmp], raise: true) do
+          system("tar -xzf #{archive} -C #{tmp}") or raise("tar failed")
+        end
+        md5_base = md5_dir.(File.join(tmp, File.basename(compare_dir)))
+        md5_compare = md5_dir.(compare_dir) if Dir.exist?(compare_dir)
+        md5_compare = '' unless Dir.exist?(compare_dir)
+        raise("verify snapshot failed") unless md5_base == md5_compare
+      end; true
+    }
+    FileUtils.mkdir_p(File.dirname(snapshot))
+    if restore
+      FileUtils.rm_rf(dir); FileUtils.mkdir_p(File.dirname(dir))
       latest = Dir[File.join(snapshot_dir, name, "#{name}*.tar.gz")].max_by { |f| File.mtime(f) }
-      if restore
-        if latest && ::File.exist?(latest)
-          system("tar -czf #{snapshot} -C #{File.dirname(dir)} #{File.basename(dir)}") or
-            Logs.raise!("snapshot restore failed", [:dir, dir, :snapshot, snapshot, :dir, dir], e: e)
-          return verify.(latest, dir)
-        end
-        return true # initial
-
-      else
-        if Dir.exists?(dir)
-          system("tar -czf #{snapshot} -C #{File.dirname(dir)} #{File.basename(dir)}") or
-            Logs.raise!("snapshot creation failed", [:dir, dir, :snapshot, snapshot, :dir, dir], e: e)
-          return verify.(snapshot, dir)
-        else
-          return true # initial
-        end
+      return true unless latest && ::File.exist?(latest)
+      Logs.try!("snapshot restore", [:dir, dir, :archive, latest], raise: true) do
+        system("tar -xzf #{latest} -C #{File.dirname(dir)}") or raise("tar extract failed")
       end
-    rescue => e
-      action = restore ? 'restore' : 'create'
-      Logs.raise!("error in snapshot", [:action, action, :dir, dir, :snapshot, snapshot], e: e)
+      return verify.(latest, dir)
+    else
+      return true unless Dir.exist?(dir)
+      Logs.try!("snapshot creation", [:dir, dir, :snapshot, snapshot], raise: true) do
+        system("tar -czf #{snapshot} -C #{File.dirname(dir)} #{File.basename(dir)}") or raise("tar compress failed")
+      end
+      return verify.(snapshot, dir)
     end
   end
 

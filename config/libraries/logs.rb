@@ -33,11 +33,11 @@ module Logs
 
   def self.request!(uri, response, valid=[], msg: nil, ctx: nil)
     res = try!("failed request", [:uri, uri, :response, response]) do
-      if valid.presence # status code required
+      if valid.presence # if valid status code required
         raise("[#{method_label(callsite)}] #{e.message if e} #{msg}") unless
           (valid == true && response.is_a?(Net::HTTPSuccess) or valid.include?(response.code.to_i))
       end
-      response ? "#{response.code} #{response.message}" : response # status code irrelevant
+      response ? "#{response.code} #{response.message}" : response
     end
     debug("[#{msg}] responded #{res}", [:uri, uri, :response, response], ctx: ctx)
     return response

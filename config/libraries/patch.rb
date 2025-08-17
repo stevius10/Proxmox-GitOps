@@ -7,7 +7,7 @@ class Object
   def presence_in(collection); return nil unless collection&.respond_to?(:include?); collection.include?(self) ? self : nil; end
   def try(method_name = nil, *args, &block)
     return nil if nil?; return instance_eval(&block) if block
-    return nil unless (method_name || respond_to?(method_name, true))
+    return nil unless method_name && respond_to?(method_name, true)
     public_send(method_name, *args)
   end
 end

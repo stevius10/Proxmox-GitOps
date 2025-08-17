@@ -28,7 +28,7 @@ module Env
   end
 
   def self.set_variable(ctx, key, val, repo: nil)
-    Logs.try!("failed set variable '#{key}' to #{val.mask}", [:val, val, :repo, repo], raise: true) do
+    Logs.try!("failed set variable '#{key}' to #{val.try(:mask) || val}", [:val, val, :repo, repo], raise: true) do
       request(Ctx.node(ctx), key, body: ({ name: key, value: val.to_s }.to_json), repo: repo, expect: true)
     end
   end; class << self; alias_method :set, :set_variable; end

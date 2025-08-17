@@ -13,7 +13,6 @@ module Logs
   def self.info(msg); log(msg) end; def self.warn(msg); log(msg, level: :warn) end; def self.error(msg); log(msg, level: :error) end
   def self.info?(msg, result: true); log(msg); result; end
   def self.request(uri, response); info("requested #{uri}: #{response&.code} #{response&.message}"); return response end
-  def self.assignment(key, val, hide=true); info("assigned '#{key}' value '#{hide ? val.mask : val}'"); return val end
   def self.return(msg); log(msg.to_s); return msg end
 
   def self.debug(msg, *pairs, ctx: nil, level: :info)

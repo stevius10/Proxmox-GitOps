@@ -22,7 +22,38 @@ module Default
 end
 
 module Ctx
+
   def self.node(obj)
-    obj.try(:node) || obj
+    return obj.node if defined?(Context) && obj.is_a?(Context)
+    return obj.node if obj.respond_to?(:node)
+    if obj.respond_to?(:run_context) && obj.run_context && obj.run_context.respond_to?(:node)
+      return obj.run_context.node
+    end
+    obj
   end
+
+  def self.dsl(obj)
+    return obj if obj.respond_to?(:file)
+    rctx = rc(obj)
+    return obj unless rctx
+    cb = obj.respond_to?(:cookbook_name) ? obj.cookbook_name : nil
+    rn = obj.respond_to?(:recipe_name) ? obj.recipe_name : nil
+    Chef::Recipe.new(cb, rn, rctx)
+  end
+
+  def self.rc(obj)
+    return obj.run_context if obj.respond_to?(:run_context)
+    return obj if defined?(Chef::RunContext) && obj.is_a?(Chef::RunContext)
+    nil
+  end
+
+  def self.find(obj, type, name)
+    rctx = rc(obj)
+    return nil unless rctx && rctx.respond_to?(:resource_collection)
+    rctx.resource_collection.find("#{type}[#{name}]")
+    dsl(obj).public_send(type, name, &block)
+  rescue Chef::Exceptions::ResourceNotFound
+    nil
+  end
+
 end

@@ -20,12 +20,6 @@ end
 
 # Data types
 
-class Hash
-  def slice(*keys); keys.each_with_object({}) { |k,h| h[k] = self[k] if key?(k) }; end
-  def except(*keys); dup.tap { |h| keys.each { |k| h.delete(k) } }; end
-  def json(*a); JSON.generate(self, *a); end
-end
-
 class String
   def blank?; strip.empty? end
   def squish; strip.gsub(/\s+/, " ") end
@@ -37,6 +31,17 @@ class Integer
   def hours; self * 3600; end
 end
 
+class Hash
+  def slice(*keys); keys.each_with_object({}) { |k,h| h[k] = self[k] if key?(k) }; end
+  def except(*keys); dup.tap { |h| keys.each { |k| h.delete(k) } }; end
+  def json(*a); JSON.generate(self, *a); end
+  def mask; JSON.generate(transform_values { |v| v.is_a?(String) ? v.mask : v.to_s }) end
+end
+
+class Array
+  def mask; JSON.generate(map { |v| v.is_a?(String) ? v.mask : v.to_s }) end
+end
+
 # Extension
 
 class Net::HTTPResponse
@@ -46,7 +51,7 @@ class Net::HTTPResponse
     s = body.to_s
     return nil if allow_blank && s.strip.empty?
     JSON.parse(s, symbolize_names: symbolize_names)
-  rescue => e
+  rescue
     self
   end
 

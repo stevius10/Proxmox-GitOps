@@ -1,5 +1,51 @@
 module Logs
 
+  def self.log(msg, level: :info)
+    c = callsite
+    label = method_label(c)
+    if label
+      Chef::Log.send(level, FORMAT_WITH % [label, msg, File.basename(c.path), c.lineno])
+    else
+      Chef::Log.send(level, FORMAT_NO % [msg, File.basename(c.path), c.lineno])
+    end
+  end
+
+  def self.info(msg); log(msg) end; def self.warn(msg); log(msg, level: :warn) end; def self.error(msg); log(msg, level: :error) end
+  def self.info?(msg, result: true); log(msg); result; end
+  def self.request(uri, response); info("requested #{uri}: #{response&.code} #{response&.message}"); return response end
+  def self.assignment(key, val, hide=true); info("assigned '#{key}' value '#{hide ? val.mask : val}'"); return val end
+  def self.return(msg); log(msg.to_s); return msg end
+
+  def self.debug(msg, *pairs, ctx: nil, level: :info)
+    flat = pairs.flatten
+    raise ArgumentError, "debug requires key value pairs (#{flat.length}: #{flat.inspect})" unless flat.length.even?
+    input = flat.each_slice(2).to_h.transform_keys(&:to_s)
+    input['env'] = ENV.to_h; input['ctx'] = ctx.respond_to?(:to_h) ? ctx.to_h : ctx
+    payload = input.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
+    log([msg, payload].reject { |s| s.blank? }.join(" "), level: level)
+  end
+
+  def self.try!(msg, *pairs, e:nil, ctx: nil, raise: false)
+    yield
+  rescue => e
+    debug("#{msg}: #{e.message}", *(pairs.flatten), ctx: ctx, level: (raise ? :error : :warn))
+    raise("[#{method_label(callsite)}] #{e.message if e} #{msg}") if raise
+  end
+
+  def self.request!(uri, response, valid=[], msg: nil, ctx: nil)
+    res = try!("failed request", [:uri, uri, :response, response]) do
+      if valid.presence # status code required
+        raise("[#{method_label(callsite)}] #{e.message if e} #{msg}") unless
+          (valid == true && response.is_a?(Net::HTTPSuccess) or valid.include?(response.code.to_i))
+      end
+      response ? "#{response.code} #{response.message}" : response # status code irrelevant
+    end
+    debug("[#{msg}] responded #{res}", [:uri, uri, :response, response], ctx: ctx)
+    return response
+  end
+
+  # Helper
+
   FORMAT_WITH = "\e[1m[%s] %s (%s:%d)\e[0m"
   FORMAT_NO   = "%s (%s:%d)"
   IGNORES = [__FILE__, %r{libraries}]
@@ -13,65 +59,6 @@ module Logs
     label = (loc.respond_to?(:label) ? loc.label : loc.to_s).sub(/block.*in /, '')
     return nil if label == 'from_file'
     label
-  end
-
-  def self.log(level, msg, masks = [])
-    c = callsite
-    masks.each { |m| msg = mask(msg, m) }
-    label = method_label(c)
-    if label
-      Chef::Log.send(level, FORMAT_WITH % [label, msg, File.basename(c.path), c.lineno])
-    else
-      Chef::Log.send(level, FORMAT_NO % [msg, File.basename(c.path), c.lineno])
-    end
-  end
-
-  def self.info(msg); log(:info, msg) end
-  def self.warn(msg); log(:warn, msg) end
-  def self.error(msg); log(:error, msg) end
-  def self.request(uri, response); info("requested #{uri}: #{response&.code} #{response&.message}"); return response end
-  def self.assignment(key, val, mask=true); info("assigned '#{key}' value '#{mask ? mask(val) : val}'"); return val end
-  def self.return(msg); log(:info, msg.to_s); return msg end
-
-  def self.debug(level, msg, *pairs, ctx: nil)
-    flat = pairs.flatten
-    raise ArgumentError, "debug requires key value pairs (#{flat.length}: #{flat.inspect})" unless flat.length.even?
-    input = flat.each_slice(2).to_h.transform_keys(&:to_s)
-    input['env'] = ENV.to_h
-    input['ctx'] = ctx.respond_to?(:to_h) ? ctx.to_h : ctx
-    payload = input.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
-    log(level, [msg, payload].reject { |s| s.nil? || s.empty? }.join(" "))
-  end
-
-  def self.info?(msg)
-    log(:info, msg)
-    true
-  end
-
-  def self.raise!(msg, *pairs, e:nil, ctx: nil)
-    pairs = pairs.flatten
-    c = callsite
-    label = method_label(c)
-    debug(:error, msg, *pairs, ctx: ctx)
-    raise("[#{label}] #{e.message if e} #{msg}")
-  end
-
-  def self.request!(uri, response, msg="failed request", e: nil)
-    warn(msg)
-    c = callsite
-    label = method_label(c)
-    raise("[#{label}] #{e.message if e} #{msg} (#{uri}" +
-      response ? "#{response.code} #{response.message}" : "" )
-  end
-
-  def self.mask(str, term = nil)
-    return obfuscate(str) unless term
-    str.to_s.gsub(term.to_s, obfuscate(term.to_s)) rescue str
-  end
-
-  def self.obfuscate(s)
-    return s unless s.is_a?(String)
-    s.length <= 4 ? '*' * s.length : "#{s[0]}#{s[1]}#{'*'*(s.length-4)}#{s[-2]}#{s[-1]}" rescue s
   end
 
 end

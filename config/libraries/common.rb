@@ -40,7 +40,7 @@ module Common
     group ||= Default.group(ctx)
     user  = user.to_s
     group = group.to_s
-    if exec || !unit.empty?
+    if exec || unit.present?
       daemon(ctx, reload)
 
       service = {
@@ -100,19 +100,4 @@ module Common
     Array(dirs).compact.sort_by { |d| -d.count('/') }
   end
 
-end
-
-class Object
-  def blank?
-    respond_to?(:empty?) ? empty? : !self
-  end
-
-  def presence
-    blank? ? nil : self
-  end
-end
-
-class NilClass
-  def blank?; true; end
-  def presence; nil; end
 end

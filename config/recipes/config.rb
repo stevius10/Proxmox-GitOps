@@ -23,23 +23,23 @@ end
 
 ruby_block 'config_set_key' do
   block do
-    require 'json'
-    url = "#{node['git']['api']['endpoint']}/admin/users/#{login}/keys"
     key = ::File.read("#{node['key']}.pub").strip
+    uri = "#{node['git']['api']['endpoint']}/user/keys"
 
-    (JSON.parse(Utils.request(url, user: login, pass: password).body) rescue []).each do |k|
-      Utils.request("#{url}/#{k['id']}", method: Net::HTTP::Delete, user: login, pass: password) if k['key'] && k['key'].strip == key
+    Utils.request(uri, user: login, pass: password).json.each do |k|
+      Utils.request("#{uri}/#{k['id']}", user: login, pass: password,
+        method: Net::HTTP::Delete) if k['key'] && k['key'].strip == key
     end
-    status_code = (response = Utils.request(url, body: { title: "config-#{login}", key: key }.to_json,
-      user: login, pass: password, method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' })).code.to_i
-    Logs.request!(url, response, "Set key failed") unless [201, 422].include?(status_code)
+
+    response = Utils.request(uri, body: { title: login, key: key }.json, user: login, pass: password, method: Net::HTTP::Post, headers: Constants::HEADER_JSON)
+    Logs.request!(uri, response, [201, 422], msg: "set key")
   end
   only_if { ::File.exist?("#{node['key']}.pub") }
   not_if do
     next false unless ::File.exist?("#{node['key']}.pub")
     begin
-      response = Utils.request("#{node['git']['api']['endpoint']}/admin/users/#{login}/keys", user: login, pass: password)
-      (JSON.parse(response.body) rescue []).any? { |k| k['key'] && k['key'].strip == ::File.read("#{node['key']}.pub").strip }
+      response = Utils.request("#{node['git']['api']['endpoint']}/user/keys", user: login, pass: password)
+      response.json.any? { |k| k['key'] && k['key'].strip == ::File.read("#{node['key']}.pub").strip }
     end
   end
 end
@@ -63,13 +63,10 @@ end
 [node['git']['org']['main'], node['git']['org']['stage']].each do |org|
   ruby_block "config_git_org_#{org}" do
     block do
-      require 'json'
-      status_code = (response = Utils.request(uri="#{node['git']['api']['endpoint']}/orgs",
-        method: Net::HTTP::Post, headers: { 'Content-Type' => 'application/json' },
-        user: login, pass: password,
-        body: { username: org }.to_json
-      )).code.to_i
-      Logs.request!(uri, response, "Create organization '#{org}' failed") unless [201, 409, 422].include? status_code
+      (response = Utils.request(uri="#{node['git']['api']['endpoint']}/orgs",
+        method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
+        body: { username: org }.json, user: login, pass: password, ))
+      Logs.request!(uri, response, [201, 409, 422], msg: "create organization '#{org}'")
     end
   end
 end

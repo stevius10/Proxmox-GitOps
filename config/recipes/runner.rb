@@ -18,34 +18,27 @@ Common.application(self, 'runner',
 
 ruby_block 'runner_register' do
   block do
-    require 'net/http'
     uri = URI("http://localhost:#{node['git']['port']['http']}")
-    connected = 15.times.any? do
-      begin
-        res = Utils.request(uri)
-        res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
-      rescue Errno::ECONNREFUSED, SocketError
-        false
-      ensure
-        sleep 5
-      end
+    Logs.try!("Gitea not responding", [:uri, uri], raise: true) do
+      connected = 15.times.any? do
+        begin
+          res = Utils.request(uri, expect: true)
+        rescue Errno::ECONNREFUSED, SocketError
+          false
+        ensure; sleep 5; end
+      end unless connected
     end
-     'Gitea not responding' unless connected
 
     (token = Mixlib::ShellOut.new(
       "#{node['git']['dir']['app']}/gitea actions --config #{node['git']['dir']['app']}/app.ini generate-runner-token",
-      user: node['app']['user'] 
-    )).run_command
+      user: node['app']['user'])).run_command
     token.error!
-    token = token.stdout.strip
 
     (register = Mixlib::ShellOut.new(
       "#{node['runner']['dir']['app']}/act_runner register " \
         "--instance http://localhost:#{node['git']['port']['http']} " \
-        "--token #{token} " \
-        "--no-interactive " \
-        "--labels shell " \
-        "--config #{node['runner']['dir']['app']}/config.yaml",
+        "--token #{token.stdout.strip} --no-interactive " \
+        "--config #{node['runner']['dir']['app']}/config.yaml --labels #{node['runner']['conf']['label']} ",
       cwd: node['runner']['dir']['app'],
       user: node['app']['user'] 
     )).run_command

@@ -1,6 +1,6 @@
 Env.dump(self, cookbook_name, repo: cookbook_name)
 
-Common.directories(self, [node['bridge']['dir'], node['bridge']['data']])
+Utils.snapshot(self, node['bridge']['data'])
 
 Common.packages(self, %w[unzip curl])
 
@@ -19,8 +19,8 @@ end
 
 package "nodejs"
 
-execute 'enable_corepack' do
-  command 'corepack enable && corepack prepare pnpm --activate'
+execute 'install_pnpm' do
+  command 'npm i -g pnpm@9'
   not_if 'which pnpm'
 end
 
@@ -45,7 +45,8 @@ if update_needed
     end
   end
 
-  Utils.snapshot(self, node['bridge']['data'])
+  Common.directories(self, [node['bridge']['dir'], node['bridge']['data']], recreate: true)
+
   Utils.download(self, "/tmp/zigbee2mqtt.zip",
     url: "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{latest_version}.zip")
 
@@ -61,6 +62,7 @@ if update_needed
     command 'pnpm install --frozen-lockfile && pnpm build'
     user node['app']['user']
     group node['app']['group']
+    environment('HOME' => '/tmp')
     cwd node['bridge']['dir']
     action :nothing
   end

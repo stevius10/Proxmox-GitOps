@@ -1,3 +1,6 @@
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   push:
@@ -17,6 +20,7 @@ jobs:
       - name: Sync submodule
         run: |
           cd monorepo
+          git remote set-url origin <%= @host %>
           git submodule update --remote
           git add $(git submodule status | awk '{print $2}')
           git diff --cached --quiet || git commit -m "[sync] main/$repo updated [skip ci]"

@@ -109,22 +109,19 @@ module Utils
   end
 
   def self.proxmox(uri, ctx, path)
-    host = Env.get(ctx, 'proxmox_host')
-    user = Env.get(ctx, 'proxmox_user')
-    pass = Env.get(ctx, 'proxmox_password')
-    token = Env.get(ctx, 'proxmox_token')
-    secret = Env.get(ctx, 'proxmox_secret')
+    host = Env.get(ctx, 'proxmox_host'); user = Env.get(ctx, 'proxmox_user'); pass = Env.get(ctx, 'proxmox_password')
+    token = Env.get(ctx, 'proxmox_token'); secret = Env.get(ctx, 'proxmox_secret')
 
     url = "https://#{host}:8006/api2/json/#{path}"
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
-        body: URI.encode_www_form(username: user, password: pass), headers: { 'Content-Type' => 'application/x-www-form-urlencoded' })
-      Logs.request!(uri, response, "Proxmox ticket could not be retrieved") unless response.is_a?(Net::HTTPSuccess)
-      headers = { 'Cookie' => "PVEAuthCookie=#{JSON.parse(response.body)['data']['ticket']}" }
+        body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM)
+      Logs.request!(uri, response, true, msg: "Proxmox ticket could not be retrieved")
+      headers = { 'Cookie' => "PVEAuthCookie=#{response.json['data']['ticket']}" }
     else
       headers = { 'Authorization' => "PVEAPIToken=#{user}!#{token}=#{secret}" }
     end
-    JSON.parse(request(url, headers: headers).body)['data']
+    request(url, headers: headers).json['data']
   end
 
   # Remote

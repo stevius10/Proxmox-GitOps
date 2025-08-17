@@ -11,12 +11,12 @@ module Common
   end
 
   def self.directories(ctx, dirs, opts = {})
-    dirs = Array(dirs)
-    owner     = opts[:owner]    || Default.user(ctx)
-    group     = opts[:group]    || Default.group(ctx)
-    mode      = opts[:mode]     || '0755'
+    dirs = Array(dirs).compact.uniq
+    owner     = opts[:owner]      || Default.user(ctx)
+    group     = opts[:group]      || Default.group(ctx)
+    mode      = opts[:mode]       || '0755'
     recursive = true
-    recreate  = opts[:recreate] || false
+    recreate  = !!opts[:recreate] || false
 
     if recreate
       sort_dir(dirs).each { |dir| delete_dir(ctx, dir) }

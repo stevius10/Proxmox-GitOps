@@ -27,11 +27,9 @@ module Common
   # System
 
   def self.daemon(ctx, name)
-    ctx.find_resource!(:execute, name)
-  rescue Chef::Exceptions::ResourceNotFound
-    ctx.execute name do
+    Ctx.find(ctx, :execute, name) do
       command 'systemctl daemon-reload'
-      action  :nothing
+      action :nothing
     end
   end
 
@@ -69,19 +67,20 @@ module Common
         "[#{section}]\n#{lines}"
       end.join("\n\n")
 
-      ctx.file "/etc/systemd/system/#{name}.service" do
+      Ctx.dsl(ctx).file "/etc/systemd/system/#{name}.service" do
         owner   'root'
         group   'root'
         mode    '0644'
         content unit_content
-        notifies :run, "execute[#{reload}]", :immediately
+        notifies :run, "execute[#{reload}]", :immediately if Ctx.find(ctx, :execute,  "execute[#{reload}]")
       end
     end
 
-    ctx.service name do
+    Ctx.dsl(ctx).service name do
       action action
       Array(subscribe).flatten.each { |ref| subscribes :restart, ref, :delayed } if subscribe
     end
+
   end
 
   def self.create_dir(ctx, dir, owner, group, mode, recursive)

@@ -13,14 +13,14 @@ jobs:
       - name: Checkout monorepo
         uses: https://gitea.com/actions/checkout@v4
         with:
-          repository: 'main/config'
+          repository: <%= @org %>/<%= @name %>'
           ref: 'main'
           path: 'monorepo'
 
       - name: Sync submodule
         run: |
           cd monorepo
-          git remote set-url origin <%= @host %>
+          git remote set-url origin <%= @host %>/<%= @org %>/<%= @name %>
           git submodule update --remote
           git add $(git submodule status | awk '{print $2}')
           git diff --cached --quiet || git commit -m "[sync] main/$repo updated [skip ci]"

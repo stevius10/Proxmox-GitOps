@@ -37,6 +37,8 @@ if latest_version
   update_needed = installed_version.nil? || Gem::Version.new(latest_version) > Gem::Version.new(installed_version)
 end
 
+Common.directories(self, [node['bridge']['dir'], node['bridge']['data']], recreate: update_needed)
+
 if update_needed
   if latest_version && ::File.exist?("/etc/systemd/system/zigbee2mqtt.service")
     execute 'stop_zigbee2mqtt' do
@@ -44,8 +46,6 @@ if update_needed
       action :run
     end
   end
-
-  Common.directories(self, [node['bridge']['dir'], node['bridge']['data']], recreate: true)
 
   Utils.download(self, "/tmp/zigbee2mqtt.zip",
     url: "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{latest_version}.zip")
@@ -87,9 +87,13 @@ template "#{node['bridge']['data']}/configuration.yaml" do
   only_if { latest_version && !::File.exist?("#{node['bridge']['data']}/configuration.yaml") }
 end
 
-Utils.snapshot(self, node['bridge']['data'], restore: true)
+ruby_block "restore_snapshot_if_exists" do
+  block { Utils.snapshot(self, node['bridge']['data'], restore: true) }
+end
 
-Common.application(self, 'zigbee2mqtt', cwd: node['bridge']['dir'],
-  exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
-  unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
-    'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )
+ruby_block cookbook_name do
+  Common.application(self, 'zigbee2mqtt', cwd: node['bridge']['dir'],
+    exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
+    unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
+      'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )
+end

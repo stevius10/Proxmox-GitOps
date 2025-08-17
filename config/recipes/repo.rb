@@ -129,15 +129,6 @@ Common.directories(self, [destination, working], recreate: true)
     recursive true
   end
 
-  template "#{path_destination}/.gitea/workflows/sync.yml" do
-    source 'repo_sync.yml.erb'
-    owner node['app']['user']
-    group node['app']['group']
-    mode '0644'
-    variables(host: node['host'], org: node['git']['org']['main'], name: cookbook_name)
-    not_if { monorepo }
-  end
-
   template "#{path_destination}/.gitea/workflows/pipeline.yml" do
     source 'repo_pipeline.yml.erb'
     owner node['app']['user']

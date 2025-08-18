@@ -27,7 +27,7 @@
       - mount | trim | length > 0
 
   - name: Create container
-    community.general.proxmox:
+    community.general.proxmox: &create_container
       vmid: "{{ id }}"
       hostname: "{{ hostname }}"
       ostemplate: "{{ os }}"
@@ -56,4 +56,6 @@
 
   - name: Retry create container with os downloaded
     community.general.proxmox:
+      <<: *create_container
+    register: container_creation
     when: os_available is defined and os in (os_available.json.data | map(attribute='volid') | list)

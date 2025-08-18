@@ -3,6 +3,7 @@ require 'fileutils'
 require 'json'
 require 'net/http'
 require 'openssl'
+require 'shellwords'
 require 'socket'
 require 'timeout'
 require 'tmpdir'
@@ -66,34 +67,39 @@ module Utils
   def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', name: ctx.cookbook_name, restore: false)
     timestamp = Time.now.strftime('%H%M-%d%m%y')
     snapshot = File.join(snapshot_dir, name, "#{name}-#{timestamp}.tar.gz")
-    md5_dir = ->(path) { Digest::MD5.new.tap { |md5| Dir.glob("#{path}/**/*", File::FNM_DOTMATCH).reject { |f| File.directory?(f) }.sort.each { |f| md5.update(File.read(f)) } }.hexdigest }
+    md5_dir = ->(path) {
+      entries = Dir.glob("#{path}/**/*", File::FNM_DOTMATCH)
+      files = entries.reject { |f| File.directory?(f) || File.basename(f).start_with?('._') }
+      Digest::MD5.new.tap { |md5| files.sort.each { |f| File.open(f, 'rb') { |io| md5.update(io.read) } } }.hexdigest  }
     verify = ->(archive, compare_dir) {
       Dir.mktmpdir do |tmp|
         Logs.try!("snapshot extraction", [:archive, archive, :tmp, tmp], raise: true) do
-          system("tar -xzf #{archive} -C #{tmp}") or raise("tar failed")
+          system("tar -xzf #{Shellwords.escape(archive)} -C #{Shellwords.escape(tmp)}") or raise("tar failed")
         end
-        md5_base = md5_dir.(File.join(tmp, File.basename(compare_dir)))
-        md5_compare = md5_dir.(compare_dir) if Dir.exist?(compare_dir)
-        md5_compare = '' unless Dir.exist?(compare_dir)
+        roots = Dir.children(tmp).map { |e| File.join(tmp, e) }.select { |p| File.directory?(p) }
+        base = roots.size == 1 ? roots.first : File.join(tmp, File.basename(compare_dir))
+        base = roots.first unless Dir.exist?(base)
+        md5_base = md5_dir.(base)
+        md5_compare = Dir.exist?(compare_dir) ? md5_dir.(compare_dir) : ''
         raise("verify snapshot failed") unless md5_base == md5_compare
-      end; true
+      end
+      true
     }
-    FileUtils.mkdir_p(File.dirname(snapshot))
     if restore
-      FileUtils.rm_rf(dir); FileUtils.mkdir_p(File.dirname(dir))
       latest = Dir[File.join(snapshot_dir, name, "#{name}*.tar.gz")].max_by { |f| File.mtime(f) }
-      return true unless latest && ::File.exist?(latest)
+      return true unless latest && ::File.exist?(latest) # no snapshot available
+      FileUtils.rm_rf(dir)
+      FileUtils.mkdir_p(File.dirname(dir))
       Logs.try!("snapshot restore", [:dir, dir, :archive, latest], raise: true) do
-        system("tar -xzf #{latest} -C #{File.dirname(dir)}") or raise("tar extract failed")
+        system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(File.dirname(dir))}") or raise("tar extract failed")
       end
-      return verify.(latest, dir)
-    else
-      return true unless Dir.exist?(dir)
-      Logs.try!("snapshot creation", [:dir, dir, :snapshot, snapshot], raise: true) do
-        system("tar -czf #{snapshot} -C #{File.dirname(dir)} #{File.basename(dir)}") or raise("tar compress failed")
-      end
-      return verify.(snapshot, dir)
     end
+    return true unless Dir.exist?(dir) # true for convenience in idempotency
+    FileUtils.mkdir_p(File.dirname(snapshot))
+    Logs.try!("snapshot creation", [:dir, dir, :snapshot, snapshot], raise: true) do
+      system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(File.dirname(dir))} #{Shellwords.escape(File.basename(dir))}") or raise("tar compress failed")
+    end
+    return verify.(snapshot, dir)
   end
 
   def self.proxmox(uri, ctx, path)

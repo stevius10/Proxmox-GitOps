@@ -27,7 +27,7 @@ module Logs
   def self.try!(msg, *pairs, e:nil, ctx: nil, raise: false)
     yield
   rescue => e
-    debug("#{msg}: #{e.message}", *(pairs.flatten), ctx: ctx, level: (raise ? :error : :warn))
+    debug("failed: #{msg}: #{e.message}", *(pairs.flatten), ctx: ctx, level: (raise ? :error : :warn))
     raise("[#{method_label(callsite)}] #{e.message if e} #{msg}") if raise
   end
 

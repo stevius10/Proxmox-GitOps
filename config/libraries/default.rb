@@ -47,13 +47,15 @@ module Ctx
     nil
   end
 
-  def self.find(obj, type, name)
+  def self.find(obj, type, name, &block)
     rctx = rc(obj)
-    return nil unless rctx && rctx.respond_to?(:resource_collection)
-    rctx.resource_collection.find("#{type}[#{name}]")
+    if rctx && rctx.respond_to?(:resource_collection)
+      begin
+        return rctx.resource_collection.find("#{type}[#{name}]")
+      rescue Chef::Exceptions::ResourceNotFound
+      end
+    end
     dsl(obj).public_send(type, name, &block)
-  rescue Chef::Exceptions::ResourceNotFound
-    nil
   end
 
 end

@@ -1,6 +1,8 @@
 Env.dump(self, cookbook_name, repo: cookbook_name)
 
-Utils.snapshot(self, node['bridge']['data'])
+login = Env.get(self, 'login')
+password = Env.get(self, 'password')
+broker = Env.get(self, 'broker')
 
 Common.packages(self, %w[unzip curl])
 
@@ -80,9 +82,9 @@ template "#{node['bridge']['data']}/configuration.yaml" do
     adapter: node['bridge']['adapter'],
     data_dir: node['bridge']['data'],
     logs_dir: node['bridge']['logs'],
-    broker_host: Env.get(self, 'broker'),
-    broker_user: Env.get(self, 'login'),
-    broker_password: Env.get(self, 'password')
+    broker_host: broker,
+    broker_user: login,
+    broker_password: password
   )
   only_if { latest_version && !::File.exist?("#{node['bridge']['data']}/configuration.yaml") }
 end
@@ -91,12 +93,7 @@ ruby_block "restore_snapshot_if_exists" do
   block { Utils.snapshot(self, node['bridge']['data'], restore: true) }
 end
 
-ruby_block cookbook_name do
-  block do
-    Common.application(self, 'zigbee2mqtt', cwd: node['bridge']['dir'],
-      exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
-      unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
-        'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )
-  end
-  action :run
-end
+Common.application(self, 'zigbee2mqtt', cwd: node['bridge']['dir'],
+  exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
+  unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
+    'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )

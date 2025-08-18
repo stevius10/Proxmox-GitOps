@@ -12,7 +12,7 @@ module Env
   end
 
   def self.get(ctx, key)
-    Logs.try!("failed get '#{key}'") do
+    Logs.try!("get '#{key}'") do
       node = Ctx.node(ctx)
       env_key = ENV[key.to_s.upcase]
       return node[key] if node[key].present?
@@ -22,13 +22,13 @@ module Env
   end
 
   def self.get_variable(ctx, key, repo: nil)
-    Logs.try!("failed get variable '#{key}'", [:repo, repo]) do
-      request(ctx, key, repo: repo, json: true)['data']
+    Logs.try!("get variable '#{key}'", [:repo, repo]) do
+      request(Ctx.node(ctx), key, repo: repo).json['data']
     end
   end
 
   def self.set_variable(ctx, key, val, repo: nil)
-    Logs.try!("failed set variable '#{key}' to #{val.try(:mask) || val}", [:val, val, :repo, repo], raise: true) do
+    Logs.try!("set variable '#{key}' to #{val.try(:mask) || val}", [:val, val, :repo, repo], raise: true) do
       request(Ctx.node(ctx), key, body: ({ name: key, value: val.to_s }.to_json), repo: repo, expect: true)
     end
   end; class << self; alias_method :set, :set_variable; end
@@ -36,23 +36,23 @@ module Env
   def self.endpoint(ctx)
     node = Ctx.node(ctx)
     host = Default.presence_or(node.dig('git', 'host', 'http'), "http://#{Default.presence_or(Env.get(node, 'host'), '127.0.0.1')}:#{Default.presence_or(node.dig('git', 'port', 'http'), 8080)}")
-    "#{host}/api/#{Default.presence_or(node.dig('git', 'version'), 'v1')}"
+    "#{host}/api/#{Default.presence_or(node.dig('git', 'api', 'version'), 'v1')}"
   end
 
-  def self.request(ctx, key, body: nil, repo: nil, expect: false, json: false)
+  def self.request(ctx, key, body: nil, repo: nil, expect: false)
     user, pass = creds(ctx)
     owner = Default.presence_or(ctx.dig('git', 'org', 'main'), 'main')
     uri = URI("#{endpoint(ctx)}/#{repo.to_s.strip.size>0 ? "repos/#{owner}/#{repo.to_s}" : "orgs/#{owner}"}/actions/variables/#{key}")
-    response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, expect: (not body.nil? or expect), log: false)
-    if not body.nil?
+    response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, expect: (body.present? or expect), log: false)
+    if body.present?
       method = (response ? Net::HTTP::Put : Net::HTTP::Post)
       response = Utils.request(uri, user: user, pass: pass, headers: Constants::HEADER_JSON, method: method, body: body, expect: expect)
     end
-    return (json and not expect ? response.json : response)
+    return response
   end
 
   def self.dump(ctx, *keys, repo: nil)
-    Logs.try!("failed dump variables", [:repo, repo], raise: true) do
+    Logs.try!("dump variables", [:repo, repo], raise: true) do
       node  = Ctx.node(ctx)
       keys.flatten.each do |key|
         value = node[key]

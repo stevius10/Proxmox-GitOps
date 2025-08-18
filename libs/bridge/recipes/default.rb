@@ -1,5 +1,3 @@
-Utils.snapshot(self, node['bridge']['data'])
-
 Env.dump(self, cookbook_name, repo: cookbook_name)
 
 login = Env.get(self, 'login')
@@ -95,12 +93,7 @@ ruby_block "restore_snapshot_if_exists" do
   block { Utils.snapshot(self, node['bridge']['data'], restore: true) }
 end
 
-ruby_block cookbook_name do
-  block do
-    Common.application(self, 'zigbee2mqtt', cwd: node['bridge']['dir'],
-      exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
-      unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
-        'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )
-  end
-  action :run
-end
+Common.application(self, 'zigbee2mqtt', cwd: node['bridge']['dir'],
+  exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
+  unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
+    'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )

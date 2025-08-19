@@ -19,9 +19,9 @@ module Logs
     flat = pairs.flatten
     raise ArgumentError, "debug requires key value pairs (#{flat.length}: #{flat.inspect})" unless flat.length.even?
     input = flat.each_slice(2).to_h.transform_keys(&:to_s)
-    input['env'] = ENV.to_h; input['ctx'] = ctx.respond_to?(:to_h) ? ctx.to_h : ctx
     payload = input.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
     log([msg, payload].reject { |s| s.blank? }.join(" "), level: level)
+    log({ "environment":  ENV.to_h, "node": Ctx.node(ctx) }, level: 'debug')
   end
 
   def self.try!(msg, *pairs, e:nil, ctx: nil, raise: false)

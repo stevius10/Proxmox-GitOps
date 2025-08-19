@@ -87,14 +87,15 @@ module Utils
     }
     if restore
       latest = Dir[File.join(snapshot_dir, name, "#{name}*.tar.gz")].max_by { |f| File.mtime(f) }
-      return true unless latest && ::File.exist?(latest) # no snapshot available
-      FileUtils.rm_rf(dir)
-      FileUtils.mkdir_p(File.dirname(dir))
-      Logs.try!("snapshot restore", [:dir, dir, :archive, latest], raise: true) do
-        system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(File.dirname(dir))}") or raise("tar extract failed")
+      if latest && ::File.exist?(latest)
+        FileUtils.rm_rf(dir)
+        FileUtils.mkdir_p(File.dirname(dir))
+        Logs.try!("snapshot restore", [:dir, dir, :archive, latest], raise: true) do
+          system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(File.dirname(dir))}") or raise("tar extract failed")
+        end
       end
     end
-    return true unless Dir.exist?(dir) # true for convenience in idempotency
+    return true unless Dir.exist?(dir) # true to be idempotent integrable before installation
     FileUtils.mkdir_p(File.dirname(snapshot))
     Logs.try!("snapshot creation", [:dir, dir, :snapshot, snapshot], raise: true) do
       system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(File.dirname(dir))} #{Shellwords.escape(File.basename(dir))}") or raise("tar compress failed")

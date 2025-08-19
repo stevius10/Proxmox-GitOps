@@ -33,7 +33,9 @@ module Common
     end
   end
 
-  def self.application(ctx, name, user: nil, group: nil, exec: nil, cwd: nil, unit: {}, action: [:enable, :start], restart: 'on-failure', subscribe: nil, reload: 'systemd_reload')
+  def self.application(ctx, name, user: nil, group: nil,
+      exec: nil, cwd: nil, unit: {}, action: [:enable, :start],
+      restart: 'on-failure', subscribe: nil, reload: 'systemd_reload')
     user  ||= Default.user(ctx)
     group ||= Default.group(ctx)
     user  = user.to_s
@@ -72,8 +74,9 @@ module Common
         group   'root'
         mode    '0644'
         content unit_content
+        notifies :run, "execute[#{reload}]", :immediately
+        notifies :restart, "service[#{name}]", :delayed
       end
-      Ctx.find(ctx, :execute, reload)
 
     end
 
@@ -91,9 +94,9 @@ module Common
   end
 
   def self.delete_dir(ctx, dir)
-    ctx.directory dir do action :delete; recursive true; only_if { ::Dir.exist?(dir) } end
-  rescue => e
-    Logs.warn("Skip delete #{dir}: #{e}")
+    Logs.try!("delete dir #{dir}") do
+      ctx.directory dir do action :delete; recursive true; only_if { ::Dir.exist?(dir) } end
+    end
   end
 
   def self.sort_dir(dirs)

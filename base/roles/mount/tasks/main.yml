@@ -21,11 +21,12 @@
     label: "{{ item }}"
 
 - name: Enable mount
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    line: "//{{ host }}/{{ item }} {{ '/share' if item == 'share' else '/share/' ~ item }} cifs username={{ login }},password={{ password }},uid=1000,gid=1000,vers=3.0 0 0"
-    state: present
-    create: yes
+  ansible.posix.mount:
+    src: "//{{ host }}/{{ item }}"
+    path: "{{ '/share' if item == 'share' else '/share/' ~ item }}"
+    fstype: cifs
+    opts: "username={{ login }},password={{ password }},uid=1000,gid=1000,vers=3.0"
+    state: mounted
   loop: "{{ mount_list }}"
   loop_control:
     label: "{{ item }}"

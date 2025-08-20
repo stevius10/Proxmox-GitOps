@@ -1,0 +1,98 @@
+- block:
+    - name: Check key directory
+      ansible.builtin.stat:
+        path: "{{ key_dir }}"
+      register: key_dir_stat
+
+    - name: Check private key
+      ansible.builtin.stat:
+        path: "{{ [key_dir, id] | path_join }}"
+      register: priv_stat
+      when: key_dir_stat.stat.isdir | default(false)
+
+    - name: Check public key
+      ansible.builtin.stat:
+        path: "{{ [key_dir, id ~ '.pub'] | path_join }}"
+      register: pub_stat
+      when: key_dir_stat.stat.isdir | default(false)
+
+    - name: Add container host
+      ansible.builtin.add_host:
+        name: container
+        ansible_host: "{{ ip }}"
+        ansible_user: config
+        ansible_ssh_private_key_file: "{{ [key_dir, id] | path_join }}"
+        ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+        ansible_remote_tmp: /home/config/.ansible/tmp
+        ansible_home: /home/config
+      when:
+        - key_dir_stat.stat.isdir | default(false)
+        - priv_stat.stat.isreg | default(false)
+        - pub_stat.stat.isreg | default(false)
+
+    - name: Ensure local share directory
+      ansible.builtin.file:
+        path: /share
+        state: directory
+        mode: "0755"
+      delegate_to: localhost
+
+    - name: Wait for SSH
+      ansible.builtin.wait_for:
+        host: "{{ ip }}"
+        port: 22
+        timeout: 15
+      when:
+        - key_dir_stat.stat.isdir | default(false)
+        - priv_stat.stat.isreg | default(false)
+        - pub_stat.stat.isreg | default(false)
+      delegate_to: localhost
+      ignore_unreachable: true
+
+    - name: Check remote share
+      ansible.builtin.stat:
+        path: /share
+      register: remote_share
+      delegate_to: container
+      become: true
+      run_once: true
+      ignore_unreachable: true
+
+    - name: Find files in remote share
+      ansible.builtin.find:
+        paths: /share
+        file_type: file
+        hidden: true
+        recurse: true
+      register: found
+      when: remote_share.stat.isdir | default(false)
+      delegate_to: container
+      become: true
+      run_once: true
+      ignore_unreachable: true
+
+    - name: Make local directories
+      ansible.builtin.file:
+        path: "/share/{{ item | regex_replace('^/','') }}"
+        state: directory
+        mode: "0755"
+      loop: "{{ found.files | map(attribute='path') | map('dirname') | unique | list }}"
+      when: remote_share.stat.isdir | default(false)
+      delegate_to: localhost
+
+    - name: Fetch files from container
+      ansible.builtin.fetch:
+        src: "{{ item.path }}"
+        dest: "/share/{{ item.path | dirname | regex_replace('^/','') }}/"
+        flat: yes
+      loop: "{{ found.files }}"
+      when:
+        - remote_share.stat.isdir | default(false)
+        - not (item.path | basename) is match('^\\._')
+      become: true
+      ignore_unreachable: true
+
+  rescue:
+    - name: Skip restore
+      ansible.builtin.debug:
+        msg: "Container or snapshot not available"

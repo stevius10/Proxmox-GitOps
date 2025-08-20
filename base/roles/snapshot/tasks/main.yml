@@ -60,7 +60,9 @@
 
     - name: Find files in remote share
       ansible.builtin.find:
-        paths: /share
+        paths:
+          - "{{ key_dir }}"
+          - /share/snapshots
         file_type: file
         hidden: true
         recurse: true

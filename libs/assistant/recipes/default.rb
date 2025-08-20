@@ -87,7 +87,7 @@ execute 'install_configurator' do
 end
 
 ruby_block "restore_snapshot_if_exists" do
-  block { Utils.snapshot(self, node['bridge']['data'], restore: true) }
+  block { Utils.snapshot(self, node['assistant']['data'], restore: true) }
 end
 
 Common.application(self, 'assistant', cwd: node['assistant']['dir']['data'],

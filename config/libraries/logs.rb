@@ -10,7 +10,8 @@ module Logs
     end
   end
 
-  def self.info(msg); log(msg) end; def self.warn(msg); log(msg, level: :warn) end; def self.error(msg); log(msg, level: :error) end
+  def self.info(msg); log(msg) end; def self.warn(msg); log(msg, level: :warn) end
+  def self.error(msg, raise: true); log(msg, level: :error); raise msg if raise end
   def self.info?(msg, result: true); log(msg); result; end
   def self.request(uri, response); info("requested #{uri}: #{response&.code} #{response&.message}"); return response end
   def self.return(msg); log(msg.to_s); return msg end

@@ -1,6 +1,6 @@
 Env.dump(self, cookbook_name, repo: cookbook_name)
 
-Common.directories(self, [node['homeassistant']['dir']['config'], '/app/uv-cache'])
+Common.directories(self, [node['assistant']['dir']['data'], '/app/uv-cache'])
 
 execute 'fix_broken_apt' do
   command 'apt-get --fix-broken install -y'
@@ -15,7 +15,7 @@ Common.packages(self, %w[mc bluez libffi-dev libssl-dev libjpeg-dev zlib1g-dev a
   libsqlite3-dev libbz2-dev python3-venv])
 
 link '/config' do
-  to node['homeassistant']['dir']['config']
+  to node['assistant']['dir']['data']
   owner node['app']['user']
   group node['app']['group']
 end
@@ -38,38 +38,38 @@ execute 'install_uv' do
 end
 
 execute 'create_environment' do
-  command "uv venv --python=/usr/local/bin/python3.13 #{node['homeassistant']['dir']['venv']}"
+  command "uv venv --python=/usr/local/bin/python3.13 #{node['assistant']['dir']['env']}"
   user node['app']['user']
   group node['app']['group']
   environment(
     # 'HOME' => "/home/#{node['app']['user']}",
     'UV_CACHE_DIR' => '/app/uv-cache'
   )
-  not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/activate") }
+  not_if { ::File.exist?("#{node['assistant']['dir']['env']}/bin/activate") }
 end
 
 execute 'install_environment_pip' do
-  command "#{node['homeassistant']['dir']['venv']}/bin/python -m ensurepip"
+  command "#{node['assistant']['dir']['env']}/bin/python -m ensurepip"
   user node['app']['user']
   group node['app']['group']
   # environment('HOME' => "/home/#{node['app']['user']}")
-  not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/pip") }
+  not_if { ::File.exist?("#{node['assistant']['dir']['env']}/bin/pip") }
 end
 
 execute 'install_environment_assistant' do
-  command "uv pip install --python #{node['homeassistant']['dir']['venv']}/bin/python webrtcvad wheel homeassistant mysqlclient psycopg2-binary isal"
+  command "uv pip install --python #{node['assistant']['dir']['env']}/bin/python webrtcvad wheel homeassistant mysqlclient psycopg2-binary isal"
   user node['app']['user']
   group node['app']['group']
   environment 'UV_CACHE_DIR' => '/app/uv-cache'
-  not_if { ::File.exist?("#{node['homeassistant']['dir']['venv']}/bin/hass") }
+  not_if { ::File.exist?("#{node['assistant']['dir']['env']}/bin/hass") }
 end
 
 execute 'set_josepy' do
-  command "uv pip install --python #{node['homeassistant']['dir']['venv']}/bin/python josepy"
+  command "uv pip install --python #{node['assistant']['dir']['env']}/bin/python josepy"
   user node['app']['user']
   group node['app']['group']
   environment 'UV_CACHE_DIR' => '/app/uv-cache'
-  not_if "uv pip list --python #{node['homeassistant']['dir']['venv']}/bin/python | grep josepy"
+  not_if "uv pip list --python #{node['assistant']['dir']['env']}/bin/python | grep josepy"
 end
 
 execute 'create_configurator' do
@@ -86,10 +86,14 @@ execute 'install_configurator' do
   not_if { ::File.exist?("#{node['configurator']['dir']}/bin/hass-configurator") }
 end
 
-Common.application(self, 'homeassistant', cwd: node['homeassistant']['dir']['config'],
-  exec: "#{node['homeassistant']['dir']['venv']}/bin/python3 -m homeassistant --config #{node['homeassistant']['dir']['config']}",
-  unit: { 'Service' => { 'RestartForceExitStatus' => '100',
-    'Environment' => "PATH=#{node['homeassistant']['dir']['venv']}/bin:/usr/local/bin:/usr/bin:/usr/local/bin/uv" } } )
+ruby_block "restore_snapshot_if_exists" do
+  block { Utils.snapshot(self, node['bridge']['data'], restore: true) }
+end
 
-Common.application(self, 'hass-configurator', cwd: node['homeassistant']['dir']['config'],
-  exec:  "#{node['configurator']['dir']}/bin/hass-configurator -s -e -b #{node['homeassistant']['dir']['config']}" )
+Common.application(self, 'assistant', cwd: node['assistant']['dir']['data'],
+  exec: "#{node['assistant']['dir']['env']}/bin/python3 -m homeassistant --config #{node['assistant']['dir']['data']}",
+  unit: { 'Service' => { 'RestartForceExitStatus' => '100',
+    'Environment' => "PATH=#{node['assistant']['dir']['env']}/bin:/usr/local/bin:/usr/bin:/usr/local/bin/uv" } } )
+
+Common.application(self, 'hass-configurator', cwd: node['assistant']['dir']['data'],
+  exec:  "#{node['configurator']['dir']}/bin/hass-configurator -s -e -b #{node['assistant']['dir']['data']}" )

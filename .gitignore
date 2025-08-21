@@ -1,5 +1,6 @@
 **/.git/
 
+local/share
 local/config.json
 local/*.hash
 

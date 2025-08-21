@@ -54,8 +54,9 @@ log "container" "start"
 CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp  \
     -v "$PROJECT_DIR:/tmp/config:ro" --tmpfs "/tmp/config/.git" \
     -v /sys/fs/cgroup:/sys/fs/cgroup:rw -w /tmp/config \
-    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-e RUBYLIB=/tmp/config/config/libraries -e RUBYOPT=-r/tmp/config/config/libraries/env.rb") \
-    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-p :80 -p :8080 -p :8123" || echo "-p 80:80 -p 8080:8080 -p 2222:2222" ) \
+    $( [[ -d "${DEVELOP_DIR}/share" ]] && echo "-v ${DEVELOP_DIR}/share:/share:ro " ) \
+    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-e RUBYLIB=/tmp/config/config/libraries -e RUBYOPT=-r/tmp/config/config/libraries/env.rb ") \
+    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-p :80 -p :8080 -p :8123" || echo "-p 80:80 -p 8080:8080 -p 2222:2222 " ) \
     --name "$DOCKER_CONTAINER_NAME" "$DOCKER_IMAGE_NAME") || fail "container_start_failed"
 log "container" "started:${CONTAINER_ID}"
 sleep "$DOCKER_WAIT"

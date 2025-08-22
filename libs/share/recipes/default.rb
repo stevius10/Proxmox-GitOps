@@ -21,6 +21,11 @@ Array(node.dig('share','mount')).each do |path|
     mode '2775'
     recursive false
   end
+
+  execute "change_owner_#{path}_#{login}" do
+    command "sudo find #{path} -mindepth 1 -not -path '#{path}/.ssh*' -exec chown -R #{login}:#{login} {} +"
+    action :run
+  end
 end
 
 execute "create_samba_#{login}" do
@@ -31,9 +36,7 @@ end
 template '/etc/samba/smb.conf' do
   source 'smb.conf.erb'
   variables(login: login, shares: Array(node['share']['mount']))
-  notifies :restart, 'service[smb]'
+  notifies :restart, 'service[smbd]'
 end
 
-service 'smb' do
-  action [:enable, :start]
-end
+Common.application(self, 'smbd', actions: [:enable, :start], subscribe: "template[/etc/samba/smb.conf]", verify: false)

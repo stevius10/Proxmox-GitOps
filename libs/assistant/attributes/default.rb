@@ -1,9 +1,9 @@
-default['ip']                             = "#{ENV['IP']}"
+default['ip']                         = "#{ENV['IP']}"
 
-default['app']['user']                    = Default.user(node)
-default['app']['group']                   = Default.group(node)
+default['app']['user']                = Default.user(node)
+default['app']['group']               = Default.group(node)
 
-default['homeassistant']['dir']['venv']   = '/app/venv'
-default['homeassistant']['dir']['config'] = '/app/homeassistant'
+default['assistant']['dir']['env']    = '/app/venv'
+default['assistant']['dir']['data']   = '/app/assistant'
 
-default['configurator']['dir']            = '/app/configurator'
+default['configurator']['dir']        = '/app/configurator'

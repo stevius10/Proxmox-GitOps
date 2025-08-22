@@ -15,7 +15,7 @@ module Common
     owner     = opts[:owner]      || Default.user(ctx)
     group     = opts[:group]      || Default.group(ctx)
     mode      = opts[:mode]       || '0755'
-    recursive = true
+    recursive = opts[:recursive]  || true
     recreate  = !!opts[:recreate] || false
 
     if recreate
@@ -33,33 +33,23 @@ module Common
     end
   end
 
-  def self.application(ctx, name, user: nil, group: nil, exec: nil, cwd: nil, unit: {}, action: [:enable, :start], restart: 'on-failure', subscribe: nil, reload: 'systemd_reload')
+  def self.application(ctx, name, user: nil, group: nil,
+      exec: nil, cwd: nil, unit: {}, actions: [:enable, :start],
+      restart: 'on-failure', subscribe: nil, reload: 'systemd_reload', verify: true,
+      verify_timeout: 60, verify_interval: 3, verify_cmd: "systemctl is-active --quiet #{name}")
     user  ||= Default.user(ctx)
     group ||= Default.group(ctx)
     user  = user.to_s
     group = group.to_s
+
     if exec || unit.present?
       daemon(ctx, reload)
 
-      service = {
-        'Type'    => 'simple',
-        'User'    => user,
-        'Group'   => group,
-        'Restart' => restart
-      }
+      service = {'Type' => 'simple', 'User' => user, 'Group' => group, 'Restart' => restart }
       service['ExecStart'] = exec if exec
       service['WorkingDirectory'] = cwd if cwd
-
-      defaults = {
-        'Unit' => {
-          'Description' => name.capitalize,
-          'After'       => 'network.target'
-        },
-        'Service' => service,
-        'Install' => {
-          'WantedBy' => 'multi-user.target'
-        }
-      }
+      defaults = { 'Unit' => { 'Description' => name.capitalize, 'After' => 'network.target' },
+        'Service' => service, 'Install' => { 'WantedBy' => 'multi-user.target' } }
 
       unit_config = defaults.merge(unit) { |_k, old, new| old.is_a?(Hash) && new.is_a?(Hash) ? old.merge(new) : new }
       unit_content = unit_config.map do |section, settings|
@@ -72,16 +62,37 @@ module Common
         group   'root'
         mode    '0644'
         content unit_content
+        notifies :run, "execute[#{reload}]", :immediately
+        notifies :restart, "service[#{name}]", :delayed
       end
-      Ctx.find(ctx, :execute, reload)
-
     end
 
-    Ctx.dsl(ctx).service name do
-      action action
-      Array(subscribe).flatten.each { |ref| subscribes :restart, ref, :delayed } if subscribe
+    if actions.include?(:force_restart)
+      Ctx.dsl(ctx).execute "force_restart_#{name}" do
+        command "systemctl stop #{name} || true && sleep 1 && systemctl start #{name}"
+        action :run
+      end
+    else
+      Ctx.dsl(ctx).service name do
+        action actions
+        Array(subscribe).flatten.each { |ref| subscribes :restart, ref, :delayed } if subscribe
+      end
     end
 
+    Ctx.dsl(ctx).ruby_block "application_verify_service_#{name}" do
+      block do
+        retry_timeout = Time.now + verify_timeout
+        ok = false
+        while Time.now < retry_timeout
+          (is_active = Mixlib::ShellOut.new(verify_cmd)).run_command
+          is_active.exitstatus.zero? ? (ok = true; break) : (sleep verify_interval)
+        end
+        Logs.error("service '#{name}' failed health check") unless ok
+      end
+      action :nothing
+      subscribes :run, "service[#{name}]", :delayed if verify
+      subscribes :run, "file[/etc/systemd/system/#{name}.service]", :delayed if verify
+    end
   end
 
   def self.create_dir(ctx, dir, owner, group, mode, recursive)
@@ -91,9 +102,9 @@ module Common
   end
 
   def self.delete_dir(ctx, dir)
-    ctx.directory dir do action :delete; recursive true; only_if { ::Dir.exist?(dir) } end
-  rescue => e
-    Logs.warn("Skip delete #{dir}: #{e}")
+    Logs.try!("delete dir #{dir}") do
+      ctx.directory dir do action :delete; recursive true; only_if { ::Dir.exist?(dir) } end
+    end
   end
 
   def self.sort_dir(dirs)

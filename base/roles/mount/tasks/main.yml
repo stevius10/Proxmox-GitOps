@@ -1,4 +1,4 @@
-- name: Ensure filesystem usage
+- name: Ensure filesystem
   ansible.builtin.apt:
     name: cifs-utils
     state: present
@@ -6,7 +6,7 @@
 
 - name: Set mount as list
   set_fact:
-    mount_list: "{{ mount.split(',') | reject('equalto', '') | list }}"
+    mount_list: "{{ mount.split(',') | reject('equalto', '') | select('match', '^[A-Za-z0-9_]+$') | list }}"
   when: mount is defined
 
 - name: Ensure mount directories exist
@@ -21,11 +21,12 @@
     label: "{{ item }}"
 
 - name: Enable mount
-  ansible.builtin.lineinfile:
-    path: /etc/fstab
-    line: "//{{ host }}/{{ item }} {{ '/share' if item == 'share' else '/share/' ~ item }} cifs username={{ login }},password={{ password }},uid=1000,gid=1000,vers=3.0 0 0"
-    state: present
-    create: yes
+  ansible.posix.mount:
+    src: "//{{ host }}/{{ item }}"
+    path: "{{ '/share' if item == 'share' else '/share/' ~ item }}"
+    fstype: cifs
+    opts: "username={{ login }},password={{ password }},uid=1000,gid=1000,vers=3.0"
+    state: mounted
   loop: "{{ mount_list }}"
   loop_control:
     label: "{{ item }}"
@@ -33,3 +34,19 @@
 - name: Restart mount
   ansible.builtin.command: mount -a
   ignore_errors: yes # avoid permission error if token usage
+
+- name: Find shared files
+  ansible.builtin.find:
+    paths: /share
+    file_type: any
+    recurse: yes
+    excludes: ".ssh,files"
+  register: found
+
+- name: Fix shared permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: app
+    group: config
+    mode: "0777"
+  loop: "{{ found.files }}"

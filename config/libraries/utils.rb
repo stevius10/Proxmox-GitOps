@@ -87,14 +87,15 @@ module Utils
     }
     if restore
       latest = Dir[File.join(snapshot_dir, name, "#{name}*.tar.gz")].max_by { |f| File.mtime(f) }
-      return true unless latest && ::File.exist?(latest) # no snapshot available
-      FileUtils.rm_rf(dir)
-      FileUtils.mkdir_p(File.dirname(dir))
-      Logs.try!("snapshot restore", [:dir, dir, :archive, latest], raise: true) do
-        system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(File.dirname(dir))}") or raise("tar extract failed")
+      if latest && ::File.exist?(latest)
+        FileUtils.rm_rf(dir)
+        FileUtils.mkdir_p(File.dirname(dir))
+        Logs.try!("snapshot restore", [:dir, dir, :archive, latest], raise: true) do
+          system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(File.dirname(dir))}") or raise("tar extract failed")
+        end
       end
     end
-    return true unless Dir.exist?(dir) # true for convenience in idempotency
+    return true unless Dir.exist?(dir) # true to be idempotent integrable before installation
     FileUtils.mkdir_p(File.dirname(snapshot))
     Logs.try!("snapshot creation", [:dir, dir, :snapshot, snapshot], raise: true) do
       system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(File.dirname(dir))} #{Shellwords.escape(File.basename(dir))}") or raise("tar compress failed")
@@ -120,13 +121,13 @@ module Utils
 
   # Remote
 
-  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, expect: false, log: true)
+  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, expect: false, log: true, verify: OpenSSL::SSL::VERIFY_NONE)
     u = URI(uri)
     req = method.new(u)
     req.basic_auth(user, pass) if user && pass
     req.body = body if body
     headers.each { |k, v| req[k] = v }
-    response = Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https') { |http| http.request(req) }
+    response = Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https', verify_mode: verify ) { |http| http.request(req) }
     if response.is_a?(Net::HTTPRedirection) && response['location']
       loc = response['location']
       loc = loc.start_with?('http://', 'https://') ? loc : (loc.start_with?('/') ? "#{u.scheme}://#{u.host}#{loc}" : URI.join("#{u.scheme}://#{u.host}#{u.path}", loc).to_s)

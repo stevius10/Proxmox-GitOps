@@ -12,7 +12,7 @@ module Env
   end
 
   def self.get(ctx, key)
-    Logs.try!("get '#{key}'") do
+    Logs.try!("get '#{key}'", ctx: ctx) do
       node = Ctx.node(ctx)
       env_key = ENV[key.to_s.upcase]
       return node[key] if node[key].present?
@@ -22,13 +22,13 @@ module Env
   end
 
   def self.get_variable(ctx, key, repo: nil)
-    Logs.try!("get variable '#{key}'", [:repo, repo]) do
+    Logs.try!("get variable '#{key}'", [:repo, repo], ctx: ctx) do
       request(Ctx.node(ctx), key, repo: repo).json['data']
     end
   end
 
   def self.set_variable(ctx, key, val, repo: nil)
-    Logs.try!("set variable '#{key}' to #{val.try(:mask) || val}", [:val, val, :repo, repo], raise: true) do
+    Logs.try!("set variable '#{key}' to #{val.try(:mask) || val}", [:repo, repo], ctx: ctx, raise: true) do
       request(Ctx.node(ctx), key, body: ({ name: key, value: val.to_s }.to_json), repo: repo, expect: true)
     end
   end; class << self; alias_method :set, :set_variable; end

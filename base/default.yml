@@ -6,6 +6,7 @@
     os: "{{ OS | default('local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst') }}"
     key_dir: "{{ KEYS_DIR | default('/share/.ssh') }}"
   tasks:
+
     - name: Ensure key directory
       file:
         path: "{{ key_dir }}"
@@ -26,6 +27,15 @@
   gather_facts: yes
   become: true
   tasks:
+    - name: Copy share if exists
+      ansible.builtin.copy:
+        src: /share/
+        dest: /share/
+        remote_src: no
+        mode: "0775"
+        force: no
+      when: share | default(false) | bool
+
     - name: Apply base configuration
       ansible.builtin.include_role:
         name: base

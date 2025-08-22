@@ -12,7 +12,7 @@ template "#{node['runner']['dir']['app']}/config.yaml" do
 end
 
 Common.application(self, 'runner',
-  user: node['app']['user'] , action: [:enable], cwd: node['runner']['dir']['app'],
+  user: node['app']['user'] , actions: [:enable], cwd: node['runner']['dir']['app'],
   exec: "#{node['runner']['dir']['app']}/act_runner daemon --config #{node['runner']['dir']['app']}/config.yaml",
   subscribe: ["template[#{node['runner']['dir']['app']}/config.yaml]", "remote_file[#{node['runner']['dir']['app']}/act_runner]"] )
 

@@ -32,8 +32,8 @@
         src: /share/
         dest: /share/
         remote_src: no
-        mode: preserve
-        force: yes
+        mode: "0775"
+        force: no
       when: share | default(false) | bool
 
     - name: Apply base configuration

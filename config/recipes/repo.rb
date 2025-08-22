@@ -243,6 +243,8 @@ Common.directories(self, [destination, working], recreate: true)
 
 end
 
+Common.application(self, 'runner', actions: [:restart])
+
 ruby_block "#{cookbook_name}_env_dump" do
   block do
     Env.dump(self, 'git', 'runner', repo: cookbook_name)

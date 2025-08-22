@@ -71,7 +71,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
   - e. g., **Version-Controlled Mirrored**
 
 - **Backup**: See [Self-contained Monorepository](#self-contained-monorepository)
-  - use `local/share` for persistence or self-reference network mount for runtime replacement
+  - use `local/share` for persistence or self-reference network share
 
 - **Update**: See [Self-contained Monorepository](#self-contained-monorepository), and redeploy merged
 

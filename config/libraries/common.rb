@@ -67,9 +67,16 @@ module Common
       end
     end
 
-    Ctx.dsl(ctx).service name do
-      action actions
-      Array(subscribe).flatten.each { |ref| subscribes :restart, ref, :delayed } if subscribe
+    if actions.include?(:force_restart)
+      Ctx.dsl(ctx).execute "force_restart_#{name}" do
+        command "systemctl stop #{name} || true && sleep 1 && systemctl start #{name}"
+        action :run
+      end
+    else
+      Ctx.dsl(ctx).service name do
+        action actions
+        Array(subscribe).flatten.each { |ref| subscribes :restart, ref, :delayed } if subscribe
+      end
     end
 
     Ctx.dsl(ctx).ruby_block "application_verify_service_#{name}" do

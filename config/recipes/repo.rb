@@ -243,7 +243,7 @@ Common.directories(self, [destination, working], recreate: true)
 
 end
 
-Common.application(self, 'runner', actions: [:restart])
+Common.application(self, 'runner', actions: [:force_restart]) # stop running processes
 
 ruby_block "#{cookbook_name}_env_dump" do
   block do

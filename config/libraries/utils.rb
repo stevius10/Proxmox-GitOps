@@ -121,13 +121,13 @@ module Utils
 
   # Remote
 
-  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, expect: false, log: true)
+  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, expect: false, log: true, verify: OpenSSL::SSL::VERIFY_NONE)
     u = URI(uri)
     req = method.new(u)
     req.basic_auth(user, pass) if user && pass
     req.body = body if body
     headers.each { |k, v| req[k] = v }
-    response = Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https') { |http| http.request(req) }
+    response = Net::HTTP.start(u.host, u.port, use_ssl: u.scheme == 'https', verify_mode: verify ) { |http| http.request(req) }
     if response.is_a?(Net::HTTPRedirection) && response['location']
       loc = response['location']
       loc = loc.start_with?('http://', 'https://') ? loc : (loc.start_with?('/') ? "#{u.scheme}://#{u.host}#{loc}" : URI.join("#{u.scheme}://#{u.host}#{u.path}", loc).to_s)

@@ -34,3 +34,19 @@
 - name: Restart mount
   ansible.builtin.command: mount -a
   ignore_errors: yes # avoid permission error if token usage
+
+- name: Find shared files
+  ansible.builtin.find:
+    paths: /share
+    file_type: any
+    recurse: yes
+    excludes: ".ssh,files"
+  register: found
+
+- name: Fix shared permissions
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: app
+    group: config
+    mode: "0777"
+  loop: "{{ found.files }}"

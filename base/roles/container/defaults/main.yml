@@ -1,14 +1,17 @@
-proxmox_auth: >-
-  {{ (PROXMOX_PASSWORD | default('') == '') | ternary(
-    {'Authorization': 'PVEAPIToken=' + PROXMOX_USER + '!' + PROXMOX_TOKEN + '=' + PROXMOX_SECRET},
-    {'Cookie': 'PVEAuthCookie=' + proxmox_login.json.data.ticket,
-     'CSRFPreventionToken': proxmox_login.json.data.CSRFPreventionToken}) }}
+proxmox_auth: "{{ proxmox_auth_token if (PROXMOX_PASSWORD | default('') | trim) == '' else proxmox_auth_cookie }}"
+
+proxmox_auth_token:
+  Authorization: "PVEAPIToken={{ PROXMOX_USER }}!{{ PROXMOX_TOKEN }}={{ PROXMOX_SECRET }}"
+
+proxmox_auth_cookie:
+  Cookie: "PVEAuthCookie={{ proxmox_login.json.data.ticket }}"
+  CSRFPreventionToken: "{{ proxmox_login.json.data.CSRFPreventionToken }}"
 
 proxmox_cred:
   api_host: "{{ PROXMOX_HOST }}"
   api_user: "{{ PROXMOX_USER }}"
   api_password: "{{ PROXMOX_PASSWORD | default(omit) }}"
-  api_token_id: "{{ (PROXMOX_PASSWORD | default('') == '') | ternary(PROXMOX_TOKEN, omit) }}"
-  api_token_secret: "{{ (PROXMOX_PASSWORD | default('') == '') | ternary(PROXMOX_SECRET, omit) }}"
+  api_token_id: "{{ (PROXMOX_PASSWORD | default('') | trim) == '' | ternary(PROXMOX_TOKEN, omit) }}"
+  api_token_secret: "{{ (PROXMOX_PASSWORD | default('') | trim) == '' | ternary(PROXMOX_SECRET, omit) }}"
   api_port: 8006
   node: "pve"

@@ -64,7 +64,7 @@ module Utils
     end
   end
 
-  def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', name: ctx.cookbook_name, restore: false)
+  def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), mode: 0o755)
     timestamp = Time.now.strftime('%H%M-%d%m%y')
     snapshot = File.join(snapshot_dir, name, "#{name}-#{timestamp}.tar.gz")
     md5_dir = ->(path) {
@@ -88,6 +88,8 @@ module Utils
         Logs.try!("snapshot restore", [:dir, dir, :archive, latest], raise: true) do
           system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(dir)}") or raise("tar extract failed")
         end
+        FileUtils.chown_R(user, group, dir)
+        FileUtils.chmod_R(mode, dir)
       end
     end
     return true unless Dir.exist?(dir) # true to be idempotent integrable before installation

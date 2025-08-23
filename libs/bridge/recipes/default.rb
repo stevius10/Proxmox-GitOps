@@ -4,8 +4,6 @@ login = Env.get(self, 'login')
 password = Env.get(self, 'password')
 broker = Env.get(self, 'broker')
 
-Common.packages(self, %w[unzip curl])
-
 group 'dialout' do
   action :modify
   members [node['app']['user']]
@@ -26,23 +24,14 @@ execute 'install_pnpm' do
   not_if 'which pnpm'
 end
 
-installed_version = ::File.exist?("#{node['bridge']['dir']}/.version") ? ::File.read("#{node['bridge']['dir']}/.version").strip : nil
-Logs.info("installed version: #{installed_version}")
+latest_version = Utils.latest('https://github.com/Koenkk/zigbee2mqtt/releases/latest',
+  ::File.exist?("#{node['bridge']['dir']}/.version") ? ::File.read("#{node['bridge']['dir']}/.version").strip : nil)
 
-latest_version = Utils.latest('https://github.com/Koenkk/zigbee2mqtt/releases/latest')
-Logs.info("latest version: #{latest_version}") if latest_version
+Common.directories(self, [node['bridge']['dir'], node['bridge']['data']], recreate: latest_version)
 
-latest_version = false unless installed_version.nil? || Gem::Version.new(latest_version) > Gem::Version.new(installed_version)
-
-update_needed = false
 if latest_version
-  update_needed = installed_version.nil? || Gem::Version.new(latest_version) > Gem::Version.new(installed_version)
-end
 
-Common.directories(self, [node['bridge']['dir'], node['bridge']['data']], recreate: update_needed)
-
-if update_needed
-  if latest_version && ::File.exist?("/etc/systemd/system/zigbee2mqtt.service")
+  if ::File.exist?("/etc/systemd/system/zigbee2mqtt.service")
     execute 'stop_zigbee2mqtt' do
       command 'systemctl stop zigbee2mqtt || true'
       action :run

@@ -77,6 +77,10 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - **Rollback**: See [Self-contained Monorepository](#self-contained-monorepository), or set `snapshot` branch to `release` at runtime
 
+<p align="center">
+  <img src="./docs/zero-touch-restore.png" alt="zero-touch restore"/>
+</p>
+
 ### Requirements
 
 - Docker

@@ -3,6 +3,7 @@ default_packages:
   - wget
   - sudo
   - curl
+  - unzip
 
 default_groups: ["config"]
 

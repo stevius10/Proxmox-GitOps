@@ -54,5 +54,4 @@ class Net::HTTPResponse
   rescue
     self
   end
-
 end

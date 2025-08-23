@@ -71,11 +71,15 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
   - e. g., **Version-Controlled Mirrored**
 
 - **Backup**: See [Self-contained Monorepository](#self-contained-monorepository)
-  - store /share for persistence
+  - use `local/share` for persistence or self-reference network share
 
 - **Update**: See [Self-contained Monorepository](#self-contained-monorepository), and redeploy merged
 
 - **Rollback**: See [Self-contained Monorepository](#self-contained-monorepository), or set `snapshot` branch to `release` at runtime
+
+<p align="center">
+  <img src="./docs/zero-touch-restore.png" alt="zero-touch restore"/>
+</p>
 
 ### Requirements
 

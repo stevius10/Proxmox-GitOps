@@ -3,14 +3,13 @@ default_packages:
   - wget
   - sudo
   - curl
+  - unzip
 
 default_groups: ["config"]
 
 default_users:
   - { name: "app",  groups: ["config"], create_home: false, home: "/app" }
   - { name: "config", groups: ["config", "root", "sudo"], create_home: false, home: "/app" }
-  - { name: "user", shell: "/bin/bash", groups: ["root", "sudo"], create_home: true }
 
 ssh_users:
   - config
-  - user

@@ -12,6 +12,7 @@
       method: GET
       headers: "{{ proxmox_auth }}"
       validate_certs: no
+      return_content: yes
     register: container_status
     until: container_status.json.data.status == "stopped"
     retries: 5
@@ -29,6 +30,7 @@
       method: GET
       headers: "{{ proxmox_auth }}"
       validate_certs: no
+      return_content: yes
     register: container_status
     until:
       - container_status.status == 500

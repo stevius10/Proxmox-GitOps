@@ -69,19 +69,14 @@ module Utils
     snapshot = File.join(snapshot_dir, name, "#{name}-#{timestamp}.tar.gz")
     md5_dir = ->(path) {
       entries = Dir.glob("#{path}/**/*", File::FNM_DOTMATCH)
-      files = entries.reject { |f| File.directory?(f) || File.basename(f).start_with?('._') }
+      files = entries.reject { |f| File.directory?(f) || ['.', '..'].include?(File.basename(f)) || File.basename(f).start_with?('._') }
       Digest::MD5.new.tap { |md5| files.sort.each { |f| File.open(f, 'rb') { |io| md5.update(io.read) } } }.hexdigest  }
     verify = ->(archive, compare_dir) {
       Dir.mktmpdir do |tmp|
         Logs.try!("snapshot extraction", [:archive, archive, :tmp, tmp], raise: true) do
-          system("tar -xzf #{Shellwords.escape(archive)} -C #{Shellwords.escape(tmp)}") or raise("tar failed")
+          system("tar -xzf #{Shellwords.escape(archive)} -C #{Shellwords.escape(tmp)}") or raise("snapshot verification failed")
         end
-        roots = Dir.children(tmp).map { |e| File.join(tmp, e) }.select { |p| File.directory?(p) }
-        base = roots.size == 1 ? roots.first : File.join(tmp, File.basename(compare_dir))
-        base = roots.first unless Dir.exist?(base)
-        md5_base = md5_dir.(base)
-        md5_compare = Dir.exist?(compare_dir) ? md5_dir.(compare_dir) : ''
-        raise("verify snapshot failed") unless md5_base == md5_compare
+        raise("verify snapshot failed") unless md5_dir.(tmp) == (Dir.exist?(compare_dir) ? md5_dir.(compare_dir) : '')
       end
       true
     }
@@ -89,16 +84,16 @@ module Utils
       latest = Dir[File.join(snapshot_dir, name, "#{name}*.tar.gz")].max_by { |f| File.mtime(f) }
       if latest && ::File.exist?(latest)
         FileUtils.rm_rf(dir)
-        FileUtils.mkdir_p(File.dirname(dir))
+        FileUtils.mkdir_p(dir)
         Logs.try!("snapshot restore", [:dir, dir, :archive, latest], raise: true) do
-          system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(File.dirname(dir))}") or raise("tar extract failed")
+          system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(dir)}") or raise("tar extract failed")
         end
       end
     end
     return true unless Dir.exist?(dir) # true to be idempotent integrable before installation
     FileUtils.mkdir_p(File.dirname(snapshot))
     Logs.try!("snapshot creation", [:dir, dir, :snapshot, snapshot], raise: true) do
-      system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(File.dirname(dir))} #{Shellwords.escape(File.basename(dir))}") or raise("tar compress failed")
+      system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(dir)} .") or raise("tar compress failed")
     end
     return verify.(snapshot, dir)
   end
@@ -150,8 +145,22 @@ module Utils
     end
   end
 
-  def self.latest(url)
-    (request(url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1] || "latest").to_s
+  def self.latest(url, installed_version = nil)
+    latest_version = (request(url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1] || "latest").to_s
+    Logs.info("latest version: '#{latest_version}' (#{url})")
+
+    if installed_version.nil?
+      Logs.info("initial installation (version '#{latest_version}')")
+      return latest_version
+    end
+
+    if Gem::Version.new(latest_version) > Gem::Version.new(installed_version)
+      Logs.info("update from '#{installed_version}' to '#{latest_version}'")
+      return latest_version
+    else
+      Logs.info("no update required from version '#{installed_version}' to '#{latest_version}'")
+      return false
+    end
   end
 
 end

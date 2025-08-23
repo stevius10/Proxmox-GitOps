@@ -11,6 +11,7 @@
         filename: "{{ os.split('/')[-1] }}"
         content: "vztmpl"
       validate_certs: no
+      return_content: yes
     register: os_download
 
   - name: Wait for os to be downloaded
@@ -19,6 +20,7 @@
       method: GET
       headers: "{{ proxmox_auth }}"
       validate_certs: no
+      return_content: yes
     register: os_available
     until: os in (os_available.json.data | map(attribute='volid') | list)
     retries: 10

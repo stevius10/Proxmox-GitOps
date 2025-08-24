@@ -9,7 +9,7 @@
       mounts: >-
         {{ mounts | default({}) | combine({('mp'~idx): 
           ((item.split(':')[:-1] | join(':')) ~ ',mp=' ~ (item.split(':')[-1]) ~ ',ro=0,acl=1') }) }}
-    loop: "{{ mount.split(',') | select('search', ':') }}"
+    loop: "{{ mount.split(',') | reject('equalto','') | select('search', ':') }}"
     loop_control:
       index_var: idx
     when:
@@ -18,8 +18,8 @@
 
   - name: Set passthrough
     set_fact:
-      mounts: "{{ mounts | combine({ ('dev' ~ idx): item }) }}"
-    loop: "{{ mount.split(',') | select('match', '^/[^:]+$') }}"
+      mounts: "{{ mounts | combine({ ('dev' ~ idx): item | trim }) }}"
+    loop: "{{ mount.split(',') | reject('equalto','') | select('match', '^/[^:]+$') }}"
     loop_control:
       index_var: idx
     when:

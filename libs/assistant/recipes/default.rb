@@ -1,4 +1,4 @@
-Env.dump(self, cookbook_name, repo: cookbook_name)
+Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
 Common.directories(self, [node['assistant']['dir']['data'], '/app/uv-cache'])
 

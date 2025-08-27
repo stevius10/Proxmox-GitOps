@@ -247,6 +247,6 @@ Common.application(self, 'runner', actions: [:force_restart]) # stop running pro
 
 ruby_block "#{cookbook_name}_env_dump" do
   block do
-    Env.dump(self, 'git', 'runner', repo: cookbook_name)
+    Env.dump(self, ['ip', 'git', 'runner'], repo: cookbook_name)
   end
 end

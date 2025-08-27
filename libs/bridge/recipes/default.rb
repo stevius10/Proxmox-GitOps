@@ -1,4 +1,4 @@
-Env.dump(self, cookbook_name, repo: cookbook_name)
+Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
 login = Env.get(self, 'login')
 password = Env.get(self, 'password')
@@ -27,10 +27,13 @@ end
 latest_version = Utils.latest('https://github.com/Koenkk/zigbee2mqtt/releases/latest',
   ::File.exist?("#{node['bridge']['dir']}/.version") ? ::File.read("#{node['bridge']['dir']}/.version").strip : nil)
 
-Common.directories(self, [node['bridge']['dir'], node['bridge']['data']], recreate: latest_version)
+Common.directories(self, node['bridge']['dir'], recreate: latest_version)
 
 if latest_version
 
+  Utils.snapshot(self, node['bridge']['data'])
+
+  # noinspection CookbookSourceRoot
   if ::File.exist?("/etc/systemd/system/zigbee2mqtt.service")
     execute 'stop_zigbee2mqtt' do
       command 'systemctl stop zigbee2mqtt || true'

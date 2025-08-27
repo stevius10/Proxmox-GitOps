@@ -10,8 +10,6 @@
         url: "http://download.proxmox.com/images/system/{{ os.split('/')[-1] }}"
         filename: "{{ os.split('/')[-1] }}"
         content: "vztmpl"
-      validate_certs: no
-      return_content: yes
     register: os_download
 
   - name: Wait for os to be downloaded
@@ -19,10 +17,8 @@
       url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/storage/local/content"
       method: GET
       headers: "{{ proxmox_auth }}"
-      validate_certs: no
-      return_content: yes
+    delay: "{{ check_delay }}"
+    retries: "{{ check_retries }}"
     register: os_available
     until: os in (os_available.json.data | map(attribute='volid') | list)
-    retries: 10
-    delay: 6
     when: os_download is defined

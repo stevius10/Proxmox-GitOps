@@ -31,9 +31,8 @@ Common.directories(self, node['bridge']['dir'], recreate: latest_version)
 
 if latest_version
 
-  Utils.snapshot(self, node['bridge']['data'])
+  Utils.snapshot(self, node['bridge']['data'], snapshot_dir: node['bridge']['dir']) # recovery
 
-  # noinspection CookbookSourceRoot
   if ::File.exist?("/etc/systemd/system/zigbee2mqtt.service")
     execute 'stop_zigbee2mqtt' do
       command 'systemctl stop zigbee2mqtt || true'

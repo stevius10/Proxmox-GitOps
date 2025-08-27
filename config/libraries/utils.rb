@@ -81,7 +81,7 @@ module Utils
       true
     }
     if restore
-      latest = Dir[File.join(snapshot_dir, name, "#{name}*.tar.gz")].max_by { |f| File.mtime(f) }
+      latest = Dir[File.join(snapshot_dir, name, "#{name}-*.tar.gz")].max_by { |f| [File.mtime(f), File.basename(f)] }
       if latest && ::File.exist?(latest)
         FileUtils.rm_rf(dir)
         FileUtils.mkdir_p(dir)

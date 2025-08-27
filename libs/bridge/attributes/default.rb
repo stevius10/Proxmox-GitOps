@@ -1,3 +1,5 @@
+default['ip']                   = "#{ENV['IP']}"
+
 default['app']['user']          = Default.user(node)
 default['app']['group']         = Default.group(node)
 

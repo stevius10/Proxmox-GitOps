@@ -5,14 +5,12 @@
       url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/config"
       method: GET
       headers: "{{ proxmox_auth }}"
-      validate_certs: no
-      return_content: yes
+    delay: "{{ check_delay }}"
+    retries: "{{ check_retries }}"
     register: container_status
     until:
       - container_status.status == 200
       - "'hostname' in container_status.json.data"
-    retries: 5
-    delay: 6
     ignore_errors: yes
 
   - name: Start container

@@ -22,5 +22,8 @@
     include_tasks: add.yml
 
   module_defaults:
-    community.general.proxmox: "{{ proxmox_cred }}"
+    community.general.proxmox: "{{ proxmox_cred | combine({'timeout': 120}, recursive=True) }}"
     community.general.proxmox_vm_info: "{{ proxmox_cred }}"
+    uri:
+      return_content: yes
+      validate_certs: no

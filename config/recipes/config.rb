@@ -60,7 +60,7 @@ execute 'config_git_user' do
   user node['app']['user'] 
 end
 
-[node['git']['org']['main'], node['git']['org']['stage']].each do |org|
+[node['git']['org']['main'], node['git']['org']['stage'], node['git']['org']['tasks']].each do |org|
   ruby_block "config_git_org_#{org}" do
     block do
       (response = Utils.request(uri="#{node['git']['api']['endpoint']}/orgs",
@@ -73,6 +73,7 @@ end
 
 ruby_block 'config_git_environment' do
   block do
-    Env.dump(self, 'proxmox', 'host', 'app', 'login', 'password', 'email')
+    Env.dump(self, 'proxmox', 'host', 'login', 'password', 'email')
+    Env.set(self, 'endpoint', node['git']['api']['endpoint'])
   end
 end

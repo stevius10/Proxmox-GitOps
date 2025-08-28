@@ -23,6 +23,7 @@ default['git']['api']['endpoint']   = "http://#{node['host']}:#{node['git']['por
 
 default['git']['org']['main']       = 'main'
 default['git']['org']['stage']      = 'stage'
+default['git']['org']['tasks']      = 'tasks'
 
 # Runner
 

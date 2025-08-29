@@ -1,5 +1,7 @@
 name: ruby
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
 <% if @cron && !@cron.empty? %>
   schedule:
@@ -24,7 +26,6 @@ jobs:
 
 
       - name: diag
-        shell: bash -euxo pipefail
         run: |
           pwd
           ls -la
@@ -34,7 +35,6 @@ jobs:
 
       - name: run
         working-directory: task
-        shell: bash -euxo pipefail
         env:
           ENDPOINT: ${{ vars.ENDPOINT }}
           LOGIN: ${{ vars.LOGIN }}

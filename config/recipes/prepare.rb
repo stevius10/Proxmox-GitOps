@@ -2,7 +2,7 @@ Common.directories(self, [ (app = node['git']['dir']['app']),
    node['git']['dir']['workspace'], node['runner']['dir']['app'],
   "#{app}/custom", "#{app}/data", "#{app}/gitea-repositories", "#{app}/log" ])
 
-Common.packages(self, %w(git acl python3-pip ansible ansible-core nodejs npm python3-proxmoxer))
+Common.packages(self, %w(git acl python3-pip ansible ansible-core nodejs npm ruby-full python3-proxmoxer))
 
 execute 'prepare_install_ansible' do
   command 'python3 -m pip install --upgrade ansible --break-system-packages'

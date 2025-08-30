@@ -100,7 +100,7 @@ module Utils
     return verify.(snapshot, dir)
   end
 
-  def self.proxmox(uri, ctx, path)
+  def self.proxmox(ctx, path)
     host = Env.get(ctx, 'proxmox_host'); user = Env.get(ctx, 'proxmox_user'); pass = Env.get(ctx, 'proxmox_password')
     token = Env.get(ctx, 'proxmox_token'); secret = Env.get(ctx, 'proxmox_secret')
 

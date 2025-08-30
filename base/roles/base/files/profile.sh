@@ -41,8 +41,21 @@ alias clone='git clone --recurse-submodules'
 alias deploy='git add --all && git commit --allow-empty-message -m "" && git push'
 alias release='git add --all && git commit --allow-empty-message --allow-empty -m "[skip ci]" 2>/dev/null || true && git push origin HEAD && git push origin HEAD:release && git commit --allow-empty-message -m "" && git push origin HEAD:release'
 
+backport() {
+  cur=$(git rev-parse --abbrev-ref HEAD) || return 1
+  sha=$(git rev-parse HEAD) || return 1
+  git fetch origin develop || return 1
+  git switch --detach origin/develop || return 1
+  git switch -c "$b" || return 1
+  git cherry-pick "$sha" || return 1
+  git push -u origin "$b" || return 1
+  git switch "$cur"
+}
+
 # Functions
+
 cdir() { mkdir "$1" && cd "$1"; }
+
 extract () {
    if [ -f "$1" ] ; then
        case "$1" in
@@ -59,6 +72,7 @@ extract () {
        echo "'$1' no valid file"
    fi
 }
+
 package() {
   local project
   project=$(basename "$PWD")
@@ -79,5 +93,4 @@ package() {
       printf "\n---\n\n"
     fi
   done > "$out" <<< "$file_list"
-
 }

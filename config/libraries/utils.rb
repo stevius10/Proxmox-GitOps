@@ -81,7 +81,7 @@ module Utils
       true
     }
     if restore
-      latest = Dir[File.join(snapshot_dir, name, "#{name}*.tar.gz")].max_by { |f| File.mtime(f) }
+      latest = Dir[File.join(snapshot_dir, name, "#{name}-*.tar.gz")].max_by { |f| [File.mtime(f), File.basename(f)] }
       if latest && ::File.exist?(latest)
         FileUtils.rm_rf(dir)
         FileUtils.mkdir_p(dir)
@@ -100,7 +100,7 @@ module Utils
     return verify.(snapshot, dir)
   end
 
-  def self.proxmox(uri, ctx, path)
+  def self.proxmox(ctx, path)
     host = Env.get(ctx, 'proxmox_host'); user = Env.get(ctx, 'proxmox_user'); pass = Env.get(ctx, 'proxmox_password')
     token = Env.get(ctx, 'proxmox_token'); secret = Env.get(ctx, 'proxmox_secret')
 

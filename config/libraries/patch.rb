@@ -55,3 +55,31 @@ class Net::HTTPResponse
     self
   end
 end
+
+# Reference
+
+def include(rel)
+  caller_location = caller_locations(1,1)&.first
+  instance_eval(::File.read(path = ::File.expand_path(::File.join(caller_location&.path ?
+    ::File.dirname(::File.expand_path(caller_location.path)) : ::Dir.pwd, rel))), path)
+end
+
+# Compatibility
+
+unless defined?(Chef)
+  module Chef; end
+end
+unless defined?(Chef::Log)
+  module Chef
+    module Log
+      class << self
+        def info(m)  $stdout.puts m end
+        def warn(m)  $stderr.puts m end
+        def error(m) $stderr.puts m end
+        def debug(m) $stdout.puts m end
+        def method_missing(k, *a) respond_to?(k) ? send(k, *a) : $stdout.puts(a.first) end
+        def respond_to_missing?(*); true end
+      end
+    end
+  end
+end

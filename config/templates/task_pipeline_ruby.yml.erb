@@ -1,0 +1,36 @@
+name: ruby
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+<% if @cron && !@cron.empty? %>
+  schedule:
+    - cron: '<%= @cron %>'
+<% end %>
+
+jobs:
+  run:
+    runs-on: [ "shell" ]
+    steps:
+      - uses: https://gitea.com/actions/checkout@v4
+        with:
+          repository: '<%= @org %>/<%= @repo %>'
+          ref: 'main'
+          path: task
+
+      - uses: https://gitea.com/actions/checkout@v4
+        with:
+          repository: 'main/libraries'
+          ref: 'main'
+          path: task/libraries
+
+      - name: run
+        working-directory: task
+        env:
+          ENDPOINT: ${{ vars.ENDPOINT }}
+          HOST: ${{ vars.HOST }}
+          LOGIN: ${{ vars.LOGIN }}
+          PASSWORD: ${{ vars.PASSWORD }}
+          RUBYLIB: ${{ github.workspace }}/task/libraries
+        run: |
+          ruby default.rb

@@ -32,8 +32,10 @@ export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/${TARGETARCH}}"
 DOCKERFILE_PATH="${DEVELOP_DIR}/Dockerfile"
 BASE=$(find "base" -type f -not -path "*/.git/*" -print0 | sort -z | xargs -0 md5sum | md5sum | awk '{print $1}')
 HASH=$(echo "$(md5sum "$DOCKERFILE_PATH" | awk '{print $1}')${BASE}" | md5sum | awk '{print $1}')
-STORED_HASH_FILE="${DEVELOP_DIR}/.${DOCKER_IMAGE_NAME}.hash"
+STORED_HASH_FILE="${DEVELOP_DIR}/.local.hash"
 STORED_HASH=$(cat "$STORED_HASH_FILE" 2>/dev/null || true)
+
+# Container management
 
 if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "$STORED_HASH" != "$HASH" ]]; then
     log "image" "build_required"
@@ -61,13 +63,17 @@ CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp  \
 log "container" "started:${CONTAINER_ID}"
 sleep "$DOCKER_WAIT"
 
-command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID \
-  cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
-    --config-option cookbook_path='"$COOKBOOK_PATH"' '"$CONFIG_FILE"'  -o '"$RECIPE"''
-docker exec "$CONTAINER_ID" bash -c "$command"  || log "error" "exec_failed"
+# Configuration management
 
-[[ -z "${COOKBOOK_OVERRIDE}" ]] && command+="::repo"
-while true; do
-    log "rerun" "$RECIPE" && read -r
-    docker exec "$CONTAINER_ID" bash -c "$command" || log "error" "exec_failed"
+run() {
+  command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID \
+    cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
+      --config-option cookbook_path='"$COOKBOOK_PATH"' '"$CONFIG_FILE"'  -o '"$RECIPE$1"''
+  docker exec "$CONTAINER_ID" bash -c "$command"  || log "error" "exec_failed"
+}
+
+if [[ -z "${COOKBOOK_OVERRIDE:-}" ]]; then suffixes=(::repo ::task); else suffixes=(); fi
+run ""; while true; do
+  log "rerun" "$RECIPE"; read -r
+  for s in "${suffixes[@]}"; do run "$s"; done
 done

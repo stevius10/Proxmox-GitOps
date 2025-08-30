@@ -1,4 +1,4 @@
-Env.dump(self, cookbook_name, repo: cookbook_name)
+Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
 Env.set(self, 'broker', "mqtt://#{node['ip']}:#{node['broker']['port']}")
 

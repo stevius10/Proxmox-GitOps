@@ -48,14 +48,15 @@
       state: present
     register: container_creation
 
-  - name: Download container os if missing
-    include_tasks: os.yml
-    when:
-      - container_creation.failed
-      - os in (container_creation.msg | default('') )
-
-  - name: Retry create container with os downloaded
-    community.general.proxmox:
+  rescue:
+  - set_fact:
+      os_missing: "{{ (ansible_failed_result.msg | default('')) is search('ostemplate', ignorecase=True) }}"
+  - include_tasks: os.yml
+    when: os_missing
+  - community.general.proxmox:
       <<: *create_container
     register: container_creation
-    when: os_available is defined and os in (os_available.json.data | map(attribute='volid') | list)
+    when: os_missing
+  - fail:
+      msg: "{{ ansible_failed_result.msg | default('container create failed') }}"
+    when: not os_missing

@@ -1,8 +1,12 @@
-Common.directories(self, [ (app = node['git']['dir']['app']),
-   node['git']['dir']['workspace'], node['runner']['dir']['app'],
-  "#{app}/custom", "#{app}/data", "#{app}/gitea-repositories", "#{app}/log" ])
+# Filesystem
 
-Common.packages(self, %w(git acl python3-pip ansible ansible-core nodejs npm python3-proxmoxer))
+Common.directories(self, [ (app = node['git']['dir']['app']),
+   "#{app}/custom", "#{app}/data", "#{app}/gitea-repositories", "#{app}/log",
+   node['git']['dir']['workspace'], node['runner']['dir']['app'] ])
+
+# Packages
+
+Common.packages(self, %w(git acl python3-pip ansible ansible-core nodejs npm ruby-full python3-proxmoxer))
 
 execute 'prepare_install_ansible' do
   command 'python3 -m pip install --upgrade ansible --break-system-packages'
@@ -29,3 +33,9 @@ file "#{node['git']['dir']['home']}/.ssh/config" do
   group node['app']['group']
   mode '0600'
 end
+
+# Runtime
+
+node.run_state['login']     = Env.get(self, 'login')
+node.run_state['password']  = Env.get(self, 'password')
+node.run_state['email']     = Env.get(self, 'email')

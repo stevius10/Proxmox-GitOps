@@ -1,6 +1,10 @@
+# Filesystem
+
 Common.directories(self, [ (app = node['git']['dir']['app']),
-   node['git']['dir']['workspace'], node['runner']['dir']['app'],
-  "#{app}/custom", "#{app}/data", "#{app}/gitea-repositories", "#{app}/log" ])
+   "#{app}/custom", "#{app}/data", "#{app}/gitea-repositories", "#{app}/log",
+   node['git']['dir']['workspace'], node['runner']['dir']['app'] ])
+
+# Packages
 
 Common.packages(self, %w(git acl python3-pip ansible ansible-core nodejs npm ruby-full python3-proxmoxer))
 
@@ -29,3 +33,9 @@ file "#{node['git']['dir']['home']}/.ssh/config" do
   group node['app']['group']
   mode '0600'
 end
+
+# Runtime
+
+node.run_state['login']     = Env.get(self, 'login')
+node.run_state['password']  = Env.get(self, 'password')
+node.run_state['email']     = Env.get(self, 'email')

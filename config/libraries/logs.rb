@@ -25,17 +25,17 @@ module Logs
     log({ "environment":  ENV.to_h, "node": Ctx.node(ctx) }, level: 'debug')
   end
 
-  def self.try!(msg, *pairs, e:nil, ctx: nil, raise: false)
+  def self.try!(msg, *pairs, ctx: nil, raise: false)
     yield
-  rescue => e
-    debug("failed: #{msg}: #{e.message}", *(pairs.flatten), ctx: ctx, level: (raise ? :error : :warn))
-    raise("[#{method_label(callsite)}] #{e.message if e} #{msg}") if raise
+  rescue => exception
+    debug("failed: #{msg}: #{exception.message}", *(pairs.flatten), ctx: ctx, level: (raise ? :error : :warn))
+    raise("[#{method_label(callsite)}] #{exception.message} #{msg}") if raise
   end
 
   def self.request!(uri, response, valid=[], msg: nil, ctx: nil)
     res = try!("failed request", [:uri, uri, :response, response]) do
       if valid.presence # if valid status code required
-        raise("[#{method_label(callsite)}] #{e.message if e} #{msg}") unless
+        raise("[#{method_label(callsite)}] #{msg}") unless
           (valid == true && response.is_a?(Net::HTTPSuccess) or valid.include?(response.code.to_i))
       end
       response ? "#{response.code} #{response.message}" : response

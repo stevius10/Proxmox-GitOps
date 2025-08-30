@@ -4,13 +4,14 @@ require 'fileutils'
 source = ENV['PWD'] || Dir.pwd
 destination = node['git']['dir']['workspace']
 working = "#{destination}/workdir"
+
 is_bootstrap = ['127.0.0.1', 'localhost', '::1'].include?(Env.get(self, 'host'))
 
 Common.directories(self, [destination, working], recreate: true)
 
 (repositories = node['git']['conf']['repo']
-                  .flat_map { |r| (r == './libs') ? Dir.glob(File.join(source, r, '*')).select { |d| File.directory?(d) }.map { |p| p.sub(source, '.') } : r }
-                  .sort_by { |r| r == "./" ? 1 : 0 }).each do |repository|
+  .flat_map { |r| (r == './libs') ? Dir.glob(File.join(source, r, '*')).select { |d| File.directory?(d) }.map { |p| p.sub(source, '.') } : r }
+  .sort_by { |r| r == "./" ? 1 : 0 }).each do |repository|
 
   monorepo = (repository == "./")
   path_source = monorepo ? source : File.expand_path(repository.to_s, source.to_s)
@@ -28,15 +29,12 @@ Common.directories(self, [destination, working], recreate: true)
   @is_bootstrap = is_bootstrap
 
   include 'repo/exists.rb'
-  include 'repo/request.rb'
   include 'repo/init.rb'
-  include 'repo/snapshot.rb'
   include 'repo/files.rb'
-  include 'repo/pipeline.rb'
 
   if @monorepo
     @submodules = repositories.reject { |r| r == "./" }
-    include 'repo/submodules.rb'
+    include 'repo/modules.rb'
   end
 
   include 'repo/push.rb'
@@ -51,9 +49,3 @@ Common.directories(self, [destination, working], recreate: true)
 end
 
 Common.application(self, 'runner', actions: [:force_restart])
-
-ruby_block "#{cookbook_name}_env_dump" do
-  block do
-    Env.dump(self, ['ip', 'git', 'runner'], repo: cookbook_name)
-  end
-end

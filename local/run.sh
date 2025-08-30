@@ -32,7 +32,7 @@ export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/${TARGETARCH}}"
 DOCKERFILE_PATH="${DEVELOP_DIR}/Dockerfile"
 BASE=$(find "base" -type f -not -path "*/.git/*" -print0 | sort -z | xargs -0 md5sum | md5sum | awk '{print $1}')
 HASH=$(echo "$(md5sum "$DOCKERFILE_PATH" | awk '{print $1}')${BASE}" | md5sum | awk '{print $1}')
-STORED_HASH_FILE="${DEVELOP_DIR}/.${DOCKER_IMAGE_NAME}.hash"
+STORED_HASH_FILE="${DEVELOP_DIR}/.local.hash"
 STORED_HASH=$(cat "$STORED_HASH_FILE" 2>/dev/null || true)
 
 # Container management

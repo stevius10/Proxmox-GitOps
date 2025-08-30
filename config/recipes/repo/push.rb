@@ -21,10 +21,7 @@ execute "repo_#{name_repo}_push" do
     fi
   fi
   EOH
-  notifies :run, "ruby_block[dump_variables_#{cookbook_name}]", :delayed if monorepo
 end
-
-name_repo = @name_repo; repository = @repository; path_destination = @path_destination;
 
 execute "repo_#{name_repo}_exists_snapshot_push" do
   command <<-EOH

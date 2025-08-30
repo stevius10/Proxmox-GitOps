@@ -24,23 +24,13 @@ jobs:
           ref: 'main'
           path: task/libraries
 
-
-      - name: diag
-        run: |
-          pwd
-          ls -la
-          ls -la task || true
-          ls -la task/libraries || true
-          find task -maxdepth 2 -type f | sort || true
-
       - name: run
         working-directory: task
         env:
           ENDPOINT: ${{ vars.ENDPOINT }}
+          HOST: ${{ vars.HOST }}
           LOGIN: ${{ vars.LOGIN }}
           PASSWORD: ${{ vars.PASSWORD }}
           RUBYLIB: ${{ github.workspace }}/task/libraries
         run: |
-          test -f default.rb
-          ruby -v
           ruby default.rb

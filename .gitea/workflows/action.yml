@@ -65,6 +65,6 @@ runs:
     - name: Configure container
       run: |
         tar -c "${{ env.repo }}" -cz . | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${{ env.id }}" "config@${{ env.ip }}" 'sudo tar xz -C /tmp
-          sudo -E IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} PWD="$(pwd)" \
+          sudo -E IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} ENDPOINT=${{ vars.ENDPOINT }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} PWD="$(pwd)" \
             cinc-client --local-mode $CONFIG_ARGS --config-option cookbook_path="/tmp" -o "${{ env.repo }}"'
       shell: bash

@@ -33,5 +33,4 @@ end
 
 Common.application(self, 'mosquitto',
   exec:  "/usr/sbin/mosquitto -c #{node['broker']['file']['config']}",
-  subscribe: [ "template[#{node['broker']['file']['config']}]",
-               "template[#{node['broker']['file']['user']}]"  ] )
+  subscribe: [ "template[#{node['broker']['file']['config']}]", "template[#{node['broker']['file']['user']}]"  ] )

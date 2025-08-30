@@ -61,20 +61,18 @@ module Env
         Env.set_variable(node, key, val, repo: repo, owner: owner) unless val.blank?
       in Array => a
         a.each { |x| f.(x) }
-    else
-      val = node[keys]; return if val.blank?
-      if val.is_a?(Hash)
-        val.each { |subkey, subvalue| Env.set_variable(node, "#{keys}_#{subkey}", subvalue, repo: repo, owner: owner) unless subvalue.blank? }
-      elsif val.is_a?(Array)
-        val.each_with_index { |x, i| Env.set_variable(node, "#{keys}_#{i}", x, repo: repo, owner: owner) unless x.blank? }
       else
-        Env.set_variable(node, keys, val, repo: repo, owner: owner)
-      end
+        val = node[keys]; return if val.blank?
+        if val.is_a?(Hash)
+         val.each { |subkey, subvalue| Env.set_variable(node, "#{keys}_#{subkey}", subvalue, repo: repo, owner: owner) unless subvalue.blank? }
+        elsif val.is_a?(Array)
+         val.each_with_index { |x, i| Env.set_variable(node, "#{keys}_#{i}", x, repo: repo, owner: owner) unless x.blank? }
+        else
+         Env.set_variable(node, keys, val, repo: repo, owner: owner)
+        end
       end end
       keys.each { |key| f.(key) }
       true
-    end
-
-  end
-
+    end end
+  
 end

@@ -9,4 +9,3 @@ default['broker']['dir']['data']    = '/app/broker/data'
 default['broker']['dir']['log']     = '/app/broker/logs'
 default['broker']['file']['config'] = '/app/broker/mosquitto.conf'
 default['broker']['file']['user']   = '/app/broker/user'
-

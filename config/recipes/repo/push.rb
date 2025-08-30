@@ -1,4 +1,4 @@
-name_repo = @name_repo; repository = @repository; path_destination = @path_destination; is_bootstrap = @is_bootstrap
+name_repo = @name_repo; repository = @repository; monorepo = @monorepo; path_destination = @path_destination; path_working = @path_working; is_bootstrap = @is_bootstrap
 
 execute "repo_#{name_repo}_push" do
   cwd path_destination
@@ -21,5 +21,20 @@ execute "repo_#{name_repo}_push" do
     fi
   fi
   EOH
-  notifies :run, "ruby_block[dump_variables_#{cookbook_name}]", :delayed if @monorepo
+  notifies :run, "ruby_block[dump_variables_#{cookbook_name}]", :delayed if monorepo
+end
+
+name_repo = @name_repo; repository = @repository; path_destination = @path_destination;
+
+execute "repo_#{name_repo}_exists_snapshot_push" do
+  command <<-EOH
+    cp -r #{path_destination}/.git #{path_working}
+    cd #{path_working} && git checkout -b snapshot && git add -A
+    git commit --allow-empty -m "snapshot [skip ci]"
+    git push -f origin snapshot && (rm -rf #{path_working} || true)
+  EOH
+  cwd path_destination
+  user node['app']['user']
+  only_if { Logs.info("[#{repository} (#{name_repo})]: snapshot commit")
+  node.run_state["#{name_repo}_repo_exists"] }
 end

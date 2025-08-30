@@ -1,8 +1,6 @@
 # ! cron '*/30 * * * *'
 
-require 'env'
-require 'logs'
+Dir[File.join(__dir__, 'libraries', '**', '*.rb')].sort.each { |f| require f }
+ctx = { "endpoint"=>ENV["ENDPOINT"], "host"=>ENV["HOST"], "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"],  }
 
-$CTX = { "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"], "git"=>{"api"=>{"endpoint"=>ENV["ENDPOINT"]}} }
-
-puts Env.get($CTX, :ip) # TODO: shared library test
+puts(Utils.proxmox(ctx, 'nodes/pve/lxc')) # TODO: shared library test

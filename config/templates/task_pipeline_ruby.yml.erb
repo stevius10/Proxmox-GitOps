@@ -1,5 +1,7 @@
 name: ruby
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
 <% if @cron && !@cron.empty? %>
   schedule:
@@ -22,25 +24,13 @@ jobs:
           ref: 'main'
           path: task/libraries
 
-
-      - name: diag
-        shell: bash -euxo pipefail
-        run: |
-          pwd
-          ls -la
-          ls -la task || true
-          ls -la task/libraries || true
-          find task -maxdepth 2 -type f | sort || true
-
       - name: run
         working-directory: task
-        shell: bash -euxo pipefail
         env:
           ENDPOINT: ${{ vars.ENDPOINT }}
+          HOST: ${{ vars.HOST }}
           LOGIN: ${{ vars.LOGIN }}
           PASSWORD: ${{ vars.PASSWORD }}
           RUBYLIB: ${{ github.workspace }}/task/libraries
         run: |
-          test -f default.rb
-          ruby -v
           ruby default.rb

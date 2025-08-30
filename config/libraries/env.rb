@@ -53,26 +53,48 @@ module Env
     return response
   end
 
-  def self.dump(ctx, *keys, repo: nil, owner: nil)
+  def self.dump(ctx, *args, repo: nil, owner: nil)
     Logs.try!("dump variables", [:repo, repo, :owner, owner], raise: true) do
-      node = Ctx.node(ctx); f = ->(keys) do; case keys
-      in [key, value] if !key.is_a?(Array)
-        val = value.respond_to?(:call) ? value.call(node) : (value.is_a?(Array) ? node.dig(*value) : value)
-        Env.set_variable(node, key, val, repo: repo, owner: owner) unless val.blank?
-      in Array => a
-        a.each { |x| f.(x) }
-      else
-        val = node[keys]; return if val.blank?
-        if val.is_a?(Hash)
-         val.each { |subkey, subvalue| Env.set_variable(node, "#{keys}_#{subkey}", subvalue, repo: repo, owner: owner) unless subvalue.blank? }
-        elsif val.is_a?(Array)
-         val.each_with_index { |x, i| Env.set_variable(node, "#{keys}_#{i}", x, repo: repo, owner: owner) unless x.blank? }
+      node = Ctx.node(ctx)
+      get = ->(key) { k = key.is_a?(String) ? key : key.to_s; node[key] || node[k] || node[k.to_sym] }
+      set = ->(key, value) { Env.set_variable(node, key, value, repo: repo, owner: owner) unless value.blank? }
+      resolve = ->(key, value) do
+        v = value
+        v = v.call(node) if v.respond_to?(:call)
+        v = node.dig(*v) if v.is_a?(Array)
+        set.(key, v)
+      end
+      single = args.length == 1 && args.first.is_a?(Array)
+      work = single ? args.first : args
+      rec = nil
+      rec = ->(arg) do
+        case arg
+        when Hash
+          arg.each { |key, value| resolve.(key, value) }
+        when Array
+          if !single && arg.length == 2 && !arg.first.is_a?(Array)
+            key, value = arg
+            resolve.(key, value)
+          else
+            arg.each { |x| rec.(x) }
+          end
         else
-         Env.set_variable(node, keys, val, repo: repo, owner: owner)
+          value = get.(arg)
+          if value.present?
+            case value
+            when Hash
+              value.each { |subkey, subvalue| set.("#{arg}_#{subkey}", subvalue) unless subvalue.blank? }
+            when Array
+              value.each_with_index { |subvalue, i| set.("#{arg}_#{i}", subvalue) unless subvalue.blank? }
+            else
+              set.(arg, value)
+            end
+          end
         end
-      end end
-      keys.each { |key| f.(key) }
+      end
+      work.each { |x| rec.(x) }
       true
-    end end
-  
-end
+    end
+  end
+
+  end

@@ -152,6 +152,8 @@ module Utils
       mode 775
       action :create
     end
+
+    return version
   end
 
   def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0754', action: :create)

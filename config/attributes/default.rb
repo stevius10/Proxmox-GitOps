@@ -11,6 +11,7 @@ default['git']['conf']['repo']      = [ "./", "./base", "./config/libraries", ".
 
 default['git']['dir']['app']        = '/app/git'
 default['git']['dir']['home']       = Dir.home(node['app']['user']) || ENV['HOME'] || '/app'
+default['git']['dir']['custom']     = "#{node['git']['dir']['app']}/custom"
 default['git']['dir']['workspace']  = "#{node['git']['dir']['home']}/workspace"
 
 default['git']['port']['http']      = 8080

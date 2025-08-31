@@ -1,0 +1,4 @@
+<% (node['git']['org'] || {}).values.compact.each do |org| %>
+  <a class="item" href="{{AppSubUrl}}/<%= org %>"><%= org %></a>
+<% end %>
+<a class="item" href="{{AppSubUrl}}/main/config">Monorepo</a>

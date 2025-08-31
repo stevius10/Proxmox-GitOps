@@ -9,7 +9,6 @@ Utils.wait("127.0.0.1:#{node['git']['port']['http']}", timeout: 15, sleep_interv
 execute 'config_set_user' do
   user node['app']['user']
   command <<-EOH
-    login="#{login}"
     base="#{node['git']['dir']['app']}/gitea admin user --config #{node['git']['dir']['app']}/app.ini"
     user="--username #{login} --password #{password}"
     create="--email #{email} --admin --must-change-password=false"
@@ -75,10 +74,9 @@ end
 
   ruby_block "create_org_#{org}" do
     block do
-      name, password = Env.creds(self)
       uri = "#{node.dig('git','api','endpoint')}/orgs"
-      r = Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON, body: { username: org }.to_json, user: name, pass: password)
-      Logs.request!(uri, r, [201, 409, 422], msg: "create organization '#{org}'")
+      response = Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON, body: { username: org }.to_json, user: login, pass: password)
+      Logs.request!(uri, response, [201, 409, 422], msg: "create organization '#{org}'")
     end
     notifies :run, "ruby_block[dump_variables_#{org}]", :immediate
   end

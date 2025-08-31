@@ -1,32 +1,27 @@
 require 'find'
 require 'fileutils'
 
-source = ENV['PWD'] || Dir.pwd
-destination = node['git']['dir']['workspace']
-working = "#{destination}/workdir"
+@login    = (login    = node.run_state['login'])
+@password = (password = node.run_state['password'])
+@email    = (email    = node.run_state['email'])
 
-is_bootstrap = ['127.0.0.1', 'localhost', '::1'].include?(Env.get(self, 'host'))
+@destination  = (destination = node['git']['dir']['workspace'])
+@is_bootstrap = (is_bootstrap = ['127.0.0.1', 'localhost', '::1'].include?(Env.get(self, 'host')))
+
+source = ENV['PWD'] || Dir.pwd
+working = "#{destination}/workdir"
 
 Common.directories(self, [destination, working], recreate: true)
 
 (repositories = node['git']['conf']['repo']
   .flat_map { |r| (r == './libs') ? Dir.glob(File.join(source, r, '*')).select { |d| File.directory?(d) }.map { |p| p.sub(source, '.') } : r }
-  .sort_by { |r| r == "./" ? 1 : 0 }).each do |repository|
+  .sort_by { |r| r == "./" ? 1 : 0 }).each do |repository| @repository = repository
 
-  monorepo = (repository == "./")
-  path_source = monorepo ? source : File.expand_path(repository.to_s, source.to_s)
-  name_repo = File.basename(path_source)
-  path_working = "#{working}/#{name_repo}"
-  path_destination = monorepo ? destination : File.expand_path(name_repo, destination)
-
-  @repository = repository
-  @monorepo = monorepo
-  @path_source = path_source
-  @name_repo = name_repo
-  @path_working = path_working
-  @path_destination = path_destination
-  @destination = destination
-  @is_bootstrap = is_bootstrap
+  monorepo = (repository == "./"); @monorepo = monorepo
+  path_source = monorepo ? source : File.expand_path(repository.to_s, source.to_s); @path_source = path_source
+  name_repo = File.basename(path_source); @name_repo = name_repo
+  path_working = "#{working}/#{name_repo}"; @path_working = path_working
+  path_destination = monorepo ? destination : File.expand_path(name_repo, destination); @path_destination = path_destination
 
   include 'repo/exists.rb'
   include 'repo/init.rb'

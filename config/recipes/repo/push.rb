@@ -1,4 +1,4 @@
-name_repo = @name_repo; repository = @repository; monorepo = @monorepo; path_destination = @path_destination; path_working = @path_working; is_bootstrap = @is_bootstrap
+name_repo = @name_repo; repository = @repository; path_destination = @path_destination; path_working = @path_working; is_bootstrap = @is_bootstrap
 
 execute "repo_#{name_repo}_push" do
   cwd path_destination
@@ -23,7 +23,7 @@ execute "repo_#{name_repo}_push" do
   EOH
 end
 
-execute "repo_#{name_repo}_exists_snapshot_push" do
+execute "repo_#{name_repo}_push_snapshot" do
   command <<-EOH
     cp -r #{path_destination}/.git #{path_working}
     cd #{path_working} && git checkout -b snapshot && git add -A

@@ -1,25 +1,34 @@
-name_repo = @name_repo; repository = @repository; monorepo = @monorepo; path_destination = @path_destination
+name_repo = @name_repo; repository = @repository; monorepo = @monorepo; path_destination = @path_destination; login = @login; password = @password;
 
-ruby_block "repo_#{name_repo}_request" do
+ruby_block "repo_#{name_repo}_init_request" do
   only_if { Logs.info?("[#{repository} (#{name_repo})] create repository") }
   block do
     uri="#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['main']}/repos"
     response = Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
-      user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
+      user: login, pass: password,
       body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.json )
     Logs.request!(uri, response, [201], msg: "Create repository '#{name_repo}'")
     response.json
   end
 end
 
-ruby_block "dump_variables_#{cookbook_name}" do
+ruby_block "repo_#{name_repo}_init_configure" do
+  block do
+    uri = "#{node.dig('git','api','endpoint')}/repos/#{node['git']['org']['main']}/#{name_repo}"
+    response = Utils.request(uri, method: Net::HTTP::Patch, headers: Constants::HEADER_JSON, user: login, pass: password,
+      body: { has_issues: false, has_wiki: false, has_projects: false, has_packages: false, has_releases: false }.json )
+    Logs.request!(uri, response, msg: "Configure repository '#{name_repo}'")
+  end
+end
+
+ruby_block "repo_#{name_repo}_init_dump" do
   block do
     Env.dump(self, ['ip', 'git', 'runner'], repo: cookbook_name)
   end
   only_if { monorepo }
 end
 
-execute "repo_#{name_repo}_git_init" do
+execute "repo_#{name_repo}_init_git" do
   command <<-EOH
     mkdir -p #{path_destination} && cd #{path_destination} && git init -b main
   EOH
@@ -35,7 +44,7 @@ template "#{path_destination}/.git/config" do
   only_if { ::File.directory?("#{path_destination}/.git") }
 end
 
-execute "repo_#{name_repo}_git_empty" do
+execute "repo_#{name_repo}_init_base" do
   only_if { Logs.info?("[#{repository} (#{name_repo})] base commit") }
   command <<-EOH
     git commit --allow-empty -m "base commit [skip ci]" && git checkout -b release

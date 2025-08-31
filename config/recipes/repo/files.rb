@@ -1,4 +1,4 @@
-name_repo = @name_repo; path_source = @path_source; path_destination = @path_destination
+name_repo = @name_repo; repository = @repository;path_source = @path_source; path_destination = @path_destination
 
 ruby_block "repo_#{name_repo}_files" do
   block do
@@ -17,7 +17,7 @@ ruby_block "repo_#{name_repo}_files" do
   end
 end
 
-repository = @repository; path_destination = @path_destination
+# Pipeline
 
 directory "#{path_destination}/.gitea/workflows" do
   recursive true

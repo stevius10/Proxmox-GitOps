@@ -137,6 +137,23 @@ module Utils
     return expect ? response.is_a?(Net::HTTPSuccess) : response
   end
 
+  def self.install(ctx, uri, app_dir, data_dir, version_dir: "/app", snapshot_dir: '/share/snapshots')
+    version_file = File.join(version_dir, '.version')
+    version_installed = ::File.exist?(version_file) ? ::File.read(version_file).strip : nil
+    version = latest(uri, version_installed)
+    Common.directories(ctx, app_dir, recreate: version)
+    snapshot(ctx, data_dir, snapshot_dir: snapshot_dir) if version
+    return false unless version
+
+    ctx.file version_file do
+      content version.to_s
+      owner Default.user(ctx)
+      group Default.group(ctx)
+      mode 775
+      action :create
+    end
+  end
+
   def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0754', action: :create)
     ctx.remote_file path do
       source url.respond_to?(:call) ? lazy { url.call } : url

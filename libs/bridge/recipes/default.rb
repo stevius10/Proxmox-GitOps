@@ -24,14 +24,8 @@ execute 'install_pnpm' do
   not_if 'which pnpm'
 end
 
-latest_version = Utils.latest('https://github.com/Koenkk/zigbee2mqtt/releases/latest',
-  ::File.exist?("#{node['bridge']['dir']}/.version") ? ::File.read("#{node['bridge']['dir']}/.version").strip : nil)
-
-Common.directories(self, node['bridge']['dir'], recreate: latest_version)
-
-if latest_version
-
-  Utils.snapshot(self, node['bridge']['data'], snapshot_dir: node['bridge']['dir']) # recovery
+if (latest_version = Utils.install(self, "https://github.com/Koenkk/zigbee2mqtt/releases/latest",
+  node['bridge']['dir'], node['bridge']['data']))
 
   if ::File.exist?("/etc/systemd/system/zigbee2mqtt.service")
     execute 'stop_zigbee2mqtt' do
@@ -60,28 +54,28 @@ if latest_version
     action :nothing
   end
 
-end
+  template "#{node['bridge']['data']}/configuration.yaml" do
+    source 'configuration.yaml.erb'
+    owner node['app']['user']
+    group node['app']['group']
+    mode '0644'
+    variables(
+      port: node['bridge']['port'],
+      serial: node['bridge']['serial'],
+      adapter: node['bridge']['adapter'],
+      data_dir: node['bridge']['data'],
+      logs_dir: node['bridge']['logs'],
+      broker_host: broker,
+      broker_user: login,
+      broker_password: password
+    )
+    only_if { !::File.exist?("#{node['bridge']['data']}/configuration.yaml") }
+  end
 
-template "#{node['bridge']['data']}/configuration.yaml" do
-  source 'configuration.yaml.erb'
-  owner node['app']['user']
-  group node['app']['group']
-  mode '0644'
-  variables(
-    port: node['bridge']['port'],
-    serial: node['bridge']['serial'],
-    adapter: node['bridge']['adapter'],
-    data_dir: node['bridge']['data'],
-    logs_dir: node['bridge']['logs'],
-    broker_host: broker,
-    broker_user: login,
-    broker_password: password
-  )
-  only_if { latest_version && !::File.exist?("#{node['bridge']['data']}/configuration.yaml") }
-end
+  ruby_block "restore_snapshot_if_exists" do
+    block { Utils.snapshot(self, node['bridge']['data'], restore: true) }
+  end
 
-ruby_block "restore_snapshot_if_exists" do
-  block { Utils.snapshot(self, node['bridge']['data'], restore: true) }
 end
 
 Common.application(self, 'zigbee2mqtt', cwd: node['bridge']['dir'],

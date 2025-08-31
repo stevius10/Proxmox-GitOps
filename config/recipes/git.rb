@@ -13,8 +13,10 @@ template "#{node['git']['dir']['app']}/app.ini" do
   action :create_if_missing
 end
 
+include_recipe('config::customize') if node['git']['conf']['customize']
+
 Common.application(self, 'gitea',
   user: node['app']['user'] , cwd: node['git']['dir']['data'],
-  exec: "#{node['git']['dir']['app']}/gitea web --config #{node['git']['dir']['app']}/app.ini",
+  exec: "#{node['git']['dir']['app']}/gitea web --config #{node['git']['dir']['app']}/app.ini --custom-path #{node['git']['dir']['custom']}",
   unit: { 'Service' => { 'Environment' => "USER=#{node['app']['user'] } HOME=#{node['git']['dir']['home']}" } },
   subscribe: ["template[#{node['git']['dir']['app']}/app.ini]", "remote_file[#{node['git']['dir']['app']}/gitea]"] )

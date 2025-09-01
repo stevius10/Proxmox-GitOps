@@ -15,7 +15,7 @@ module Env
     Logs.try!("get '#{key}'", ctx: ctx) do
       node = Ctx.node(ctx)
       env_key = ENV[key.to_s.upcase]
-      return node[key] if node[key].present?
+      return node[key] if node.dig(key).present?
       return env_key if env_key.present?
       return get_variable(ctx, key)
     end
@@ -72,7 +72,7 @@ module Env
         when Hash
           arg.each { |key, value| resolve.(key, value) }
         when Array
-          if !single && arg.length == 2 && !arg.first.is_a?(Array)
+          if arg.length == 2 && !arg.first.is_a?(Array)
             key, value = arg
             resolve.(key, value)
           else

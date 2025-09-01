@@ -36,7 +36,7 @@ module Logs
     res = try!("failed request", [:uri, uri, :response, response]) do
       if valid.presence # if valid status code required
         raise("[#{method_label(callsite)}] #{msg}") unless
-          (valid == true && response.is_a?(Net::HTTPSuccess) or valid.include?(response.code.to_i))
+          (valid == true && (response.is_a?(Net::HTTPSuccess) or valid.include?(response.code.to_i)))
       end
       response ? "#{response.code} #{response.message}" : response
     end

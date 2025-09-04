@@ -50,7 +50,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 - **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity. 
 
 <p align="center">
-  <img src="./docs/recursion.png" alt="Pipeline"/>
+  <img src="docs/img/recursion.png" alt="Pipeline"/>
 </p>
 
 ### Trade-offs
@@ -91,7 +91,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 - Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE
 
 <p align="center">
-  <img src="./docs/nutshell.png" alt="in a nutshell"/>
+  <img src="docs/img/nutshell.png" alt="in a nutshell"/>
 </p>
 
 #### Development and Extension
@@ -129,7 +129,7 @@ Common.application(self, 'apache2') # provided by convention
 - Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
 
 <p align="center">
-  <img src="./docs/environment.png" alt="Global Environment"/>
+  <img src="docs/img/environment.png" alt="Global Environment"/>
 </p>
 
 - Add to Monorepository and redeploy.
@@ -137,5 +137,5 @@ Common.application(self, 'apache2') # provided by convention
 The container can be tested locally running `./local/run.sh [container]` (_wip_)
 
 <p align="center">
-  <img src="./docs/development.png" alt="Local Development"/>
+  <img src="docs/img/development.png" alt="Local Development"/>
 </p>

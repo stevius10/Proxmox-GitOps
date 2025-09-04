@@ -46,9 +46,9 @@ backport() {
   sha=$(git rev-parse HEAD) || return 1
   git fetch origin develop || return 1
   git switch --detach origin/develop || return 1
-  git switch -c "$b" || return 1
+  git switch -c "$1" || return 1
   git cherry-pick "$sha" || return 1
-  git push -u origin "$b" || return 1
+  git push -u origin "$1" || return 1
   git switch "$cur"
 }
 

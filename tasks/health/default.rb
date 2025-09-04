@@ -22,17 +22,17 @@ containers.each do |container|
 
   # Description
 
-  repository_description = "#{hostname}:#{id} (#{ip}) [#{status}]"
-  repository_url = "https://#{Env.get(self, 'PROXMOX_HOST')}:8006/#v1:0:=lxc%2F#{id}"
+  repository_description = "[#{status}] #{id} (#{ip})"
+  repository_url = "https://#{Env.get(ctx, 'PROXMOX_HOST')}:8006/#v1:0:=lxc%2F#{id}"
 
   # Set repository description
 
-  uri = "https://#{Env.endpoint(ctx)}/repos/main/#{hostname}"
-  Logs.try!("Set #{hostname} to #{val}",[:uri, uri, :hostname, hostname, :status, status], ctx: ctx) do
+  uri = "#{Env.get(ctx, "ENDPOINT")}/repos/main/#{hostname}"
+  Logs.try!("Set #{hostname} to #{val}",[:uri, uri, :hostname, hostname, :status, status]) do
     response = Utils.request(uri, user: ctx['login'], pass: ctx['password'],
       method: Net::HTTP::Patch, headers: Constants::HEADER_JSON,
       body: { description: repository_description, website: repository_url }.json)
-    Logs.request!(uri, response, ctx)
+    Logs.request!(uri, response)
   end
 
 end

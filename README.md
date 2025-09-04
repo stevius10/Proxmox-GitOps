@@ -20,7 +20,7 @@
 
 ## Overview
 
-<img src="docs/img/monorepo.png" alt="Monorepo" align="right" width="280">
+<img src="docs/img/monorepo.png" alt="Monorepo" align="right" height="150">
 
 Proxmox-GitOps implements a self-sufficient, extensible CI/CD environment for provisioning, configuring, and orchestrating Linux Containers (LXC) within Proxmox VE. Leveraging an Infrastructure-as-Code (IaC) approach, it manages the entire container lifecycle—bootstrapping, deployment, configuration, and validation—through version-controlled automation.
 

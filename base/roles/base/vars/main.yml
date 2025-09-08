@@ -1,9 +1,9 @@
 default_packages:
-  - vim
-  - wget
   - sudo
+  - locales
   - curl
   - unzip
+  - vim
 
 default_groups: ["config"]
 

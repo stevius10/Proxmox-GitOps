@@ -9,6 +9,14 @@
       group: root
       mode: '0644'
 
+  - name: Set locale
+    copy:
+      src: locale
+      dest: /etc/default/locale
+      owner: root
+      group: root
+      mode: '0644'
+
   - name: Set profile
     copy:
       src: profile.sh
@@ -29,3 +37,22 @@
           owner: root
           group: root
           mode: '0644'
+
+  - name: Timezone
+    block:
+
+      - name: Timezone file
+        ansible.builtin.lineinfile:
+          path: /etc/timezone
+          create: yes
+          line: 'Europe/Berlin'
+
+      - name: Timezone link
+        ansible.builtin.file:
+          src: /usr/share/zoneinfo/Europe/Berlin
+          dest: /etc/localtime
+          state: link
+          force: yes
+
+      - name: Configure timezone
+        ansible.builtin.command: dpkg-reconfigure -f noninteractive tzdata

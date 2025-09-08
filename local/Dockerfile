@@ -1,14 +1,13 @@
-FROM debian:bookworm
+FROM debian:trixie
 ARG TARGETARCH=arm64
 
 ENV IP=127.0.0.1 ID=254 ANSIBLE_ROLES_PATH=/tmp/config/base LC_ALL=C.UTF-8
 STOPSIGNAL SIGRTMIN+3
 
 RUN apt update -y && \
-    apt install -y systemd python3 python3-pip python3-proxmoxer curl openssh-client wget && \
+    apt install -y systemd python3 python3-pip python3-proxmoxer openssh-client ansible && \
     apt clean all && \
-    apt autoremove -y && \
-    rm -rf /var/cache/dnf/* /tmp/* /var/tmp/*
+    apt autoremove -y
 
 RUN rm -rf /lib/systemd/system/multi-user.target.wants/* && \
     rm -rf /etc/systemd/system/*.wants/* && \
@@ -18,7 +17,6 @@ RUN rm -rf /lib/systemd/system/multi-user.target.wants/* && \
     rm -rf /lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup* && \
     rm -rf /lib/systemd/system/systemd-update-utmp*
 
-RUN python3 -m pip install --upgrade ansible --break-system-packages
 RUN ansible-galaxy collection install community.general --force
 
 RUN mkdir -p /app/.ssh /share/.ssh && ssh-keygen -t ed25519 -f "/share/.ssh/${ID}" -N ''

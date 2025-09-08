@@ -10,7 +10,7 @@
 
   - name: Remove existing container
     include_tasks: remove.yml
-    when: container_exists is success and (container_exists.proxmox_vms | length) > 0
+    when: (container_exists.proxmox_vms | default([]) | length) > 0
 
   - name: Create container
     include_tasks: create.yml

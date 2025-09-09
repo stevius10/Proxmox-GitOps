@@ -57,7 +57,6 @@ jobs:
           ID: ${{ needs.init.outputs.id }}
         run: |
           sudo apt update -y && sudo apt install -y systemd ansible python3 python3-pip curl wget
-          sudo python3 -m pip install --upgrade ansible --break-system-packages --ignore-installed ansible-core resolvelib
           ssh-keygen -t ed25519 -f "${ID}" -N ''
           cat <<EOF > base.yml
           - hosts: localhost

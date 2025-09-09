@@ -16,7 +16,7 @@
 
     - name: Download configuration management
       ansible.builtin.get_url:
-        url: "https://downloads.cinc.sh/files/stable/cinc/{{ cinc_version }}/debian/12/cinc_{{ cinc_version }}-1_{{ arch | default('amd64') }}.deb"
+        url: "https://downloads.cinc.sh/files/stable/cinc/{{ cinc_version }}/debian/13/cinc_{{ cinc_version }}-1_{{ arch | default('amd64') }}.deb"
         dest: /tmp/cinc.deb
         validate_certs: no
       register: download_configuration_management_result

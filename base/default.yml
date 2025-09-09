@@ -3,7 +3,7 @@
   hosts: localhost
   gather_facts: no
   vars:
-    os: "{{ OS | default('local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst') }}"
+    os: "{{ OS | default('local:vztmpl/debian-13-standard_13.1-1_amd64.tar.zst') }}"
     key_dir: "{{ KEYS_DIR | default('/share/.ssh') }}"
   tasks:
 

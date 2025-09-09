@@ -4,24 +4,17 @@ login = Env.get(self, 'login')
 password = Env.get(self, 'password')
 broker = Env.get(self, 'broker')
 
-group 'dialout' do
-  action :modify
-  members [node['app']['user']]
-  append true
-end
-
-execute 'setup_node' do
-  command 'curl -fsSL https://deb.nodesource.com/setup_20.x | bash -'
-  not_if 'dpkg -l | grep -q nodejs'
-  environment 'TMPDIR' => '/var/tmp'
-  action :run
-end
-
-package "nodejs"
+package "npm"
 
 execute 'install_pnpm' do
   command 'npm i -g pnpm@9'
   not_if 'which pnpm'
+end
+
+group 'dialout' do
+  action :modify
+  members [node['app']['user']]
+  append true
 end
 
 if (latest_version = Utils.install(self, "https://github.com/Koenkk/zigbee2mqtt/releases/latest",

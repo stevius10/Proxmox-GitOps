@@ -1,3 +1,5 @@
+LANG=en_US.UTF-8
+
 CHEF_NODE_NAME=$(hostname -f)
 
 CHEF_LICENSE=accept

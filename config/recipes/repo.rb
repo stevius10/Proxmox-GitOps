@@ -1,9 +1,9 @@
 require 'find'
 require 'fileutils'
 
-@login    = (login    = node.run_state['login'])
-@password = (password = node.run_state['password'])
-@email    = (email    = node.run_state['email'])
+@login    = (login    = node.run_state['login'].presence    or Env.get(self, 'login'))
+@password = (password = node.run_state['password'].presence or Env.get(self, 'password'))
+@email    = (email    = node.run_state['email'].presence    or Env.get(self, 'email'))
 
 @destination  = (destination = node['git']['dir']['workspace'])
 @is_bootstrap = (is_bootstrap = ['127.0.0.1', 'localhost', '::1'].include?(Env.get(self, 'host')))

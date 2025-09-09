@@ -9,6 +9,13 @@
       group: root
       mode: '0644'
 
+  - name: Generate locales
+    community.general.locale_gen:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - en_US.UTF-8
+
   - name: Set locale
     copy:
       src: locale

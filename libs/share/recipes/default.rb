@@ -1,4 +1,4 @@
-Common.packages(self, %w[samba samba-common samba-client])
+Common.packages(self, %w[samba samba-common smbclient])
 
 login = Env.get(self, 'login')
 password = Env.get(self, 'password')

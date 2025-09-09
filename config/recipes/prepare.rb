@@ -6,9 +6,9 @@ Common.directories(self, [ (app = node['git']['dir']['app']),
 
 # Packages
 
-Common.packages(self, %w(git acl python3-pip ansible ansible-core nodejs npm ruby-full python3-proxmoxer))
+Common.packages(self, %w(git acl python3-pip ansible nodejs ruby-full python3-proxmoxer))
 
-execute 'prepare_install_ansible_galaxy' do
+execute 'prepare_install_ansible_module_proxmox' do
   command 'ansible-galaxy collection install community.general'
   environment 'HOME' => '/tmp'
   user 'root'

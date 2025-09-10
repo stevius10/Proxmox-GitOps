@@ -2,10 +2,7 @@ Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
 Common.directories(self, [node['assistant']['dir']['data'], '/app/uv-cache'])
 
-Common.packages(self, %w[mc bluez libffi-dev libssl-dev libjpeg-dev zlib1g-dev
-  build-essential pkg-config libopenjp2-7 libturbojpeg0-dev ffmpeg liblapack3 liblapack-dev
-  dbus-broker libpcap-dev libavdevice-dev libavformat-dev libavcodec-dev
-  libavutil-dev libavfilter-dev libmariadb-dev-compat python3-pip python3-venv python3.13-venv python3.13-dev])
+Common.packages(self, %w[build-essential bluez dbus-broker mc pkg-config libmariadb-dev-compat python3-pip python3-venv])
 
 link '/config' do
   to node['assistant']['dir']['data']
@@ -14,40 +11,26 @@ link '/config' do
 end
 
 execute 'install_uv' do
-  command '/usr/bin/python3.13 -m pip install uv --break-system-packages'
-  not_if '/usr/bin/python3.13 -m pip show uv'
+  command '/usr/bin/python3 -m pip install uv --break-system-packages'
+  not_if '/usr/bin/python3 -m pip show uv'
 end
 
-execute 'create_environment' do
-  command "uv venv --python=/usr/bin/python3.13 #{node['assistant']['dir']['env']}"
-  user node['app']['user']
-  group node['app']['group']
-  environment 'UV_CACHE_DIR' => '/app/uv-cache'
-  not_if { ::File.exist?("#{node['assistant']['dir']['env']}/bin/activate") }
+[node['assistant']['dir']['env'], node['configurator']['dir']].each do |dir|
+  execute "create_environment_#{::File.basename(dir)}" do
+    command "uv venv --python=/usr/bin/python3 #{dir}"
+    user node['app']['user']
+    group node['app']['group']
+    environment 'UV_CACHE_DIR' => '/app/uv-cache'
+    not_if { ::File.exist?("#{dir}/bin/activate") }
+  end
 end
 
-execute 'install_environment_assistant' do
+execute 'install_assistant' do
   command "uv pip install --python #{node['assistant']['dir']['env']}/bin/python webrtcvad wheel homeassistant mysqlclient psycopg2-binary isal"
   user node['app']['user']
   group node['app']['group']
   environment 'UV_CACHE_DIR' => '/app/uv-cache'
   not_if { ::File.exist?("#{node['assistant']['dir']['env']}/bin/hass") }
-end
-
-execute 'set_josepy' do
-  command "uv pip install --python #{node['assistant']['dir']['env']}/bin/python josepy"
-  user node['app']['user']
-  group node['app']['group']
-  environment 'UV_CACHE_DIR' => '/app/uv-cache'
-  not_if "uv pip list --python #{node['assistant']['dir']['env']}/bin/python | grep josepy"
-end
-
-execute 'create_configurator' do
-  command "uv venv --python=/usr/bin/python3.13 #{node['configurator']['dir']}"
-  user node['app']['user']
-  group node['app']['group']
-  environment 'UV_CACHE_DIR' => '/app/uv-cache'
-  not_if { ::File.exist?("#{node['configurator']['dir']}/bin/activate") }
 end
 
 execute 'install_configurator' do

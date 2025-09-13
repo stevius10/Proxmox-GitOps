@@ -139,7 +139,7 @@ Common.application(self, 'apache2') # provided by convention
 
 - Add to Monorepository and redeploy.
 
-The container can be tested locally running `./local/run.sh [container]` (_wip_)
+The container can be tested locally running `./local/run.sh [container]`
 
 <p align="center">
   <img src="docs/img/development.png" alt="Local Development"/>

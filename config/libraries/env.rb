@@ -35,10 +35,9 @@ module Env
 
   def self.endpoint(ctx)
     node = Ctx.node(ctx)
-    Default.presence_or(node.dig('git', 'api', 'endpoint') || ENV['ENDPOINT'], "#{
-      Default.presence_or(node.dig('git', 'host', 'http'), "http://#{Default.presence_or(Env.get(node, 'host'), '127.0.0.1')}:#{
-        Default.presence_or(node.dig('git', 'port', 'http'), 8080)}")
-    }/api/#{Default.presence_or(node.dig('git', 'api', 'version'), 'v1')}")
+    return ENV['ENDPOINT'] if ENV['ENDPOINT'].present?
+    host = ENV['HOST'] || node['host'] || '127.0.0.1'
+    "http://#{host}:#{node.dig('git','port','http') || 8080}/api/#{node.dig('git','api','version') || 'v1'}"
   end
 
   def self.request(ctx, key, body: nil, repo: nil, owner: nil, expect: false)

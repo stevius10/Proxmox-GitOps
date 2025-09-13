@@ -13,13 +13,11 @@ RECIPE="${COOKBOOK_OVERRIDE:-config}"
 
 COOKBOOK_PATH="['/tmp/config','/tmp/config/libs']"
 
-[[ -f "${DEVELOP_DIR}/config.json" ]] && CONFIG_FILE=("${DEVELOP_DIR}/config.json")
-[[ -n "${COOKBOOK_OVERRIDE}" ]] && [[ -f "./libs/${COOKBOOK_OVERRIDE}/config.json" ]] && CONFIG_FILE="./libs/${COOKBOOK_OVERRIDE}/config.json"
-
-CONFIG_FILE="-j $CONFIG_FILE"
+[[ -f "${DEVELOP_DIR}/config.json" ]] && CONFIG_FILE=("-j ${DEVELOP_DIR}/config.json")
+[[ -n "${COOKBOOK_OVERRIDE}" ]] && [[ -f "./libs/${COOKBOOK_OVERRIDE}/config.json" ]] && CONFIG_FILE="-j ./libs/${COOKBOOK_OVERRIDE}/config.json"
 
 DOCKER_IMAGE_NAME="${DOCKER_IMAGE_NAME:-$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')}"
-DOCKER_CONTAINER_NAME="${DOCKER_CONTAINER_NAME:-"$PROJECT_NAME"}"
+DOCKER_CONTAINER_NAME="${COOKBOOK_OVERRIDE:-"$PROJECT_NAME"}"
 DOCKER_WAIT="${DOCKER_WAIT:-3}"
 UNAME_ARCH="$(uname -m)"
 case "$UNAME_ARCH" in
@@ -35,7 +33,7 @@ HASH=$(echo "$(md5sum "$DOCKERFILE_PATH" | awk '{print $1}')${BASE}" | md5sum | 
 STORED_HASH_FILE="${DEVELOP_DIR}/.local.hash"
 STORED_HASH=$(cat "$STORED_HASH_FILE" 2>/dev/null || true)
 
-# Container management
+# Container
 
 if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "$STORED_HASH" != "$HASH" ]]; then
     log "image" "build_required"
@@ -53,20 +51,26 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER_NAME}$"; th
 fi
 
 log "container" "start"
-CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp  \
-    -v "$PROJECT_DIR:/tmp/config:ro" --tmpfs "/tmp/config/.git" \
-    -v /sys/fs/cgroup:/sys/fs/cgroup:rw -w /tmp/config \
-    $( [[ -d "${DEVELOP_DIR}/share" ]] && echo "-v ${DEVELOP_DIR}/share:/share:ro " ) \
-    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-e RUBYLIB=/tmp/config/config/libraries -e RUBYOPT=-r/tmp/config/config/libraries/env.rb ") \
-    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-p :80 -p :8080 -p :8123" || echo "-p 80:80 -p 8080:8080 -p 2222:2222 " ) \
-    --name "$DOCKER_CONTAINER_NAME" "$DOCKER_IMAGE_NAME") || fail "container_start_failed"
-log "container" "started:${CONTAINER_ID}"
-sleep "$DOCKER_WAIT"
+docker volume create "$DOCKER_CONTAINER_NAME" >/dev/null
+CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
+    -v "$PROJECT_DIR:/tmp/config" -w /tmp/config \
+    $( [[ -d "${DEVELOP_DIR}/share" ]] && echo "-v ${DEVELOP_DIR}/share:/share:ro" ) \
+    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
+    --add-host=host.docker.internal:host-gateway \
+    --name "$DOCKER_CONTAINER_NAME" "$DOCKER_IMAGE_NAME" sleep infinity) || fail "container_start_failed"
+docker cp "$PROJECT_DIR/." "$CONTAINER_ID:/tmp/config/" || fail "sync_failed"
 
-# Configuration management
+if [[ -n "${COOKBOOK_OVERRIDE}" ]]; then
+  log "libs" "sync"
+  docker exec "$CONTAINER_ID" bash -c "mkdir -p '/tmp/config/libs/${COOKBOOK_OVERRIDE}/libraries' && cp -a /tmp/config/config/libraries/. '/tmp/config/libs/${COOKBOOK_OVERRIDE}/libraries/'" || fail "libraries_sync_failed"
+fi
+
+log "container" "started:${CONTAINER_ID}"
+
+# Configure
 
 run() {
-  command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID \
+  command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID,HOST \
     cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
       --config-option cookbook_path='"$COOKBOOK_PATH"' '"$CONFIG_FILE"'  -o '"$RECIPE$1"''
   docker exec "$CONTAINER_ID" bash -c "$command"  || log "error" "exec_failed"

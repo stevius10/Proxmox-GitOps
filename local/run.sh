@@ -37,7 +37,7 @@ STORED_HASH=$(cat "$STORED_HASH_FILE" 2>/dev/null || true)
 
 if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "$STORED_HASH" != "$HASH" ]]; then
     log "image" "build_required"
-    docker build --build-arg TARGETARCH="$TARGETARCH" -t "$DOCKER_IMAGE_NAME" -f "$DOCKERFILE_PATH" "$PROJECT_DIR" || fail "build_failed"
+    docker build --no-cache --build-arg TARGETARCH="$TARGETARCH" -t "$DOCKER_IMAGE_NAME" -f "$DOCKERFILE_PATH" "$PROJECT_DIR" || fail "build_failed"
     echo "$HASH" > "$STORED_HASH_FILE"
     log "image" "build_complete"
 fi
@@ -46,7 +46,7 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER_NAME}$"; th
     log "container" "remove_existing"
     docker stop "$DOCKER_CONTAINER_NAME" >/dev/null || true
     sleep "$DOCKER_WAIT"
-    docker rm -f "$DOCKER_CONTAINER_NAME" >/dev/null || true
+    docker rm -f -v "$DOCKER_CONTAINER_NAME" >/dev/null || true
     sleep "$DOCKER_WAIT"
 fi
 
@@ -55,16 +55,16 @@ CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys
     $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
     --name "$DOCKER_CONTAINER_NAME" -w /tmp/config "$DOCKER_IMAGE_NAME" sleep infinity) || fail "container_start_failed"
 
+if [[ -d "${DEVELOP_DIR}/share" ]]; then
+  log "sync" "share"
+  docker cp "$PROJECT_DIR/local/share" "$CONTAINER_ID:/share" || fail "share_sync_failed"
+fi
+
 log "container" "started:${CONTAINER_ID}"
 
 sync() {
   log "sync" "files"
   docker cp "$PROJECT_DIR/." "$CONTAINER_ID:/tmp/config/" || fail "sync_failed"
-
-  if [[ -d "${DEVELOP_DIR}/share" ]]; then
-    log "sync" "share"
-    docker cp "$PROJECT_DIR/local/share" "$CONTAINER_ID:/share" || fail "share_sync_failed"
-  fi
 
   if [[ -n "${COOKBOOK_OVERRIDE}" ]]; then
     log "sync" "libraries"

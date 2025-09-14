@@ -133,14 +133,24 @@ Common.application(self, 'apache2') # provided by convention
 
 - Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
 
-<p align="center">
-  <img src="docs/img/environment.png" alt="Global Environment"/>
+<p align="center"><br>
+  <a href="docs/img/environment.png" target="_blank" rel="noopener noreferrer">
+    <img src="docs/img/environment.png" alt="Global Environment" width="600px" />
+  </a><br>
 </p>
 
 - Add to Monorepository and redeploy.
 
-The container can be tested locally running `./local/run.sh [container]`
+- The container can be tested locally running `./local/run.sh [container]`
 
-<p align="center">
-  <img src="docs/img/development.png" alt="Local Development"/>
-</p>
+<dl>
+  <dd>
+    <details>
+      <summary>Example: Apache</summary>
+      <br>
+      > <a href="docs/img/development.png">
+      >   <img src="docs/img/development.png" alt="Local Development" width="600">
+      > </a>
+    </details>
+  </dd>
+</dl>

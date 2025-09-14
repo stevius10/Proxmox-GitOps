@@ -13,8 +13,10 @@
   - [Lifecycle](#lifecycle)
     - [Self-contained Monorepository](#self-contained-monorepository)
   - [Requirements](#requirements)
-  - [Getting Started](#getting-started)
-    - [Development and Extension](#development-and-extension)
+  - [Configuration](#configuration)
+  - [Development and Extension](#development-and-extension)
+    - [Getting Started](#getting-started)
+    - [Environment](#environment)
 
 ---
 
@@ -88,7 +90,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 - Proxmox VE 8.4-9.0
 - See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
-### Getting Started
+### Configuration
 
 - Set **Proxmox** and **global usage credentials** in [`local/.config.json`](local/.config.json) as [`./local/config.json`](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-localconfigjson)
 - Ensure **container configuration** in [`config.env`](config.env) and [**verify storage**](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv)
@@ -99,9 +101,13 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
   <img src="docs/img/nutshell.png" alt="in a nutshell"/>
 </p>
 
-#### Development and Extension
+### Development and Extension
 
-Reusable container definitions are stored in the [`libs`](libs) folder. Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
+Reusable container definitions are stored in the [`libs`](libs) folder. 
+
+#### Getting Started
+
+Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
 
 - Add `config.env` to your container's root directory (e.g. `./libs/apache`):
 ```dotenv
@@ -131,26 +137,26 @@ end
 Common.application(self, 'apache2') # provided by convention
 ```
 
+- Add to Monorepository and redeploy.
+
+#### Environment
+
 - Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
 
 <p align="center"><br>
   <a href="docs/img/environment.png" target="_blank" rel="noopener noreferrer">
     <img src="docs/img/environment.png" alt="Global Environment" width="600px" />
-  </a><br>
-</p>
+  </a>
+</p> <br>
 
-- Add to Monorepository and redeploy.
+- The container can be tested locally running `./local/run.sh [container]`.
 
-- The container can be tested locally running `./local/run.sh [container]`
-
-<dl>
-  <dd>
-    <details>
-      <summary>Example: Apache</summary>
-      <br>
-      > <a href="docs/img/development.png">
-      >   <img src="docs/img/development.png" alt="Local Development" width="600">
-      > </a>
-    </details>
-  </dd>
-</dl>
+  <details>
+  <summary>Example: Apache</summary>
+  <br>
+  <p align="center">
+    <a href="docs/img/development.png">
+      <img src="docs/img/development.png" alt="Local Development" width="600">
+    </a>
+  </p> <br>
+  </details>

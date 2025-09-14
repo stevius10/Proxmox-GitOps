@@ -51,14 +51,14 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER_NAME}$"; th
 fi
 
 log "container" "start"
-docker volume create "$DOCKER_CONTAINER_NAME" >/dev/null
-CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw \
-    -v "$PROJECT_DIR:/tmp/config" -w /tmp/config \
-    $( [[ -d "${DEVELOP_DIR}/share" ]] && echo "-v ${DEVELOP_DIR}/share:/share:ro" ) \
-    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
-    --add-host=host.docker.internal:host-gateway \
-    --name "$DOCKER_CONTAINER_NAME" "$DOCKER_IMAGE_NAME" sleep infinity) || fail "container_start_failed"
+CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --add-host=host.docker.internal:host-gateway \
+    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
+    --name "$DOCKER_CONTAINER_NAME" -w /tmp/config "$DOCKER_IMAGE_NAME" sleep infinity) || fail "container_start_failed"
 docker cp "$PROJECT_DIR/." "$CONTAINER_ID:/tmp/config/" || fail "sync_failed"
+
+if [[ -d "${DEVELOP_DIR}/share" ]]; then
+  docker cp "$PROJECT_DIR/local/share" "$CONTAINER_ID:/share" || fail "share_sync_failed"
+fi
 
 if [[ -n "${COOKBOOK_OVERRIDE}" ]]; then
   log "libs" "sync"
@@ -76,7 +76,7 @@ run() {
   docker exec "$CONTAINER_ID" bash -c "$command"  || log "error" "exec_failed"
 }
 
-if [[ -z "${COOKBOOK_OVERRIDE:-}" ]]; then suffixes=(::repo); else suffixes=(); fi  # suffixes=(::repo ::task)
+if [[ -z "${COOKBOOK_OVERRIDE:-}" ]]; then suffixes=(::repo); else suffixes=(::default); fi  # suffixes=(::repo ::task)
 run ""; while true; do
   log "rerun" "$RECIPE"; read -r
   for s in "${suffixes[@]}"; do run "$s"; done

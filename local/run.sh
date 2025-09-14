@@ -54,22 +54,28 @@ log "container" "start"
 CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --add-host=host.docker.internal:host-gateway \
     $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
     --name "$DOCKER_CONTAINER_NAME" -w /tmp/config "$DOCKER_IMAGE_NAME" sleep infinity) || fail "container_start_failed"
-docker cp "$PROJECT_DIR/." "$CONTAINER_ID:/tmp/config/" || fail "sync_failed"
-
-if [[ -d "${DEVELOP_DIR}/share" ]]; then
-  docker cp "$PROJECT_DIR/local/share" "$CONTAINER_ID:/share" || fail "share_sync_failed"
-fi
-
-if [[ -n "${COOKBOOK_OVERRIDE}" ]]; then
-  log "libs" "sync"
-  docker exec "$CONTAINER_ID" bash -c "mkdir -p '/tmp/config/libs/${COOKBOOK_OVERRIDE}/libraries' && cp -a /tmp/config/config/libraries/. '/tmp/config/libs/${COOKBOOK_OVERRIDE}/libraries/'" || fail "libraries_sync_failed"
-fi
 
 log "container" "started:${CONTAINER_ID}"
+
+sync() {
+  log "sync" "files"
+  docker cp "$PROJECT_DIR/." "$CONTAINER_ID:/tmp/config/" || fail "sync_failed"
+
+  if [[ -d "${DEVELOP_DIR}/share" ]]; then
+    log "sync" "share"
+    docker cp "$PROJECT_DIR/local/share" "$CONTAINER_ID:/share" || fail "share_sync_failed"
+  fi
+
+  if [[ -n "${COOKBOOK_OVERRIDE}" ]]; then
+    log "sync" "libraries"
+    docker exec "$CONTAINER_ID" bash -c "mkdir -p '/tmp/config/libs/${COOKBOOK_OVERRIDE}/libraries' && cp -a /tmp/config/config/libraries/. '/tmp/config/libs/${COOKBOOK_OVERRIDE}/libraries/'" || fail "libraries_sync_failed"
+  fi
+}
 
 # Configure
 
 run() {
+  sync
   command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID,HOST \
     cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
       --config-option cookbook_path='"$COOKBOOK_PATH"' '"$CONFIG_FILE"'  -o '"$RECIPE$1"''

@@ -1,6 +1,8 @@
 on:
   workflow_dispatch:
   push:
+    branches: [ main ]
+  pull_request:
     branches: [ main, develop ]
 
 jobs:
@@ -85,7 +87,7 @@ jobs:
           sudo env IP="$IP" ID="$ID" PWD="$PWD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="." -j ./local/config.json -o config
 
       - name: Install libs
-        if: github.ref == 'refs/heads/main'
+        # if: github.ref == 'refs/heads/main'
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
@@ -133,7 +135,7 @@ jobs:
           done
 
       - name: Idempotency
-        if: github.ref == 'refs/heads/main'
+        # if: github.ref == 'refs/heads/main'
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}

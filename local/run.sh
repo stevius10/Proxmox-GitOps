@@ -13,13 +13,11 @@ RECIPE="${COOKBOOK_OVERRIDE:-config}"
 
 COOKBOOK_PATH="['/tmp/config','/tmp/config/libs']"
 
-[[ -f "${DEVELOP_DIR}/config.json" ]] && CONFIG_FILE=("${DEVELOP_DIR}/config.json")
-[[ -n "${COOKBOOK_OVERRIDE}" ]] && [[ -f "./libs/${COOKBOOK_OVERRIDE}/config.json" ]] && CONFIG_FILE="./libs/${COOKBOOK_OVERRIDE}/config.json"
-
-CONFIG_FILE="-j $CONFIG_FILE"
+[[ -f "${DEVELOP_DIR}/config.json" ]] && CONFIG_FILE=("-j ${DEVELOP_DIR}/config.json")
+[[ -n "${COOKBOOK_OVERRIDE}" ]] && [[ -f "./libs/${COOKBOOK_OVERRIDE}/config.json" ]] && CONFIG_FILE="-j ./libs/${COOKBOOK_OVERRIDE}/config.json"
 
 DOCKER_IMAGE_NAME="${DOCKER_IMAGE_NAME:-$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')}"
-DOCKER_CONTAINER_NAME="${DOCKER_CONTAINER_NAME:-"$PROJECT_NAME"}"
+DOCKER_CONTAINER_NAME="${COOKBOOK_OVERRIDE:-"$PROJECT_NAME"}"
 DOCKER_WAIT="${DOCKER_WAIT:-3}"
 UNAME_ARCH="$(uname -m)"
 case "$UNAME_ARCH" in
@@ -35,11 +33,11 @@ HASH=$(echo "$(md5sum "$DOCKERFILE_PATH" | awk '{print $1}')${BASE}" | md5sum | 
 STORED_HASH_FILE="${DEVELOP_DIR}/.local.hash"
 STORED_HASH=$(cat "$STORED_HASH_FILE" 2>/dev/null || true)
 
-# Container management
+# Container
 
 if [[ -z "$(docker images -q "${DOCKER_IMAGE_NAME}")" || "$STORED_HASH" != "$HASH" ]]; then
     log "image" "build_required"
-    docker build --build-arg TARGETARCH="$TARGETARCH" -t "$DOCKER_IMAGE_NAME" -f "$DOCKERFILE_PATH" "$PROJECT_DIR" || fail "build_failed"
+    docker build --no-cache --build-arg TARGETARCH="$TARGETARCH" -t "$DOCKER_IMAGE_NAME" -f "$DOCKERFILE_PATH" "$PROJECT_DIR" || fail "build_failed"
     echo "$HASH" > "$STORED_HASH_FILE"
     log "image" "build_complete"
 fi
@@ -48,31 +46,38 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER_NAME}$"; th
     log "container" "remove_existing"
     docker stop "$DOCKER_CONTAINER_NAME" >/dev/null || true
     sleep "$DOCKER_WAIT"
-    docker rm -f "$DOCKER_CONTAINER_NAME" >/dev/null || true
+    docker rm -f -v "$DOCKER_CONTAINER_NAME" >/dev/null || true
     sleep "$DOCKER_WAIT"
 fi
 
 log "container" "start"
-CONTAINER_ID=$(docker run -d --privileged --cgroupns=host --tmpfs /tmp  \
-    -v "$PROJECT_DIR:/tmp/config:ro" --tmpfs "/tmp/config/.git" \
-    -v /sys/fs/cgroup:/sys/fs/cgroup:rw -w /tmp/config \
+CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --add-host=host.docker.internal:host-gateway \
     $( [[ -d "${DEVELOP_DIR}/share" ]] && echo "-v ${DEVELOP_DIR}/share:/share:ro " ) \
-    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-e RUBYLIB=/tmp/config/config/libraries -e RUBYOPT=-r/tmp/config/config/libraries/env.rb ") \
-    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-p :80 -p :8080 -p :8123" || echo "-p 80:80 -p 8080:8080 -p 2222:2222 " ) \
-    --name "$DOCKER_CONTAINER_NAME" "$DOCKER_IMAGE_NAME") || fail "container_start_failed"
+    $( [[ -n "${COOKBOOK_OVERRIDE}" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
+    --name "$DOCKER_CONTAINER_NAME" -w /tmp/config "$DOCKER_IMAGE_NAME" sleep infinity) || fail "container_start_failed"
 log "container" "started:${CONTAINER_ID}"
-sleep "$DOCKER_WAIT"
 
-# Configuration management
+sync() {
+  log "sync" "files"
+  docker cp "$PROJECT_DIR/." "$CONTAINER_ID:/tmp/config/" || fail "sync_failed"
+
+  if [[ -n "${COOKBOOK_OVERRIDE}" ]]; then
+    log "sync" "libraries"
+    docker exec "$CONTAINER_ID" bash -c "mkdir -p '/tmp/config/libs/${COOKBOOK_OVERRIDE}/libraries' && cp -a /tmp/config/config/libraries/. '/tmp/config/libs/${COOKBOOK_OVERRIDE}/libraries/'" || fail "libraries_sync_failed"
+  fi
+}
+
+# Configure
 
 run() {
-  command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID \
+  sync
+  command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID,HOST \
     cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
       --config-option cookbook_path='"$COOKBOOK_PATH"' '"$CONFIG_FILE"'  -o '"$RECIPE$1"''
   docker exec "$CONTAINER_ID" bash -c "$command"  || log "error" "exec_failed"
 }
 
-if [[ -z "${COOKBOOK_OVERRIDE:-}" ]]; then suffixes=(::repo); else suffixes=(); fi  # suffixes=(::repo ::task)
+if [[ -z "${COOKBOOK_OVERRIDE:-}" ]]; then suffixes=(::repo); else suffixes=(::default); fi  # suffixes=(::repo ::task)
 run ""; while true; do
   log "rerun" "$RECIPE"; read -r
   for s in "${suffixes[@]}"; do run "$s"; done

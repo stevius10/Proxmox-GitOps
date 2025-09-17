@@ -22,19 +22,18 @@
 
 ## Overview
 
-<img src="docs/img/monorepo.png" alt="Monorepo" align="right" width="30%">
-
-<br>Proxmox-GitOps implements a self-sufficient, extensible CI/CD environment for provisioning, configuring, and orchestrating Linux Containers (LXC) within Proxmox VE.<br><br>
+<img src="docs/img/monorepo.png" alt="Monorepo" align="right" height="30%" style="margin-left: 20px">Proxmox-GitOps implements a self-sufficient, extensible CI/CD environment for provisioning, configuring, and orchestrating Linux Containers (LXC) within Proxmox VE.<br><br>
 Leveraging an Infrastructure-as-Code (IaC) approach, it manages the entire container lifecycle—bootstrapping, deployment, configuration, and validation—through version-controlled automation.
-
 <br clear="right">
 
 ## Architecture
 
-The architecture is based on a multi-stage pipeline capable of recursively deploying and configuring itself as a self-managed control plane. 
+The architecture is based on a multi-stage pipeline capable of recursively deploying and configuring itself as a self-managed control plane.
 
 <p align="center">
-  <img src="./docs/concept.svg" alt="Concept"/>
+  <a href="docs/concept.svg" target="_blank" rel="noopener noreferrer">
+    <img src="docs/concept.svg" alt="Architecture and Concept" width="600px" />
+  </a>
 </p>
 
 Initial bootstrapping is performed via a local Docker environment, with subsequent deployments targeting Proxmox VE.  
@@ -54,11 +53,13 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - **Loosely coupled**: Containers are decoupled from the control plane, enabling runtime replacement and independent operation. 
 
-- **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity. 
+- **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity.
 
-<p align="center">
-  <img src="docs/img/recursion.png" alt="Pipeline"/>
-</p>
+<p align="center"><br>
+  <a href="docs/img/recursion.png" target="_blank" rel="noopener noreferrer">
+    <img src="docs/img/recursion.png" alt="Recursive deployment" width="600px" />
+  </a>
+</p><br>
 
 ### Trade-offs
 
@@ -74,8 +75,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 #### Self-contained Monorepository
 
-- `git clone --recurse-submodules` 
-  - e. g., **Version-Controlled Mirrored**
+`git clone --recurse-submodules`, e.g. **Version-Controlled Mirroring**
 
 - **Backup**: See [Self-contained Monorepository](#self-contained-monorepository)
   - use `local/share` for persistence or self-reference network share
@@ -83,6 +83,8 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 - **Update**: See [Self-contained Monorepository](#self-contained-monorepository), and redeploy merged
 
 - **Rollback**: See [Self-contained Monorepository](#self-contained-monorepository), or set `snapshot` branch to `release` at runtime
+
+*Appendix*: The self-referential language in this section is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
 
 ### Requirements
 
@@ -93,13 +95,15 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 ### Configuration
 
 - Set **Proxmox** and **global usage credentials** in [`local/.config.json`](local/.config.json) as [`./local/config.json`](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-localconfigjson)
-- Ensure **container configuration** in [`config.env`](config.env) and [**verify storage**](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv)
+- Ensure **container configuration** in [`config.env`](config.env) and [verify storage](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv)
 - Run `./local/run.sh` for local Docker environment
 - Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE
 
-<p align="center">
-  <img src="docs/img/nutshell.png" alt="in a nutshell"/>
-</p>
+<p align="center"><br>
+  <a href="docs/img/nutshell.png" target="_blank" rel="noopener noreferrer">
+    <img src="docs/img/nutshell.png" alt="In a nutshell" width="600px" />
+  </a>
+</p><br>
 
 ### Development and Extension
 
@@ -147,9 +151,9 @@ Common.application(self, 'apache2') # provided by convention
   <a href="docs/img/environment.png" target="_blank" rel="noopener noreferrer">
     <img src="docs/img/environment.png" alt="Global Environment" width="600px" />
   </a>
-</p> <br>
+</p><br>
 
-- The container can be tested locally running `./local/run.sh [container]`.
+- The container can be tested locally running `./local/run.sh [container]`:
 
   <details>
   <summary>Example: Apache</summary>

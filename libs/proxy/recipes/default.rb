@@ -25,5 +25,5 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
 end
 
 Common.application(self, cookbook_name,
-  exec: "/usr/bin/caddy run --config #{node['proxy']['dir']['app']}/Caddyfile",
+  exec: "/bin/caddy run --config #{node['proxy']['dir']['app']}/Caddyfile",
   subscribe: "template[#{node['proxy']['dir']['app']}/Caddyfile]" )

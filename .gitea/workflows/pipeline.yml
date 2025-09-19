@@ -22,10 +22,10 @@ jobs:
       - name: Set configuration
         id: config
         run: |
+          echo "hostname=config" >> $GITEA_OUTPUT
           source config.env
           echo "ip=$IP" >> $GITEA_OUTPUT
           echo "id=$ID" >> $GITEA_OUTPUT
-          echo "hostname=$HOSTNAME" >> $GITEA_OUTPUT
           echo "cores=$CORES" >> $GITEA_OUTPUT
           echo "memory=$MEMORY" >> $GITEA_OUTPUT
           echo "swap=$SWAP" >> $GITEA_OUTPUT

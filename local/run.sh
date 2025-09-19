@@ -77,7 +77,7 @@ run() {
   docker exec "$CONTAINER_ID" bash -c "$command"  || log "error" "exec_failed"
 }
 
-if [[ -z "${COOKBOOK_OVERRIDE:-}" ]]; then suffixes=(::repo); else suffixes=(::default); fi  # suffixes=(::repo ::task)
+if [[ -z "${COOKBOOK_OVERRIDE:-}" ]]; then suffixes=("::repo"); else suffixes=("::default"); fi  # suffixes=(::repo ::task)
 run ""; while true; do
   log "rerun" "$RECIPE"; read -r
   for s in "${suffixes[@]}"; do run "$s"; done

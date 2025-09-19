@@ -116,7 +116,6 @@ Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](l
 ```dotenv
 IP=192.168.178.42
 ID=42
-HOSTNAME=apache
 CORES=2
 MEMORY=2048
 SWAP=512

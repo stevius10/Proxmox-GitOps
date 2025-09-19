@@ -21,11 +21,11 @@ runs:
       id: init
       run: |
         repository="${{ inputs.repo }}"
-        echo "repo=${repository##*/}" >> "$GITEA_ENV"
-        source repo/config.env
+        echo "hostname=${repository##*/}" >> "$GITEA_ENV"
+        source "$hostname/config.env"
+        
         echo "ip=$IP" >> $GITEA_ENV
         echo "id=$ID" >> $GITEA_ENV
-        echo "hostname=$HOSTNAME" >> $GITEA_ENV
         echo "cores=$CORES" >> $GITEA_ENV
         echo "memory=$MEMORY" >> $GITEA_ENV
         echo "swap=$SWAP" >> $GITEA_ENV

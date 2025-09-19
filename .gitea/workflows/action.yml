@@ -22,7 +22,7 @@ runs:
       run: |
         repository="${{ inputs.repo }}"
         echo "hostname=${repository##*/}" >> "$GITEA_ENV"
-        source "$hostname/config.env"
+        source "repo/config.env"
         
         echo "ip=$IP" >> $GITEA_ENV
         echo "id=$ID" >> $GITEA_ENV

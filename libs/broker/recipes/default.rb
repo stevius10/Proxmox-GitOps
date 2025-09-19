@@ -16,7 +16,7 @@ template node['broker']['file']['config'] do
   mode '0644'
   variables({ port: node['broker']['port'], user_file: node['broker']['file']['user'],
     data_dir: node['broker']['dir']['data'], log_dir: node['broker']['dir']['log'] })
-  notifies :restart, 'service[#{cookbook_name}]', :delayed
+  notifies :restart, "service[#{cookbook_name}]", :delayed
 end
 
 file node['broker']['file']['user'] do
@@ -31,6 +31,5 @@ execute "mosquitto_user_#{login}" do
   sensitive true
 end
 
-Common.application(self, cookbook_name,
-  exec:  "/usr/sbin/mosquitto -c #{node['broker']['file']['config']}",
+Common.application(self, cookbook_name, exec:  "/usr/sbin/mosquitto -c #{node['broker']['file']['config']}",
   subscribe: [ "template[#{node['broker']['file']['config']}]", "template[#{node['broker']['file']['user']}]"  ] )

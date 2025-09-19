@@ -108,7 +108,7 @@ module Utils
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
         body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM)
-      Logs.request!(uri, response, true, msg: "Proxmox ticket could not be retrieved")
+      Logs.request!(uri, response, true, msg: "Proxmox: request ticket")
       headers = { 'Cookie' => "PVEAuthCookie=#{response.json['data']['ticket']}", 'CSRFPreventionToken' => response.json['data']['CSRFPreventionToken'] }
     else
       headers = { 'Authorization' => "PVEAPIToken=#{user}!#{token}=#{secret}" }

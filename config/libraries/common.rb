@@ -42,7 +42,7 @@ module Common
     user  = user.to_s
     group = group.to_s
 
-    if exec || unit.present?
+    if exec
       daemon(ctx, reload)
 
       service = {'Type' => 'simple', 'User' => user, 'Group' => group, 'Restart' => restart }
@@ -57,14 +57,20 @@ module Common
         "[#{section}]\n#{lines}"
       end.join("\n\n")
 
+      Ctx.dsl(ctx).execute 'default_units' do
+        command "systemctl list-unit-files '*#{File.basename(exec.split.first)}*.service' --no-legend | awk '{print $1}' | xargs -r systemctl stop"
+        action :run
+      end
+
       Ctx.dsl(ctx).file "/etc/systemd/system/#{name}.service" do
         owner   'root'
         group   'root'
-        mode    '0644'
+        mode    '0664'
         content unit_content
         notifies :run, "execute[#{reload}]", :immediately
         notifies :restart, "service[#{name}]", :delayed
       end
+
     end
 
     if actions.include?(:force_restart)

@@ -35,3 +35,4 @@
       - container_status.status == 500
       - "'does not exist' in container_status.json.message"
     ignore_errors: yes
+    no_log: true

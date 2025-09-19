@@ -22,7 +22,7 @@ Array(node.dig('share','mount')).each do |path|
     recursive false
   end
 
-  execute "change_owner_#{path}_#{login}" do
+  execute "chown_#{login}_#{path}" do
     command "sudo find #{path} -mindepth 1 -not -path '#{path}/.ssh*' -exec chown -R #{login}:#{login} {} +"
     action :run
   end

@@ -1,11 +1,18 @@
-# ! cron '*/30 * * * *'
+# ! cron '* */3 * * *'
 
 Dir[File.join(__dir__, 'libraries', '**', '*.rb')].sort.each { |f| require f }
 ctx = { "endpoint"=>ENV["ENDPOINT"], "host"=>ENV["HOST"], "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"],  }
 
-containers = Utils.proxmox(ctx, 'nodes/pve/lxc')
+def check_service(hostname, id, ip)
+  begin
+    result = `ssh -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=no -i "/share/.ssh/#{id}" "config@#{ip}" 'systemctl is-active --quiet #{hostname} && echo "healthy" || echo "unhealthy"'`
+    result.strip == 'healthy' ? 'healthy' : 'unhealthy'
+  rescue
+    'unreachable'
+  end
+end
 
-containers.each do |container|
+Utils.proxmox(ctx, 'nodes/pve/lxc').each do |container|
 
   # Get container information
 
@@ -14,15 +21,15 @@ containers.each do |container|
   current = Utils.proxmox(ctx, "nodes/pve/lxc/#{id}/status/current")
 
   hostname = config['hostname'] || id.to_s
-  status = current['status']
   ip = config['net0'] && config['net0'][/ip=(\d+\.\d+\.\d+\.\d+)/, 1]
+  status = (current['status'] == 'running' ? check_service(hostname, id, ip) : current['status'])
 
   val = { 'ip'=>ip, 'status'=>status }.compact
   Env.set(ctx, hostname, val, repo: 'health', owner: 'tasks')
 
   # Description
 
-  repository_description = "[#{status}] #{id} (#{ip})"
+  repository_description = "[<b>#{status}</b>] #{id} (#{ip})"
   repository_url = "https://#{Env.get(ctx, 'PROXMOX_HOST')}:8006/#v1:0:=lxc%2F#{id}"
 
   # Set repository description

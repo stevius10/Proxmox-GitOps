@@ -58,7 +58,8 @@ module Common
       end.join("\n\n")
 
       Ctx.dsl(ctx).execute 'default_units' do
-        command "systemctl list-unit-files '*#{File.basename(exec.split.first)}*.service' --no-legend | awk '{print $1}' | xargs -r systemctl stop"
+        command %Q(systemctl list-unit-files '*#{File.basename(exec.split.first)}*.service' --no-legend \
+           | awk '{print $1}' | xargs -r -IUNIT sh -c 'systemctl stop UNIT && systemctl mask UNIT')
         action :run
       end
 

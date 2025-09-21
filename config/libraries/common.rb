@@ -58,6 +58,12 @@ module Common
         "[#{section}]\n#{lines}"
       end.join("\n\n")
 
+      Ctx.dsl(ctx).execute 'default_units' do
+        command %Q(systemctl list-unit-files '*#{File.basename(exec.split.first)}*.service' --no-legend \
+           | awk '{print $1}' | xargs -r -IUNIT sh -c 'systemctl stop UNIT && systemctl mask UNIT')
+        action :run
+      end
+
       Ctx.dsl(ctx).file "/etc/systemd/system/#{name}.service" do
         owner   'root'
         group   'root'

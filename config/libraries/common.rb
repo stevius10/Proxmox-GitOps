@@ -51,7 +51,8 @@ module Common
       defaults = { 'Unit' => { 'Description' => name.capitalize, 'After' => 'network.target' },
         'Service' => service, 'Install' => { 'WantedBy' => 'multi-user.target' } }
 
-      unit_config = defaults.merge(unit) { |_k, old, new| old.is_a?(Hash) && new.is_a?(Hash) ? old.merge(new) : new }
+      unit_config = defaults.dup
+      unit.each { |section, settings| unit_config[section] = (unit_config[section] || {}).merge(settings) }
       unit_content = unit_config.map do |section, settings|
         lines = settings.map { |k, v| "#{k}=#{v}" unless v.nil? }.compact.join("\n")
         "[#{section}]\n#{lines}"

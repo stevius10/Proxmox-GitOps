@@ -1,10 +1,18 @@
-<% @hosts.each do |entry| -%>
-  <% domain, ip = entry.split(' ') -%>
-  <%= domain %> {
+(internal) {
+  @external {
+    not remote_ip 192.168.0.0/24
+  }
+  respond @external 403
+}
+
+<% @hosts.each do |entry| -%><% domain, ip = entry.split(' ') -%>
+<%= domain %> {
   reverse_proxy <%= ip %>
+  tls internal
   log {
-  output file <%= @log_dir %>/<%= domain %>.log
-  format single_field common_log
+    output file <%= @log_dir %>/<%= domain %>.log
   }
-  }
+  import internal
+}
+
 <% end -%>

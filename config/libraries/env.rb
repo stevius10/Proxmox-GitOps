@@ -92,6 +92,8 @@ module Env
         end
       end
       work.each { |x| rec.(x) }
+
+      Env.set_variable(node, "name", repo, repo: repo, owner: owner) if repo
       true
     end
   end

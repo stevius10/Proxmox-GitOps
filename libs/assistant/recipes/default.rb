@@ -45,10 +45,10 @@ ruby_block "restore_snapshot_if_exists" do
   block { Utils.snapshot(self, node['assistant']['dir']['data'], restore: true) }
 end
 
-Common.application(self, 'assistant', cwd: node['assistant']['dir']['data'],
+Common.application(self, cookbook_name, cwd: node['assistant']['dir']['data'],
   exec: "#{node['assistant']['dir']['env']}/bin/python3 -m homeassistant --config #{node['assistant']['dir']['data']}",
   unit: { 'Service' => { 'RestartForceExitStatus' => '100',
     'Environment' => "PATH=#{node['assistant']['dir']['env']}/bin:/usr/local/bin:/usr/bin:/usr/local/bin/uv" } } )
 
-Common.application(self, 'hass-configurator', cwd: node['assistant']['dir']['data'],
+Common.application(self, 'configurator', cwd: node['assistant']['dir']['data'],
   exec:  "#{node['configurator']['dir']}/bin/hass-configurator -s -e -b #{node['assistant']['dir']['data']}" )

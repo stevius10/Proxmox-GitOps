@@ -32,5 +32,5 @@ execute "mosquitto_user_#{login}" do
 end
 
 Common.application(self, cookbook_name,
-  exec: "/usr/sbin/mosquitto -c #{node['broker']['file']['config']}",
+  exec:  "/usr/sbin/mosquitto -c #{node['broker']['file']['config']}",
   subscribe: [ "template[#{node['broker']['file']['config']}]", "template[#{node['broker']['file']['user']}]"  ] )

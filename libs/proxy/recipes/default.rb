@@ -26,4 +26,5 @@ end
 
 Common.application(self, cookbook_name,
   exec: "/bin/caddy run --config #{node['proxy']['dir']['app']}/Caddyfile",
-  subscribe: "template[#{node['proxy']['dir']['app']}/Caddyfile]" )
+  subscribe: "template[#{node['proxy']['dir']['app']}/Caddyfile]",
+  unit: { 'Service' => { 'AmbientCapabilities' => 'CAP_NET_BIND_SERVICE' } } )

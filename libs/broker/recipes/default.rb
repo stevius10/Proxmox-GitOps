@@ -16,7 +16,7 @@ template node['broker']['file']['config'] do
   mode '0644'
   variables({ port: node['broker']['port'], user_file: node['broker']['file']['user'],
     data_dir: node['broker']['dir']['data'], log_dir: node['broker']['dir']['log'] })
-  notifies :restart, 'service[mosquitto]', :delayed
+  notifies :restart, "service[#{cookbook_name}]", :delayed
 end
 
 file node['broker']['file']['user'] do

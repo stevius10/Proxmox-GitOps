@@ -71,7 +71,7 @@ if (latest_version = Utils.install(self, "https://github.com/Koenkk/zigbee2mqtt/
 
 end
 
-Common.application(self, 'zigbee2mqtt', cwd: node['bridge']['dir'],
+Common.application(self, cookbook_name, cwd: node['bridge']['dir'],
   exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
   unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
     'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )

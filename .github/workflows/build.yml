@@ -24,10 +24,10 @@ jobs:
       - name: Set config.env
         id: config
         run: |
+          echo "hostname=config" >> $GITHUB_OUTPUT
           source config.env
           echo "ip=127.0.0.1" >> $GITHUB_OUTPUT
           echo "id=$ID" >> $GITHUB_OUTPUT
-          echo "hostname=$HOSTNAME" >> $GITHUB_OUTPUT
           echo "cores=$CORES" >> $GITHUB_OUTPUT
           echo "memory=$MEMORY" >> $GITHUB_OUTPUT
           echo "swap=$SWAP" >> $GITHUB_OUTPUT

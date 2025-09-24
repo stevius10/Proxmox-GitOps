@@ -1,7 +1,7 @@
 # ! cron '0 0 * * 0'
 
 Dir[File.join(__dir__, 'libraries', '**', '*.rb')].sort.each { |f| require f }
-ctx = { "endpoint"=>ENV["ENDPOINT"], "host"=>ENV["HOST"], "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"],  }
+ctx = { "endpoint"=>ENV["ENDPOINT"], "host"=>ENV["HOST"], "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"] }
 
 def update_container(id, ip)
   `ssh -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=no -i "/share/.ssh/#{id}" "config@#{ip}" "sudo sh -c '\

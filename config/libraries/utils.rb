@@ -100,22 +100,6 @@ module Utils
     return verify.(snapshot, dir)
   end
 
-  def self.proxmox(ctx, path)
-    host = Env.get(ctx, 'proxmox_host'); user = Env.get(ctx, 'proxmox_user'); pass = Env.get(ctx, 'proxmox_password')
-    token = Env.get(ctx, 'proxmox_token'); secret = Env.get(ctx, 'proxmox_secret')
-
-    url = "https://#{host}:8006/api2/json/#{path}"
-    if pass && !pass.empty?
-      response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
-        body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM)
-      Logs.request!(uri, response, true, msg: "Proxmox: request ticket")
-      headers = { 'Cookie' => "PVEAuthCookie=#{response.json['data']['ticket']}", 'CSRFPreventionToken' => response.json['data']['CSRFPreventionToken'] }
-    else
-      headers = { 'Authorization' => "PVEAPIToken=#{user}!#{token}=#{secret}" }
-    end
-    request(url, headers: headers).json['data']
-  end
-
   # Remote
 
   def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, expect: false, log: true, verify: OpenSSL::SSL::VERIFY_NONE)
@@ -135,6 +119,25 @@ module Utils
       Logs.request("#{u}#{tag} (#{body})", response)
     end
     return expect ? response.is_a?(Net::HTTPSuccess) : response
+  end
+
+  def self.proxmox(ctx, path)
+    host    = Env.get(ctx, 'proxmox_host')
+    user    = Env.get(ctx, 'proxmox_user')
+    pass    = Env.get(ctx, 'proxmox_password')
+    token   = Env.get(ctx, 'proxmox_token')
+    secret  = Env.get(ctx, 'proxmox_secret')
+
+    url = "https://#{host}:8006/api2/json/#{path}"
+    if pass && !pass.empty?
+      response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
+        body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM, log: false)
+      Logs.request!(uri, response, true, msg: "Proxmox: Ticket")
+      headers = { 'Cookie' => "PVEAuthCookie=#{response.json['data']['ticket']}", 'CSRFPreventionToken' => response.json['data']['CSRFPreventionToken'] }
+    else
+      headers = { 'Authorization' => "PVEAPIToken=#{user}!#{token}=#{secret}" }
+    end
+    request(url, headers: headers).json['data']
   end
 
   def self.install(ctx, uri, app_dir, data_dir, version_dir: "/app", snapshot_dir: '/share/snapshots')

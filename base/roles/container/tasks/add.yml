@@ -9,7 +9,7 @@
 
     - name: Set configuration user
       set_fact:
-        ssh_user: "{{ 'config' if (ssh_config_test is defined and ssh_config_test.rc == 0) else 'root' }}"
+        ssh_user: "{{ 'config' if (ssh_config_test is defined and ssh_config_test.rc | default(1) == 0) else 'root' }}"
 
     - name: Add container
       add_host:

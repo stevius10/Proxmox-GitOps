@@ -1,7 +1,7 @@
-# ! cron '* */3 * * *'
+# ! cron '0 */3 * * *'
 
 Dir[File.join(__dir__, 'libraries', '**', '*.rb')].sort.each { |f| require f }
-ctx = { "endpoint"=>ENV["ENDPOINT"], "host"=>ENV["HOST"], "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"],  }
+ctx = { "endpoint"=>ENV["ENDPOINT"], "host"=>ENV["HOST"], "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"] }
 
 def check_service(hostname, id, ip)
   begin

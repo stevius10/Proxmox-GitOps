@@ -11,8 +11,8 @@ proxmox_cred:
   api_host: "{{ PROXMOX_HOST }}"
   api_user: "{{ PROXMOX_USER }}"
   api_password: "{{ PROXMOX_PASSWORD | default(omit) }}"
-  api_token_id: "{{ (PROXMOX_PASSWORD | default('') | trim) == '' | ternary(PROXMOX_TOKEN, omit) }}"
-  api_token_secret: "{{ (PROXMOX_PASSWORD | default('') | trim) == '' | ternary(PROXMOX_SECRET, omit) }}"
+  api_token_id: "{{ PROXMOX_TOKEN if (PROXMOX_PASSWORD | default('') | trim) == '' else omit }}"
+  api_token_secret: "{{ PROXMOX_SECRET if (PROXMOX_PASSWORD | default('') | trim) == '' else omit }}"
   api_port: 8006
   node: "pve"
 

@@ -22,7 +22,7 @@ module Logs
     input = flat.each_slice(2).to_h.transform_keys(&:to_s)
     payload = input.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
     log([msg, payload].reject { |s| s.blank? }.join(" "), level: level)
-    log({ "environment":  ENV.to_h, "node": Ctx.node(ctx) }, level: 'debug')
+    log(Ctx.node(ctx), level: 'debug') if ctx
   end
 
   def self.try!(msg, *pairs, ctx: nil, raise: false)

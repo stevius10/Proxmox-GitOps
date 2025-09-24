@@ -24,5 +24,7 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
     log_dir: node['proxy']['dir']['logs'], hosts: lazy { node.run_state['proxy_hosts'] || [] } )
 end
 
-Common.application(self, 'caddy',
-  subscribe: "template[#{node['proxy']['dir']['app']}/Caddyfile]" )
+Common.application(self, cookbook_name,
+  exec: "/bin/caddy run --config #{node['proxy']['dir']['app']}/Caddyfile",
+  subscribe: "template[#{node['proxy']['dir']['app']}/Caddyfile]",
+  unit: { 'Service' => { 'AmbientCapabilities' => 'CAP_NET_BIND_SERVICE' } } )

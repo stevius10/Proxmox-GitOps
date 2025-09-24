@@ -42,7 +42,7 @@ module Common
     user  = user.to_s
     group = group.to_s
 
-    if exec || unit.present?
+    if exec
       daemon(ctx, reload)
 
       service = {'Type' => 'simple', 'User' => user, 'Group' => group, 'Restart' => restart }
@@ -51,20 +51,31 @@ module Common
       defaults = { 'Unit' => { 'Description' => name.capitalize, 'After' => 'network.target' },
         'Service' => service, 'Install' => { 'WantedBy' => 'multi-user.target' } }
 
-      unit_config = defaults.merge(unit) { |_k, old, new| old.is_a?(Hash) && new.is_a?(Hash) ? old.merge(new) : new }
+      unit_config = defaults.dup
+      unit.each { |section, settings| unit_config[section] = (unit_config[section] || {}).merge(settings) }
       unit_content = unit_config.map do |section, settings|
         lines = settings.map { |k, v| "#{k}=#{v}" unless v.nil? }.compact.join("\n")
         "[#{section}]\n#{lines}"
       end.join("\n\n")
 
+      # Mask default application service
+      conflicts = %Q(systemctl list-unit-files '*#{File.basename(exec.split.first)}*.service' --no-legend | awk '$2!="masked" {print $1}')
+      Ctx.dsl(ctx).execute "mask_conflicts_#{name}" do
+        command "#{conflicts} | xargs -r -IUNIT sh -c 'systemctl stop UNIT && systemctl mask UNIT'"
+        only_if conflicts
+        returns [0, 123] # already masked returns '123'
+        action  :run
+      end
+
       Ctx.dsl(ctx).file "/etc/systemd/system/#{name}.service" do
         owner   'root'
         group   'root'
-        mode    '0644'
+        mode    '0664'
         content unit_content
         notifies :run, "execute[#{reload}]", :immediately
         notifies :restart, "service[#{name}]", :delayed
       end
+
     end
 
     if actions.include?(:force_restart)

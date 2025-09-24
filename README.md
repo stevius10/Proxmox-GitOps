@@ -1,7 +1,6 @@
-[![Build Status](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![main](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml) [![develop](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml)
 
-[![PVE 8.4](https://img.shields.io/badge/PVE-8.4-orange)](https://www.proxmox.com/) [![PVE 9.0](https://img.shields.io/badge/PVE-9.0-orange)](https://www.proxmox.com/)
-
+[![PVE 8.4](https://img.shields.io/badge/PVE-8.4-orange)](https://www.proxmox.com/) [![PVE 9.0](https://img.shields.io/badge/PVE-9.0-orange)](https://www.proxmox.com/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Table of Contents
 - [Overview](#overview)
@@ -13,26 +12,27 @@
   - [Lifecycle](#lifecycle)
     - [Self-contained Monorepository](#self-contained-monorepository)
   - [Requirements](#requirements)
-  - [Getting Started](#getting-started)
-    - [Development and Extension](#development-and-extension)
+  - [Configuration](#configuration)
+  - [Development and Extension](#development-and-extension)
+    - [Getting Started](#getting-started)
+    - [Environment](#environment)
 
 ---
 
 ## Overview
 
-<img src="docs/img/monorepo.png" alt="Monorepo" align="right" width="30%">
-
-<br>Proxmox-GitOps implements a self-sufficient, extensible CI/CD environment for provisioning, configuring, and orchestrating Linux Containers (LXC) within Proxmox VE.<br><br>
+<img src="docs/img/monorepo.png" alt="Monorepo" align="right" width="30%" style="margin-left: 20px">Proxmox-GitOps implements a self-sufficient, extensible CI/CD environment for provisioning, configuring, and orchestrating Linux Containers (LXC) within Proxmox VE.<br><br>
 Leveraging an Infrastructure-as-Code (IaC) approach, it manages the entire container lifecycle—bootstrapping, deployment, configuration, and validation—through version-controlled automation.
-
 <br clear="right">
 
 ## Architecture
 
-The architecture is based on a multi-stage pipeline capable of recursively deploying and configuring itself as a self-managed control plane. 
+The architecture is based on a multi-stage pipeline capable of recursively deploying and configuring itself as a self-managed control plane.
 
 <p align="center">
-  <img src="./docs/concept.svg" alt="Concept"/>
+  <a href="docs/concept.svg" target="_blank" rel="noopener noreferrer">
+    <img src="docs/concept.svg" alt="Architecture and Concept" width="600px" />
+  </a>
 </p>
 
 Initial bootstrapping is performed via a local Docker environment, with subsequent deployments targeting Proxmox VE.  
@@ -52,11 +52,13 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - **Loosely coupled**: Containers are decoupled from the control plane, enabling runtime replacement and independent operation. 
 
-- **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity. 
+- **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity.
 
-<p align="center">
-  <img src="docs/img/recursion.png" alt="Pipeline"/>
-</p>
+<p align="center"><br>
+  <a href="docs/img/recursion.png" target="_blank" rel="noopener noreferrer">
+    <img src="docs/img/recursion.png" alt="Recursive deployment" width="600px" />
+  </a>
+</p><br>
 
 ### Trade-offs
 
@@ -72,8 +74,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 #### Self-contained Monorepository
 
-- `git clone --recurse-submodules` 
-  - e. g., **Version-Controlled Mirrored**
+`git clone --recurse-submodules`, e.g. **Version-Controlled Mirroring**
 
 - **Backup**: See [Self-contained Monorepository](#self-contained-monorepository)
   - use `local/share` for persistence or self-reference network share
@@ -82,32 +83,39 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - **Rollback**: See [Self-contained Monorepository](#self-contained-monorepository), or set `snapshot` branch to `release` at runtime
 
+*Appendix*: The self-referential language in this section is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
+
 ### Requirements
 
 - Docker
 - Proxmox VE 8.4-9.0
 - See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
-### Getting Started
+### Configuration
 
 - Set **Proxmox** and **global usage credentials** in [`local/.config.json`](local/.config.json) as [`./local/config.json`](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-localconfigjson)
-- Ensure **container configuration** in [`config.env`](config.env) and [**verify storage**](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv)
+- Ensure **container configuration** in [`config.env`](config.env) and [verify storage](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv)
 - Run `./local/run.sh` for local Docker environment
 - Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE
 
-<p align="center">
-  <img src="docs/img/nutshell.png" alt="in a nutshell"/>
-</p>
+<p align="center"><br>
+  <a href="docs/img/nutshell.png" target="_blank" rel="noopener noreferrer">
+    <img src="docs/img/nutshell.png" alt="In a nutshell" width="600px" />
+  </a>
+</p><br>
 
-#### Development and Extension
+### Development and Extension
 
-Reusable container definitions are stored in the [`libs`](libs) folder. Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
+Reusable container definitions are stored in the [`libs`](libs) folder. 
+
+#### Getting Started
+
+Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
 
 - Add `config.env` to your container's root directory (e.g. `./libs/apache`):
 ```dotenv
 IP=192.168.178.42
 ID=42
-HOSTNAME=apache
 CORES=2
 MEMORY=2048
 SWAP=512
@@ -131,16 +139,26 @@ end
 Common.application(self, 'apache2') # provided by convention
 ```
 
-- Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
-
-<p align="center">
-  <img src="docs/img/environment.png" alt="Global Environment"/>
-</p>
-
 - Add to Monorepository and redeploy.
 
-The container can be tested locally running `./local/run.sh [container]` (_wip_)
+#### Environment
 
-<p align="center">
-  <img src="docs/img/development.png" alt="Local Development"/>
-</p>
+- Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
+
+<p align="center"><br>
+  <a href="docs/img/environment.png" target="_blank" rel="noopener noreferrer">
+    <img src="docs/img/environment.png" alt="Global Environment" width="600px" />
+  </a>
+</p><br>
+
+- The container can be tested locally running `./local/run.sh [container]`:
+
+  <details>
+  <summary>Example: Apache</summary>
+  <br>
+  <p align="center">
+    <a href="docs/img/development.png">
+      <img src="docs/img/development.png" alt="Local Development" width="600">
+    </a>
+  </p> <br>
+  </details>

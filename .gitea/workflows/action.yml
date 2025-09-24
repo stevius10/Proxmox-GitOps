@@ -20,12 +20,12 @@ runs:
     - name: Configure container
       id: init
       run: |
+        source "repo/config.env"
         repository="${{ inputs.repo }}"
         echo "repo=${repository##*/}" >> "$GITEA_ENV"
-        source repo/config.env
+        
         echo "ip=$IP" >> $GITEA_ENV
         echo "id=$ID" >> $GITEA_ENV
-        echo "hostname=$HOSTNAME" >> $GITEA_ENV
         echo "cores=$CORES" >> $GITEA_ENV
         echo "memory=$MEMORY" >> $GITEA_ENV
         echo "swap=$SWAP" >> $GITEA_ENV
@@ -39,7 +39,7 @@ runs:
       with:
         ip: ${{ env.ip }}
         id: ${{ env.id }}
-        hostname: ${{ env.hostname }}
+        hostname: ${{ env.repo }}
         cores: ${{ env.cores }}
         memory: ${{ env.memory }}
         swap: ${{ env.swap }}
@@ -64,7 +64,7 @@ runs:
 
     - name: Configure container
       run: |
-        tar -c "${{ env.repo }}" -cz . | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${{ env.id }}" "config@${{ env.ip }}" 'sudo tar xz -C /tmp
+        tar -c "${{ env.repo }}" -cz | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${{ env.id }}" "config@${{ env.ip }}" 'sudo tar xz -C /tmp
           sudo -E IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} ENDPOINT=${{ vars.ENDPOINT }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} PWD="$(pwd)" \
             cinc-client --local-mode $CONFIG_ARGS --config-option cookbook_path="/tmp" -o "${{ env.repo }}"'
       shell: bash

@@ -34,7 +34,7 @@ execute 'install_assistant' do
 end
 
 execute 'install_configurator' do
-  command "uv pip install --python #{node['configurator']['dir']}/bin/python hass-configurator"
+  command "uv pip install --python #{node['configurator']['dir']}/bin/python legacy-cgi hass-configurator"
   user node['app']['user']
   group node['app']['group']
   environment 'UV_CACHE_DIR' => '/app/uv-cache'

@@ -49,9 +49,8 @@
       pubkey: "{{ lookup('file', [key_dir, id ~ '.pub'] | path_join) }}"
       swap: "{{ swap }}"
       disk: "{{ disk }}"
-      mounts: >-
-        {{ (mounts if mounts and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}
-      features: "{{ features }}"
+      features: "{{ (features if features and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}"
+      mounts: "{{ (mounts if mounts and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}"
       unprivileged: "{{ (share | default(false) and mount | default('') | trim != '') | ternary(false, true) }}"
       netif:
         net0: "name=eth0,gw=192.168.178.1,ip={{ ip }}/24,bridge=vmbr0"

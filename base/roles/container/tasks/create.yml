@@ -39,7 +39,7 @@
       mounts: >-
         {{ (mounts if mounts and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}
       features: >-
-        {{ (['mount=cifs'] if (share | default(false)) and (mount | default('') | trim != '') 
+        {{ ['nesting=1', 'keyctl=1'] + (['mount=cifs'] if (share | default(false)) and (mount | default('') | trim != '') 
           and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}
       unprivileged: "{{ (share | default(false) and mount | default('') | trim != '') | ternary(false, true) }}"
       netif:

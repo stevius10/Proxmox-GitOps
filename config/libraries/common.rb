@@ -35,8 +35,8 @@ module Common
 
   def self.application(ctx, name, user: nil, group: nil,
       exec: nil, cwd: nil, unit: {}, actions: [:enable, :start], subscribe: nil, reload: 'systemd_reload',
-      restart: 'on-failure', restart_delay: 10, restart_limit: 5, restart_max: 600,
-      verify: true, verify_timeout: 60, verify_interval: 3, verify_cmd: "systemctl is-active --quiet #{name}")
+      restart: 'on-failure', restart_delay: 10, restart_limit: 10, restart_max: 600,
+      verify: true, verify_timeout: 60, verify_interval: 5, verify_cmd: "systemctl is-active --quiet #{name}")
     user  ||= Default.user(ctx)
     group ||= Default.group(ctx)
     user  = user.to_s
@@ -89,7 +89,7 @@ module Common
 
     if actions.include?(:force_restart)
       Ctx.dsl(ctx).execute "force_restart_#{name}" do
-        command "systemctl stop #{name} || true && sleep 1 && systemctl start #{name}"
+        command "systemctl reset-failed #{name}; systemctl stop #{name} || true && sleep 1 && systemctl start #{name}"
         action :run
       end
     else

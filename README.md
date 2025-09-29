@@ -10,7 +10,7 @@
   - [Trade-offs](#trade-offs)
 - [Usage](#usage)
   - [Lifecycle](#lifecycle)
-    - [Self-contained Monorepository](#self-contained-monorepository)
+    - [Self-Containment](#self-containment)
   - [Requirements](#requirements)
   - [Configuration](#configuration)
   - [Development and Extension](#development-and-extension)
@@ -21,9 +21,9 @@
 
 ## Overview
 
-Proxmox-GitOps implements a self-sufficient, extensible CI/CD environment for provisioning, configuring, and orchestrating Linux Containers (LXC) within Proxmox VE.
+Proxmox-GitOps implements a self-contained GitOps environment for provisioning and orchestrating Linux Containers (LXC) on Proxmox VE.
 
-Leveraging an Infrastructure-as-Code (IaC) approach, it manages the entire container lifecycle—bootstrapping, deployment, configuration, and validation—through version-controlled automation.
+Encapsulating infrastructure within an extensible monorepository — recursively resolved from Git submodules at runtime — it provides a comprehensive Infrastructure-as-Code (IaC) abstraction for an entire, automated container-based infrastructure.
 
 <p align="center"><br>
   <a href="docs/demo.gif" target="_blank" rel="noopener noreferrer">
@@ -78,16 +78,16 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 ### Lifecycle
 
-#### Self-contained Monorepository
+#### Self-Containment
 
-`git clone --recurse-submodules`, e.g. **Version-Controlled Mirroring**
+`git clone --recurse-submodules`, e.g. for **Version-Controlled Mirroring**
 
-- **Backup**: See [Self-contained Monorepository](#self-contained-monorepository)
-  - use `local/share` for persistence or self-reference network share
+- **Backup**: See [Self-Containment](#self-containment)
+  - use `local/share/` [for persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence) or self-reference network share
 
-- **Update**: See [Self-contained Monorepository](#self-contained-monorepository), and redeploy merged
+- **Update**: See [Self-Containment](#self-containment), and redeploy merged
 
-- **Rollback**: See [Self-contained Monorepository](#self-contained-monorepository), or set `snapshot` branch to `release` at runtime
+- **Rollback**: See [Self-Containment](#self-containment), or set `snapshot` branch to `release` at runtime
 
 *Appendix*: The self-referential language in this section is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
 

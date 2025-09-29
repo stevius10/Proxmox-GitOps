@@ -50,15 +50,17 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 | Concept | Approach | Reasoning |
 |---------|----------|-----------|
 | **Ephemeral State** | Git repository represents *current desired state*, ensuring state purity across deployments.| Deployment consistency and stateless infrastructure over version history. |
-| **Recursive Self-Containment** | Embedded control plane recursively provisions itself within target containers, ensuring deterministic bootstrap.| Prevents configuration drift; enables consistent and reproducible behavior. |
-| **Dynamic Orchestration** | Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management| Declarative approach intractable for adjusting to dynamic cross-layer changes (e.g. submodule remote rewriting). |
-| **Monorepository** | Centralizes infrastructure as a single code artifact; submodules modularize development at runtime | Consistency and modularity: infrastructure self-contained; dynamically resolved in recursive context. |
+| **Recursive Self-Containment** | Control plane seeds itself by pushing its monorepository onto a locally bootstrapped instance, triggering a pipeline that recursively provisions the control plane onto PVE.| Environmental parity for local and PVE, enabling one-click deployment from version-controlled monorepository. Reuse of validated, generic base. 
+| **Dynamic Orchestration** | Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management.| Declarative approach intractable for adjusting to dynamic cross-layer changes (e.g. submodule remote rewriting). |
+| **Monorepository** | Centralizes infrastructure as single code artifact, using submodules for modular composition.| Consistency and modularity: infrastructure self-contained; dynamically resolved in recursive context. |
 
 ### Design
 
 - **Loosely coupled**: Containers are decoupled from the control plane, enabling runtime replacement and independent operation. 
 
 - **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity.
+
+- **Integrated Baseline:** The `base` role standardizes defaults in container configuration. The control plane leverages this baseline and uses built-in infrastructure libraries to deploy itself recursively, establishing an operational pattern that is reproduced in container `libs`.
 
 <p align="center"><br>
   <a href="docs/img/recursion.png" target="_blank" rel="noopener noreferrer">

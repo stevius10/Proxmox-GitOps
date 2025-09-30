@@ -10,7 +10,7 @@
   - [Trade-offs](#trade-offs)
 - [Usage](#usage)
   - [Lifecycle](#lifecycle)
-    - [Self-contained Monorepository](#self-contained-monorepository)
+    - [Self-Containment](#self-containment)
   - [Requirements](#requirements)
   - [Configuration](#configuration)
   - [Development and Extension](#development-and-extension)
@@ -21,9 +21,15 @@
 
 ## Overview
 
-<img src="docs/img/monorepo.png" alt="Monorepo" align="right" width="30%" style="margin-left: 20px">Proxmox-GitOps implements a self-sufficient, extensible CI/CD environment for provisioning, configuring, and orchestrating Linux Containers (LXC) within Proxmox VE.<br><br>
-Leveraging an Infrastructure-as-Code (IaC) approach, it manages the entire container lifecycle—bootstrapping, deployment, configuration, and validation—through version-controlled automation.
-<br clear="right">
+Proxmox-GitOps implements a self-contained GitOps environment for provisioning and orchestrating Linux Containers (LXC) on Proxmox VE.
+
+Encapsulating infrastructure within an extensible monorepository — recursively resolved from Git submodules at runtime — it provides a comprehensive Infrastructure-as-Code (IaC) abstraction for an entire, automated container-based infrastructure.
+
+<p align="center"><br>
+  <a href="docs/demo.gif" target="_blank" rel="noopener noreferrer">
+    <img src="docs/demo.gif" alt="Demo" width="600px" />
+  </a>
+</p><br>
 
 ## Architecture
 
@@ -44,15 +50,17 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 | Concept | Approach | Reasoning |
 |---------|----------|-----------|
 | **Ephemeral State** | Git repository represents *current desired state*, ensuring state purity across deployments.| Deployment consistency and stateless infrastructure over version history. |
-| **Recursive Self-Containment** | Embedded control plane recursively provisions itself within target containers, ensuring deterministic bootstrap.| Prevents configuration drift; enables consistent and reproducible behavior. |
-| **Dynamic Orchestration** | Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management| Declarative approach intractable for adjusting to dynamic cross-layer changes (e.g. submodule remote rewriting). |
-| **Monorepository** | Centralizes infrastructure as a single code artifact; submodules modularize development at runtime | Consistency and modularity: infrastructure self-contained; dynamically resolved in recursive context. |
+| **Recursive Self-Containment** | Control plane seeds itself by pushing its monorepository onto a locally bootstrapped instance, triggering a pipeline that recursively provisions the control plane onto PVE.| Environmental parity for local and PVE, enabling one-click deployment from version-controlled monorepository. Reuse of validated, generic base. 
+| **Dynamic Orchestration** | Imperative logic (e.g. `config/recipes/repo.rb`) used for dynamic, cross-layer state management.| Declarative approach intractable for adjusting to dynamic cross-layer changes (e.g. submodule remote rewriting). |
+| **Monorepository** | Centralizes infrastructure as single code artifact, using submodules for modular composition.| Consistency and modularity: infrastructure self-contained; dynamically resolved in recursive context. |
 
 ### Design
 
 - **Loosely coupled**: Containers are decoupled from the control plane, enabling runtime replacement and independent operation. 
 
 - **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity.
+
+- **Integrated Baseline:** The `base` role standardizes defaults in container configuration. The control plane leverages this baseline and uses built-in infrastructure libraries to deploy itself recursively, establishing an operational pattern that is reproduced in container `libs`.
 
 <p align="center"><br>
   <a href="docs/img/recursion.png" target="_blank" rel="noopener noreferrer">
@@ -72,16 +80,16 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 ### Lifecycle
 
-#### Self-contained Monorepository
+#### Self-Containment
 
-`git clone --recurse-submodules`, e.g. **Version-Controlled Mirroring**
+`git clone --recurse-submodules`, e.g. for **Version-Controlled Mirroring**
 
-- **Backup**: See [Self-contained Monorepository](#self-contained-monorepository)
-  - use `local/share` for persistence or self-reference network share
+- **Backup**: See [Self-Containment](#self-containment)
+  - use `local/share/` [for persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence) or self-reference network share
 
-- **Update**: See [Self-contained Monorepository](#self-contained-monorepository), and redeploy merged
+- **Update**: See [Self-Containment](#self-containment), and redeploy merged
 
-- **Rollback**: See [Self-contained Monorepository](#self-contained-monorepository), or set `snapshot` branch to `release` at runtime
+- **Rollback**: See [Self-Containment](#self-containment), or set `snapshot` branch to `release` at runtime
 
 *Appendix*: The self-referential language in this section is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
 

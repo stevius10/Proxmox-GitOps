@@ -69,7 +69,7 @@ module Utils
     snapshot = File.join(snapshot_dir, name, "#{name}-#{timestamp}.tar.gz")
     md5_dir = ->(path) {
       entries = Dir.glob("#{path}/**/*", File::FNM_DOTMATCH)
-      files = entries.reject { |f| File.directory?(f) || ['.', '..'].include?(File.basename(f)) || File.basename(f).start_with?('._') }
+      files = entries.reject { |f| File.directory?(f) || File.symlink?(f) || ['.', '..'].include?(File.basename(f)) || File.basename(f).start_with?('._') }
       Digest::MD5.new.tap { |md5| files.sort.each { |f| File.open(f, 'rb') { |io| md5.update(io.read) } } }.hexdigest  }
     verify = ->(archive, compare_dir) {
       Dir.mktmpdir do |tmp|

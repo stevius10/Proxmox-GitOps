@@ -34,7 +34,7 @@
     set_fact:
       features: "{{ features + ['mount=cifs'] }}"
     when:
-      - share | default(false) | bool
+      - not share | default(false) | bool
       - mount | default('') | trim != ''
       - PROXMOX_PASSWORD is defined
       - PROXMOX_PASSWORD != ''

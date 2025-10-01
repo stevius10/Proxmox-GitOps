@@ -42,7 +42,7 @@ execute 'install_configurator' do
 end
 
 ruby_block "restore_snapshot_if_exists" do
-  block { Utils.snapshot(self, node['assistant']['dir']['data'], restore: true) }
+  block { Utils.snapshot(self, node['snapshot']['data'], restore: true) }
 end
 
 Common.application(self, cookbook_name, cwd: node['assistant']['dir']['data'],

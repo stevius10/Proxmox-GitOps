@@ -2,7 +2,7 @@ inputs:
   repo:
     required: true
     type: string
-  ref:
+  branch:
     required: true
     type: string
     default: "main"
@@ -14,7 +14,7 @@ runs:
       uses: https://gitea.com/actions/checkout@v4
       with:
         repository: "${{ inputs.repo }}"
-        ref: "${{ inputs.ref }}"
+        ref: "${{ inputs.branch }}"
         path: repo
 
     - name: Configure container
@@ -52,7 +52,7 @@ runs:
       uses: https://gitea.com/actions/checkout@v4
       with:
         repository: "${{ inputs.repo }}"
-        ref: "${{ gitea.ref_name }}"
+        ref: "${{ inputs.branch }}"
         path: "${{ env.repo }}"
 
     - name: Checkout libraries
@@ -61,6 +61,11 @@ runs:
         repository: 'main/libraries'
         ref: 'main'
         path: "${{ env.repo }}/libraries"
+
+    - name: Create Snapshot
+      if: ${{ inputs.branch == 'snapshot' }}
+      run: echo "Utils.snapshot(self, node['snapshot']['data'])" > "${{ env.repo }}/recipes/default.rb"
+      shell: bash
 
     - name: Configure container
       run: |

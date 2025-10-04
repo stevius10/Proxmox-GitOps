@@ -9,6 +9,16 @@
     mount_list: "{{ mount.split(',') | reject('equalto', '') | select('match', '^[A-Za-z0-9_]+$') | list }}"
   when: mount is defined
 
+- name: Create credentials file
+  ansible.builtin.copy:
+    dest: /root/.share
+    content: |
+      username={{ login }}
+      password={{ password }}
+    owner: root
+    group: root
+    mode: '0600'
+
 - name: Ensure mount directories exist
   ansible.builtin.file:
     path: "{{ '/share' if item == 'share' else '/share/' ~ item }}"
@@ -25,12 +35,17 @@
     src: "//{{ host }}/{{ item }}"
     path: "{{ '/share' if item == 'share' else '/share/' ~ item }}"
     fstype: cifs
-    opts: "username={{ login }},password={{ password }},uid=1000,gid=1000,vers=3.0"
+    opts: "credentials=/root/.share,uid=1000,gid=1000,vers=3.0,_netdev,x-systemd.requires=network-online.target,x-systemd.after=network-online.target,nofail"
     state: mounted
   loop: "{{ mount_list }}"
   loop_control:
     label: "{{ item }}"
+  notify:
+    - Reload systemd
 
-- name: Restart mount
-  ansible.builtin.command: mount -a
-  ignore_errors: yes # avoid permission error if token usage
+- name: Enable network waiting service
+  ansible.builtin.systemd:
+    name: systemd-networkd-wait-online.service
+    enabled: yes
+  notify:
+    - Remount

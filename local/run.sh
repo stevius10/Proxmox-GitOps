@@ -59,7 +59,8 @@ log "container" "started:${CONTAINER_ID}"
 
 sync() {
   log "sync" "files"
-  docker cp "$PROJECT_DIR/." "$CONTAINER_ID:/tmp/config/" || fail "sync_failed"
+  docker exec "$CONTAINER_ID" bash -c "rm -rf /tmp/config/*" || log "sync" "remove files failed"
+  docker cp "$PROJECT_DIR/." "$CONTAINER_ID:/tmp/config/" || fail "sync"
 
   if [[ -n "${COOKBOOK_OVERRIDE}" ]]; then
     log "sync" "libraries"

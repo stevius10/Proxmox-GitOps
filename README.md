@@ -89,7 +89,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - **Update**: See [Self-Containment](#self-containment), and redeploy merged
 
-- **Rollback**: See [Self-Containment](#self-containment), or set `snapshot` branch to `release` at runtime
+- **Rollback**: See [Self-Containment](#self-containment), or push `rollback` to `release` at runtime
 
 *Appendix*: The self-referential language in this section is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
 

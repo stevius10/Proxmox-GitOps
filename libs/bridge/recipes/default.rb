@@ -66,7 +66,7 @@ if (latest_version = Utils.install(self, "https://github.com/Koenkk/zigbee2mqtt/
   end
 
   ruby_block "restore_snapshot_if_exists" do
-    block { Utils.snapshot(self, node['bridge']['data'], restore: true) }
+    block { Utils.snapshot(self, node['snapshot']['data'], restore: true) }
   end
 
 end

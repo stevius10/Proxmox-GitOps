@@ -26,9 +26,9 @@ end
 execute "repo_#{name_repo}_push_snapshot" do
   command <<-EOH
     cp -r #{path_destination}/.git #{path_working}
-    cd #{path_working} && git checkout -b snapshot && git add -A
-    git commit --allow-empty -m "snapshot [skip ci]"
-    git push -f origin snapshot && (rm -rf #{path_working} || true)
+    cd #{path_working} && git checkout -b #{node['git']['branch']['rollback']} && git add -A
+    git commit --allow-empty -m "[skip ci]"
+    git push -f origin #{node['git']['branch']['rollback']} && (rm -rf #{path_working} || true)
   EOH
   cwd path_destination
   user node['app']['user']

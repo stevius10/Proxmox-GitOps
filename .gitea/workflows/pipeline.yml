@@ -72,7 +72,7 @@ jobs:
           tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" 'sudo tar xz -C /tmp
             sudo -E IP="'"${ip}"'" ID="'"${id}"'" ENDPOINT=${{ vars.ENDPOINT }} LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
               cinc-client --local-mode --config-option cookbook_path="[\"/tmp/config\", \"/tmp/config/libs\"]" -o share'
-    if: ${{ gitea.ref != 'refs/heads/release' || success() }}
+    if: ${{ gitea.ref == 'refs/heads/release' }}
 
   config:
     runs-on: [ "shell" ]

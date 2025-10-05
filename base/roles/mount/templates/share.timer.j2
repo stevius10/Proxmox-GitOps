@@ -1,0 +1,11 @@
+{% set unit_name = 'share' if item == 'share' else 'share-' ~ item %}
+[Unit]
+Description=mount {{ item }} timer
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=3min
+Unit={{ unit_name }}.service
+
+[Install]
+WantedBy=timers.target

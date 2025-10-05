@@ -1,0 +1,13 @@
+{% set mount_path = '/share' if item == 'share' else '/share/' ~ item %}
+{% set unit_name = 'share' if item == 'share' else 'share-' ~ item %}
+[Unit]
+Description=mount {{ item }} to {{ mount_path }}
+After=network.target
+StartLimitIntervalSec=900
+StartLimitBurst=10
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/mount -t cifs //192.168.178.254/{{ item }} {{ mount_path }} -o credentials=/root/.share,uid=1000,gid=1000,vers=3.0
+ExecStartPost=/usr/bin/bash -c 'mountpoint -q {{ mount_path }} && /usr/bin/systemctl stop --now {{ unit_name }}.timer || true'
+ExecStopPost=/usr/bin/bash -c '[ "$SERVICE_RESULT" = "start-limit-hit" ] && /usr/bin/systemctl stop --now {{ unit_name }}.timer || true'

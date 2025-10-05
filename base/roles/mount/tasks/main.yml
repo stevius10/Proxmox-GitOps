@@ -30,22 +30,37 @@
   loop_control:
     label: "{{ item }}"
 
-- name: Enable mount
-  ansible.posix.mount:
-    src: "//{{ host }}/{{ item }}"
-    path: "{{ '/share' if item == 'share' else '/share/' ~ item }}"
-    fstype: cifs
-    opts: "credentials=/root/.share,uid=1000,gid=1000,vers=3.0,_netdev,x-systemd.requires=network-online.target,x-systemd.after=network-online.target,nofail"
-    state: mounted
+- name: Create mount service
+  ansible.builtin.template:
+    src: share.service.j2
+    dest: "/etc/systemd/system/{{ ('share' if item == 'share' else 'share-' ~ item) }}.service"
+    owner: root
+    group: root
+    mode: '0644'
   loop: "{{ mount_list }}"
   loop_control:
     label: "{{ item }}"
-  notify:
-    - Reload systemd
 
-- name: Enable network waiting service
+- name: Create mount timer
+  ansible.builtin.template:
+    src: share.timer.j2
+    dest: "/etc/systemd/system/{{ ('share' if item == 'share' else 'share-' ~ item) }}.timer"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ mount_list }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Enable mount service
   ansible.builtin.systemd:
-    name: systemd-networkd-wait-online.service
+    name: "{{ ('share' if item == 'share' else 'share-' ~ item) }}.timer"
     enabled: yes
-  notify:
-    - Remount
+    state: started
+  loop: "{{ mount_list }}"
+  loop_control:
+    label: "{{ item }}"

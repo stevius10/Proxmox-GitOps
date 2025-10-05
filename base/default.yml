@@ -50,6 +50,7 @@
         password: "{{ lookup('env', 'PASSWORD') }}"
         mount: "{{ mount }}"
       when:
+        - PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != ''
         - not (share | default(false) | bool)
         - mount is defined
       tags: mounts

@@ -9,6 +9,16 @@
     mount_list: "{{ mount.split(',') | reject('equalto', '') | select('match', '^[A-Za-z0-9_]+$') | list }}"
   when: mount is defined
 
+- name: Create credentials file
+  ansible.builtin.copy:
+    dest: /root/.share
+    content: |
+      username={{ login }}
+      password={{ password }}
+    owner: root
+    group: root
+    mode: '0600'
+
 - name: Ensure mount directories exist
   ansible.builtin.file:
     path: "{{ '/share' if item == 'share' else '/share/' ~ item }}"
@@ -20,17 +30,37 @@
   loop_control:
     label: "{{ item }}"
 
-- name: Enable mount
-  ansible.posix.mount:
-    src: "//{{ host }}/{{ item }}"
-    path: "{{ '/share' if item == 'share' else '/share/' ~ item }}"
-    fstype: cifs
-    opts: "username={{ login }},password={{ password }},uid=1000,gid=1000,vers=3.0"
-    state: mounted
+- name: Create mount service
+  ansible.builtin.template:
+    src: share.service.j2
+    dest: "/etc/systemd/system/{{ ('share' if item == 'share' else 'share-' ~ item) }}.service"
+    owner: root
+    group: root
+    mode: '0644'
   loop: "{{ mount_list }}"
   loop_control:
     label: "{{ item }}"
 
-- name: Restart mount
-  ansible.builtin.command: mount -a
-  ignore_errors: yes # avoid permission error if token usage
+- name: Create mount timer
+  ansible.builtin.template:
+    src: share.timer.j2
+    dest: "/etc/systemd/system/{{ ('share' if item == 'share' else 'share-' ~ item) }}.timer"
+    owner: root
+    group: root
+    mode: '0644'
+  loop: "{{ mount_list }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Enable mount service
+  ansible.builtin.systemd:
+    name: "{{ ('share' if item == 'share' else 'share-' ~ item) }}.timer"
+    enabled: yes
+    state: started
+  loop: "{{ mount_list }}"
+  loop_control:
+    label: "{{ item }}"

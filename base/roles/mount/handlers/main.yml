@@ -1,0 +1,9 @@
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Remount
+  ansible.builtin.command:
+    cmd: mount -a
+  changed_when: false
+  ignore_errors: true # avoid permission error for token auth.

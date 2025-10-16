@@ -1,6 +1,6 @@
-Utils.download(self, "#{node['git']['dir']['app']}/gitea",
-  url: -> { ver = Utils.latest('https://github.com/go-gitea/gitea/releases/latest')
-    "https://github.com/go-gitea/gitea/releases/download/v#{ver}/gitea-#{ver}-linux-#{Utils.arch(node)}" } )
+ruby_block 'git_install' do block do
+  Utils.install(node, owner: "go-gitea", repo: "gitea", app_dir: node['git']['dir']['app'], name: "gitea")
+end end
 
 template "#{node['git']['dir']['app']}/app.ini" do
   source 'git_app.ini.erb'
@@ -15,8 +15,9 @@ end
 
 include_recipe('config::customize') if node['git']['conf']['customize']
 
-Common.application(self, cookbook_name,
-  user: node['app']['user'] , cwd: node['git']['dir']['data'],
-  exec: "#{node['git']['dir']['app']}/gitea web --config #{node['git']['dir']['app']}/app.ini --custom-path #{node['git']['dir']['custom']}",
-  unit: { 'Service' => { 'Environment' => "USER=#{node['app']['user'] } HOME=#{node['git']['dir']['home']}" } },
-  subscribe: ["template[#{node['git']['dir']['app']}/app.ini]", "remote_file[#{node['git']['dir']['app']}/gitea]"] )
+ruby_block 'git_application' do block do
+  Common.application(node, cookbook_name, user: node['app']['user'] , cwd: node['git']['dir']['data'],
+    exec: "#{node['git']['dir']['app']}/gitea web --config #{node['git']['dir']['app']}/app.ini --custom-path #{node['git']['dir']['custom']}",
+    unit: { 'Service' => { 'Environment' => "USER=#{node['app']['user'] } HOME=#{node['git']['dir']['home']}" } },
+    subscribe: ["template[#{node['git']['dir']['app']}/app.ini]", "remote_file[#{node['git']['dir']['app']}/gitea]"] )
+end end

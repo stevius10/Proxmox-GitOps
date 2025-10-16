@@ -34,3 +34,5 @@ default['runner']['dir']['app']       = '/app/runner'
 default['runner']['dir']['cache']     = '/tmp'
 
 default['runner']['conf']['label']    = 'shell'
+
+default['runner']['source']           = 'https://gitea.com/gitea/act_runner/releases'

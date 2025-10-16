@@ -15,6 +15,7 @@ module Logs
   def self.info?(msg, result: true); log(msg); result; end
   def self.request(uri, response); info("requested #{uri}: #{response&.code} #{response&.message}"); return response end
   def self.return(msg); log(msg.to_s); return msg end
+  def self.returns(msg, result, level: :info); log(msg.to_s, level: level); return result end
 
   def self.debug(msg, *pairs, ctx: nil, level: :info)
     flat = pairs.flatten
@@ -22,13 +23,18 @@ module Logs
     input = flat.each_slice(2).to_h.transform_keys(&:to_s)
     payload = input.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
     log([msg, payload].reject { |s| s.blank? }.join(" "), level: level)
-    log(Ctx.node(ctx), level: 'debug') if ctx
+
+    if ctx
+      node = Ctx.node(ctx)
+      log("Context: { cookbook: #{node.cookbook_name}, recipe: #{node.recipe_name}, platform: #{node['platform']} }", level: :debug)
+    end
   end
 
   def self.try!(msg, *pairs, ctx: nil, raise: false)
-    yield
+    return yield
   rescue => exception
     debug("failed: #{msg}: #{exception.message}", *(pairs.flatten), ctx: ctx, level: (raise ? :error : :warn))
+    # debug(*(pairs.flatten), ctx: ctx, level: :debug)
     raise("[#{method_label(callsite)}] #{exception.message} #{msg}") if raise
   end
 

@@ -1,3 +1,5 @@
+require_relative 'constants'
+
 require 'digest'
 require 'fileutils'
 require 'json'
@@ -53,15 +55,8 @@ module Utils
 
   # System
 
-  def self.arch(ctx)
-    case ctx['kernel']['machine'].to_s
-    when /arm64|aarch64/
-      'arm64'
-    when /armv6|armv7l/
-      'armv7'
-    else
-      'amd64'
-    end
+  def self.arch
+    { 'x86_64'=>'amd64', 'aarch64'=>'arm64', 'arm64'=>'arm64', 'armv7l'=>'armv7' }.fetch(`uname -m`.strip, 'amd64')
   end
 
   def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), mode: 0o755)
@@ -131,7 +126,7 @@ module Utils
     url = "https://#{host}:8006/api2/json/#{path}"
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
-        body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM, log: false)
+                         body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM, log: false)
       Logs.request!(uri, response, true, msg: "Proxmox: Ticket")
       headers = { 'Cookie' => "PVEAuthCookie=#{response.json['data']['ticket']}", 'CSRFPreventionToken' => response.json['data']['CSRFPreventionToken'] }
     else
@@ -140,19 +135,70 @@ module Utils
     request(url, headers: headers).json['data']
   end
 
-  def self.install(ctx, uri, app_dir, data_dir, version_dir: "/app", snapshot_dir: '/share/snapshots')
-    version_file = File.join(version_dir, '.version')
+  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', extract: true)
+    version_file = File.join(app_dir, '.version')
     version_installed = ::File.exist?(version_file) ? ::File.read(version_file).strip : nil
-    version = latest(uri, version_installed)
-    Common.directories(ctx, app_dir, recreate: version)
-    snapshot(ctx, data_dir, snapshot_dir: snapshot_dir) if version
-    return false unless version
+    release = nil
 
-    ctx.file version_file do
+    # Version
+    if version == 'latest'
+      version = Logs.try!("check latest version", [:owner, owner, :repo, repo]) do
+        (version_latest = latest(owner, repo)) ? version_latest[:tag_name].to_s.gsub(/^v/, '') : nil
+      end
+      return Logs.returns("no target version for #{owner}/#{repo}", false) unless version
+    end
+
+    if version_installed.nil?
+      Logs.info("initial installation (version '#{version}')")
+    elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
+      Logs.info("update from '#{version_installed}' to '#{version}'")
+    else
+      return Logs.info?("no update required from '#{version_installed}' to '#{version}'", result: false)
+    end
+
+    unless release
+      uri = Constants::URI_GITHUB_TAG.call(owner, repo, version)
+      release = Logs.try!("get release by tag", [:uri, uri]) do
+        response = request(uri, headers: { 'Accept' => 'application/vnd.github+json' }, log: false)
+        response.is_a?(Net::HTTPSuccess) ? response.json(symbolize_names: true) : nil
+      end
+      return Logs.returns("no release for '#{version}'", false) unless release
+    end
+
+    # Install
+    target_name = name || repo
+    target_path = File.join(app_dir, target_name)
+
+    asset = release[:assets].find do |a|
+      a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha256', '.checksums', '.pem')
+    end
+    return Logs.returns("missing compatibility for '#{Utils.arch}' in release '#{version}'", false) unless asset
+
+    source_url = asset[:browser_download_url]
+    is_archive = source_url.end_with?('.tar.gz', '.tgz', '.zip')
+
+    if extract && is_archive
+      Dir.mktmpdir do |tmpdir|
+        archive_path = File.join(tmpdir, File.basename(source_url))
+        Logs.try!("download archive #{source_url}", [:to, archive_path]) { download(ctx, archive_path, url: source_url) }
+
+        system("tar -xzf #{Shellwords.escape(archive_path)} -C #{Shellwords.escape(tmpdir)}") or raise "tar extract failed for #{archive_path}"
+
+        executable = Dir.glob("#{tmpdir}/**/*").find { |f| File.executable?(f) && !File.directory?(f) }
+        raise "No executable found in archive #{archive_path}" unless executable
+
+        Logs.try!("moving executable", [:from, executable, :to, target_path]) { FileUtils.mv(executable, target_path) }
+        FileUtils.chmod(0755, target_path)
+      end
+    else
+      Logs.try!("download binary #{source_url}", [:to, target_path]) { download(ctx, target_path, url: source_url) }
+    end
+
+    Ctx.dsl(ctx).file version_file do
       content version.to_s
       owner Default.user(ctx)
       group Default.group(ctx)
-      mode 775
+      mode '0755'
       action :create
     end
 
@@ -160,31 +206,20 @@ module Utils
   end
 
   def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0754', action: :create)
-    ctx.remote_file path do
-      source url.respond_to?(:call) ? lazy { url.call } : url
+    Ctx.dsl(ctx).remote_file path do
+      source url.respond_to?(:call)? lazy { url.call } : url
       owner  owner
       group  group
       mode   mode
       action action
-    end
+    end.run_action(action)
   end
 
-  def self.latest(url, installed_version = nil)
-    latest_version = (request(url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1] || "latest").to_s
-    Logs.info("latest version: '#{latest_version}' (#{url})")
-
-    if installed_version.nil?
-      Logs.info("initial installation (version '#{latest_version}')")
-      return latest_version
-    end
-
-    if Gem::Version.new(latest_version) > Gem::Version.new(installed_version)
-      Logs.info("update from '#{installed_version}' to '#{latest_version}'")
-      return latest_version
-    else
-      Logs.info("no update required from version '#{installed_version}' to '#{latest_version}'")
-      return false
-    end
+  def self.latest(owner, repo)
+    api_url = Constants::URI_GITHUB_LATEST.call(owner, repo)
+    response = request(api_url, headers: { 'Accept' => 'application/vnd.github+json' }, log: false)
+    return false unless response.is_a?(Net::HTTPSuccess)
+    response.json(symbolize_names: true)
   end
 
 end

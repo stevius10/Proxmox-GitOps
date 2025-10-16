@@ -17,8 +17,7 @@ group 'dialout' do
   append true
 end
 
-if (latest_version = Utils.install(self, "https://github.com/Koenkk/zigbee2mqtt/releases/latest",
-  node['bridge']['dir'], node['bridge']['data']))
+if (latest_version = Utils.install(self, "Koenkk", "zigbee2mqtt", node['bridge']['dir'], node['bridge']['data']))
 
   if ::File.exist?("/etc/systemd/system/zigbee2mqtt.service")
     execute 'stop_zigbee2mqtt' do

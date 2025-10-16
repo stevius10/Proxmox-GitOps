@@ -126,7 +126,7 @@ module Utils
     url = "https://#{host}:8006/api2/json/#{path}"
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
-                         body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM, log: false)
+        body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM, log: false)
       Logs.request!(uri, response, true, msg: "Proxmox: Ticket")
       headers = { 'Cookie' => "PVEAuthCookie=#{response.json['data']['ticket']}", 'CSRFPreventionToken' => response.json['data']['CSRFPreventionToken'] }
     else

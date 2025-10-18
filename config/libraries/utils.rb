@@ -150,10 +150,10 @@ module Utils
     assets = ->(a) { a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }
 
     if version == 'latest'
-      version = Logs.try!("check latest version", [:owner, owner, :repo, repo]) do
-        (version_latest = latest(owner, repo)) ? version_latest[:tag_name].to_s.gsub(/^v/, '') : nil
-      end
-      return Logs.returns("no target version for #{owner}/#{repo}", false) unless version
+      release = Logs.raise_if_blank("check latest", latest(owner, repo))
+      release = release.first if release.is_a?(Array)
+      return false unless release
+      version = release[:tag_name].to_s.gsub(/^v/, '')
     end
 
     if version_installed.nil?
@@ -175,11 +175,13 @@ module Utils
 
     # Install
 
-    download_url = Logs.raise_if_blank(release[:assets].find(&assets)&.
-      [](:browser_download_url) || release[:tarball_url], "missing asset for '#{version}'")
+    download_url, filename = (if (asset = release[:assets].find(&assets))
+        [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
+      else [release[:tarball_url], "#{repo}-#{version}.tar.gz"]
+      end); Logs.raise_if_blank(download_url, "missing asset for '#{version}'")
 
     Dir.mktmpdir do |tmpdir|
-      archive_path = File.join(tmpdir, File.basename(URI.parse(download_url).path))
+      archive_path = File.join(tmpdir, filename)
       Logs.try!("download asset #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
 
       if extract && archive_path.end_with?('.tar.gz', '.tgz', '.zip')

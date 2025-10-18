@@ -59,7 +59,7 @@ module Utils
     { 'x86_64'=>'amd64', 'aarch64'=>'arm64', 'arm64'=>'arm64', 'armv7l'=>'armv7' }.fetch(`uname -m`.strip, 'amd64')
   end
 
-  def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), mode: 0o755)
+  def self.snapshot(ctx, dir, snapshot_dir: Default.snapshot_dir, name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), mode: 0o755)
     timestamp = Time.now.strftime('%H%M-%d%m%y')
     snapshot = File.join(snapshot_dir, name, "#{name}-#{timestamp}.tar.gz")
     md5_dir = ->(path) {
@@ -135,12 +135,11 @@ module Utils
     request(url, headers: headers).json['data']
   end
 
-  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', extract: true)
+  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', extract: true, snapshot_dir: nil)
     version_file = File.join(app_dir, '.version')
     version_installed = ::File.exist?(version_file) ? ::File.read(version_file).strip : nil
     release = nil
 
-    # Version
     if version == 'latest'
       version = Logs.try!("check latest version", [:owner, owner, :repo, repo]) do
         (version_latest = latest(owner, repo)) ? version_latest[:tag_name].to_s.gsub(/^v/, '') : nil
@@ -152,6 +151,7 @@ module Utils
       Logs.info("initial installation (version '#{version}')")
     elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
       Logs.info("update from '#{version_installed}' to '#{version}'")
+      snapshot(ctx, data_dir, snapshot_dir: snapshot_dir) if snapshot_dir
     else
       return Logs.info?("no update required from '#{version_installed}' to '#{version}'", result: false)
     end
@@ -166,6 +166,7 @@ module Utils
     end
 
     # Install
+
     target_name = name || repo
     target_path = File.join(app_dir, target_name)
 

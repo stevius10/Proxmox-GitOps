@@ -32,7 +32,6 @@ if Utils.install(self, owner: "Koenkk", repo: "zigbee2mqtt", app_dir: node['brid
     group node['app']['group']
     environment('HOME' => '/tmp')
     cwd node['bridge']['dir']
-    action :nothing
   end
 
   template "#{node['bridge']['data']}/configuration.yaml" do
@@ -53,10 +52,10 @@ if Utils.install(self, owner: "Koenkk", repo: "zigbee2mqtt", app_dir: node['brid
     only_if { !::File.exist?("#{node['bridge']['data']}/configuration.yaml") }
   end
 
-  ruby_block "restore_snapshot_if_exists" do
-    block { Utils.snapshot(self, node['snapshot']['data'], restore: true) }
-  end
+end
 
+ruby_block "restore_snapshot_if_exists" do
+  block { Utils.snapshot(self, node['snapshot']['data'], restore: true) }
 end
 
 Common.application(self, cookbook_name, cwd: node['bridge']['dir'],

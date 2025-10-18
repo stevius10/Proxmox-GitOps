@@ -34,7 +34,7 @@ export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/${TARGETARCH}}"
 
 if [[ -z "$(docker images -q "${IMAGE_NAME}")" || "$STORED_HASH" != "$HASH" ]]; then
     log "image" "build required"
-    docker build --no-cache --build-arg TARGETARCH="$TARGETARCH" -t "$IMAGE_NAME" -f "$DOCKERFILE_PATH" "$(pwd)" || err "build_erred"
+    docker build --no-cache --build-arg TARGETARCH="$TARGETARCH" -t "$IMAGE_NAME" -f "$DOCKERFILE_PATH" "$(pwd)" || err "image build failed"
     echo "$HASH" > "$STORED_HASH_FILE"
     log "image" "build complete"
 fi
@@ -51,15 +51,15 @@ log "container" "start container"
 CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --add-host=host.docker.internal:host-gateway \
     $( [[ -d "${LOCAL_DIR}/share" ]] && echo "-v ${LOCAL_DIR}/share:/share:ro " ) \
     $( [[ -n "$1" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
-    --name "$CONTAINER_NAME" --platform "linux/${TARGETARCH}" -w /tmp/config "$IMAGE_NAME" sleep infinity) || err "container_start_erred"
+    --name "$CONTAINER_NAME" --platform "linux/${TARGETARCH}" -w /tmp/config "$IMAGE_NAME" sleep infinity) || err "failed to start container"
 log "container" "started [${CONTAINER_ID}]"
 
 sync() {
   log "sync" "files"
-  docker exec "$CONTAINER_ID" bash -c "rm -rf /tmp/config/*" || log "sync" "cleanup erred"
+  docker exec "$CONTAINER_ID" bash -c "rm -rf /tmp/config/*" || log "sync" "cleanup error"
   docker cp "$(pwd)/." "$CONTAINER_ID:/tmp/config/" || err "sync"
 
-  if [[ -n "$1" ]]; then
+  if [[ "${LIB_NAME}" != "config" ]]; then
     log "sync" "libraries"
     docker exec "$CONTAINER_ID" bash -c "mkdir -p '/tmp/config/libs/${LIB_NAME}/libraries' && \
       cp -a /tmp/config/config/libraries/. '/tmp/config/libs/${LIB_NAME}/libraries/'" || err "sync libraries"
@@ -77,7 +77,7 @@ run() {
   docker exec "$CONTAINER_ID" bash -c "$command"  || err "failed execution"
 }
 
-if [[ -z "$1" ]]; then suffixes=("::repo"); else suffixes=("::default"); fi
+if [[ "${LIB_NAME}" != "config" ]]; then suffixes=("::repo"); else suffixes=("::default"); fi
 run ""; while true; do
   log "rerun" "$LIB_NAME"; read -r
   log "rerun" "start"

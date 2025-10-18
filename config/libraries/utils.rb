@@ -140,7 +140,7 @@ module Utils
     request(url, headers: headers).json['data']
   end
 
-  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', extract: true, snapshot_restore: false)
+  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', extract: true)
     version_file = File.join(app_dir, '.version')
     version_installed = ::File.exist?(version_file) ? ::File.read(version_file).strip : nil
     release = nil
@@ -156,7 +156,6 @@ module Utils
       Logs.info("initial installation (version '#{version}')")
     elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
       Logs.info("update from '#{version_installed}' to '#{version}'")
-      snapshot(ctx, data_dir, restore: true) if snapshot_restore
     else
       return Logs.info?("no update required from '#{version_installed}' to '#{version}'", result: false)
     end
@@ -172,31 +171,16 @@ module Utils
 
     # Install
 
-    target_path = File.join(app_dir, name || repo)
+    download_url = Logs.raise_if_blank(
+      release[:assets].find { |a| a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }&.
+        [](:browser_download_url) || release[:tarball_url], "missing asset for '#{version}'")
 
-    asset = release[:assets].find do |a|
-      a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha256', '.checksums', '.pem')
-    end
-    return Logs.returns("missing compatibility for '#{Utils.arch}' in release '#{version}'", false) unless asset
+    Dir.mktmpdir do |tmpdir|
+      archive_path = File.join(tmpdir, File.basename(download_url))
+      Logs.try!("download archive #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
 
-    source_url = asset[:browser_download_url]
-    is_archive = source_url.end_with?('.tar.gz', '.tgz', '.zip')
-
-    if extract && is_archive
-      Dir.mktmpdir do |tmpdir|
-        archive_path = File.join(tmpdir, File.basename(source_url))
-        Logs.try!("download archive #{source_url}", [:to, archive_path]) { download(ctx, archive_path, url: source_url) }
-
-        system("tar -xzf #{Shellwords.escape(archive_path)} -C #{Shellwords.escape(tmpdir)}") or raise "tar extract failed for #{archive_path}"
-
-        executable = Dir.glob("#{tmpdir}/**/*").find { |f| File.executable?(f) && !File.directory?(f) }
-        raise "no executable in #{archive_path}" unless executable
-
-        Logs.try!("moving executable", [:from, executable, :to, target_path]) { FileUtils.mv(executable, target_path) }
-        FileUtils.chmod(0755, target_path)
-      end
-    else
-      Logs.try!("download binary #{source_url}", [:to, target_path]) { download(ctx, target_path, url: source_url) }
+      (system("tar -xzf #{Shellwords.escape(archive_path)} -C #{Shellwords.escape(app_dir)}") or
+        raise "tar extract failed for #{archive_path}") if extract && download_url.end_with?('.tar.gz', '.tgz', '.zip')
     end
 
     Ctx.dsl(ctx).file version_file do

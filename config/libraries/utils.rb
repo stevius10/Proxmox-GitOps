@@ -170,25 +170,28 @@ module Utils
       return Logs.returns("no release for '#{version}'", false) unless release
     end
 
-    archive_path = File.join(tmpdir, File.basename(URI.parse(download_url).path))
+    Dir.mktmpdir do |tmpdir|
 
-    # Download
-    download_url = Logs.raise_if_blank(
-      release[:assets].find { |a| a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }&.
-        [](:browser_download_url) || release[:tarball_url], "missing asset for '#{version}'")
-    Logs.try!("download archive #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
+      # Download
+      download_url = Logs.raise_if_blank(
+        release[:assets].find { |a| a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }&.
+          [](:browser_download_url) || release[:tarball_url], "missing asset for '#{version}'")
 
-    # Archive
-    if download_url.end_with?('.tar.gz', '.tgz', '.zip')
-      (system("tar -xzf #{Shellwords.escape(archive_path)} -C #{Shellwords.escape(app_dir)}") or
-        raise "tar extract failed for #{archive_path}") if extract
-    end
+      archive_path = File.join(tmpdir, File.basename(URI.parse(download_url).path))
+      Logs.try!("download archive #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
 
-    # Binary
-    FileUtils.mv(Dir.glob("#{tmpdir}/*"), app_dir)
-    Dir.glob(File.join(app_dir, '*')).each do |path|
-      next unless File.file?(path) && !File.symlink?(path)
-      Logs.try!("set executable #{File.basename(path)}") do FileUtils.chmod(0755, path) end
+      # Archive
+      if download_url.end_with?('.tar.gz', '.tgz', '.zip')
+        (system("tar -xzf #{Shellwords.escape(archive_path)} -C #{Shellwords.escape(app_dir)}") or
+          raise "tar extract failed for #{archive_path}") if extract
+      end
+
+      # Binary
+      FileUtils.mv(Dir.glob("#{tmpdir}/*"), app_dir)
+      Dir.glob(File.join(app_dir, '*')).each do |path|
+        next unless File.file?(path) && !File.symlink?(path)
+        Logs.try!("set executable #{File.basename(path)}") do FileUtils.chmod(0755, path) end
+      end
     end
 
     # Version

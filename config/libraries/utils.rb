@@ -59,7 +59,7 @@ module Utils
     { 'x86_64'=>'amd64', 'aarch64'=>'arm64', 'arm64'=>'arm64', 'armv7l'=>'armv7' }.fetch(`uname -m`.strip, 'amd64')
   end
 
-  def self.snapshot(ctx, data_dir, snapshot_dir=Default.snapshot_dir(ctx), name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), mode: 0o755)
+  def self.snapshot(ctx, data_dir, name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), snapshot_dir: Default.snapshot_dir(ctx), mode: 0o755)
 
     snapshot_dir = "#{snapshot_dir}/#{name}"
     snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%H%M-%d%m%y')}.tar.gz")
@@ -140,7 +140,7 @@ module Utils
     request(url, headers: headers).json['data']
   end
 
-  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', extract: true, snapshot_dir: nil)
+  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', extract: true, snapshot_dir: false)
     version_file = File.join(app_dir, '.version')
     version_installed = ::File.exist?(version_file) ? ::File.read(version_file).strip : nil
     release = nil
@@ -156,7 +156,7 @@ module Utils
       Logs.info("initial installation (version '#{version}')")
     elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
       Logs.info("update from '#{version_installed}' to '#{version}'")
-      snapshot(ctx, data_dir, snapshot_dir: snapshot_dir) if snapshot_dir
+      snapshot(ctx, data_dir, restore: true) if snapshot_restore
     else
       return Logs.info?("no update required from '#{version_installed}' to '#{version}'", result: false)
     end
@@ -172,8 +172,7 @@ module Utils
 
     # Install
 
-    target_name = name || repo
-    target_path = File.join(app_dir, target_name)
+    target_path = File.join(app_dir, name || repo)
 
     asset = release[:assets].find do |a|
       a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha256', '.checksums', '.pem')
@@ -191,7 +190,7 @@ module Utils
         system("tar -xzf #{Shellwords.escape(archive_path)} -C #{Shellwords.escape(tmpdir)}") or raise "tar extract failed for #{archive_path}"
 
         executable = Dir.glob("#{tmpdir}/**/*").find { |f| File.executable?(f) && !File.directory?(f) }
-        raise "No executable found in archive #{archive_path}" unless executable
+        raise "no executable in #{archive_path}" unless executable
 
         Logs.try!("moving executable", [:from, executable, :to, target_path]) { FileUtils.mv(executable, target_path) }
         FileUtils.chmod(0755, target_path)

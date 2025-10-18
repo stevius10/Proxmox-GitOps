@@ -132,7 +132,7 @@ module Utils
     url = "https://#{host}:8006/api2/json/#{path}"
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
-                         body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM, log: false)
+        body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM, log: false)
       Logs.request!(uri, response, true, msg: "Proxmox: Ticket")
       headers = { 'Cookie' => "PVEAuthCookie=#{response.json['data']['ticket']}", 'CSRFPreventionToken' => response.json['data']['CSRFPreventionToken'] }
     else
@@ -141,7 +141,7 @@ module Utils
     request(url, headers: headers).json['data']
   end
 
-  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', extract: true)
+  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', user: Default.user(ctx), group: Default.group(ctx), extract: true)
     version_file = File.join(app_dir, '.version')
     version_installed = ::File.exist?(version_file) ? ::File.read(version_file).strip : nil
     release = nil
@@ -173,8 +173,6 @@ module Utils
       return Logs.returns("no release for '#{version}'", false) unless release
     end
 
-    # Install
-
     download_url, filename = (if (asset = release[:assets].find(&assets))
         [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
       else [release[:tarball_url], "#{repo}-#{version}.tar.gz"]
@@ -185,21 +183,16 @@ module Utils
       Logs.try!("download asset #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
 
       if extract && archive_path.end_with?('.tar.gz', '.tgz', '.zip')
-        (system("tar -xzf #{Shellwords.escape(archive_path)} --strip-components=1 -C #{Shellwords.escape(tmpdir)}") or
+        (system("tar -xzf #{Shellwords.escape(archive_path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or
           raise "tar extract failed for #{archive_path}") if extract
       else # Binary
         FileUtils.mv(archive_path,  File.join(tmpdir, name || repo))
       end
 
-      Dir.glob(File.join(tmpdir, '*')).each do |path|
-        next unless File.file?(path) && !File.symlink?(path)
-        Logs.try!("set executable #{File.basename(path)}") do FileUtils.chmod(0755, path) end
-      end
-      FileUtils.mv(Dir.glob("#{tmpdir}/*"), app_dir)
-
+      FileUtils.chown_R(user, group, app_dir)
+      FileUtils.chmod_R(0755, app_dir)
     end
 
-    # Version
     Ctx.dsl(ctx).file version_file do
       content version.to_s
       owner Default.user(ctx)

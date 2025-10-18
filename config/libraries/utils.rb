@@ -59,40 +59,45 @@ module Utils
     { 'x86_64'=>'amd64', 'aarch64'=>'arm64', 'arm64'=>'arm64', 'armv7l'=>'armv7' }.fetch(`uname -m`.strip, 'amd64')
   end
 
-  def self.snapshot(ctx, dir, snapshot_dir: Default.snapshot_dir(ctx), name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), mode: 0o755)
-    timestamp = Time.now.strftime('%H%M-%d%m%y')
-    snapshot = File.join(snapshot_dir, name, "#{name}-#{timestamp}.tar.gz")
+  def self.snapshot(ctx, data_dir, snapshot_dir=Default.snapshot_dir(ctx), name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), mode: 0o755)
+
+    snapshot_dir = "#{snapshot_dir}/#{name}"
+    snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%H%M-%d%m%y')}.tar.gz")
+
     md5_dir = ->(path) {
       entries = Dir.glob("#{path}/**/*", File::FNM_DOTMATCH)
       files = entries.reject { |f| File.directory?(f) || File.symlink?(f) || ['.', '..'].include?(File.basename(f)) || File.basename(f).start_with?('._') }
       Digest::MD5.new.tap { |md5| files.sort.each { |f| File.open(f, 'rb') { |io| md5.update(io.read) } } }.hexdigest  }
+
     verify = ->(archive, compare_dir) {
       Dir.mktmpdir do |tmp|
         Logs.try!("snapshot extraction", [:archive, archive, :tmp, tmp], raise: true) do
           system("tar -xzf #{Shellwords.escape(archive)} -C #{Shellwords.escape(tmp)}") or raise("snapshot verification failed")
         end
         raise("verify snapshot failed") unless md5_dir.(tmp) == (Dir.exist?(compare_dir) ? md5_dir.(compare_dir) : '')
-      end
-      true
-    }
+      end; true }
+
     if restore
-      latest = Dir[File.join(snapshot_dir, name, "#{name}-*.tar.gz")].max_by { |f| [File.mtime(f), File.basename(f)] }
+      latest = Dir[File.join(snapshot_dir, "#{name}-*.tar.gz")].max_by { |f| [File.mtime(f), File.basename(f)] }
       if latest && ::File.exist?(latest)
-        FileUtils.rm_rf(dir)
-        FileUtils.mkdir_p(dir)
-        Logs.try!("snapshot restore", [:dir, dir, :archive, latest], raise: true) do
-          system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(dir)}") or raise("tar extract failed")
+        FileUtils.rm_rf(data_dir)
+        FileUtils.mkdir_p(data_dir)
+        Logs.try!("snapshot restore", [:app_dir, data_dir, :archive, latest], raise: true) do
+          system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(data_dir)}") or raise("tar extract failed")
         end
-        FileUtils.chown_R(user, group, dir)
-        FileUtils.chmod_R(mode, dir)
+        FileUtils.chown_R(user, group, data_dir)
+        FileUtils.chmod_R(mode, data_dir)
       end
+      return true
     end
-    return true unless Dir.exist?(dir) # true to be idempotent integrable before installation
+    return true unless Dir.exist?(data_dir) && !Dir.glob("#{data_dir}/*").empty? # true to be idempotent integrable before installation
+
     FileUtils.mkdir_p(File.dirname(snapshot))
-    Logs.try!("snapshot creation", [:dir, dir, :snapshot, snapshot], raise: true) do
-      system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(dir)} .") or raise("tar compress failed")
+    Logs.try!("snapshot creation", [:data_dir, data_dir, :snapshot, snapshot], raise: true) do
+      system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(data_dir)} .") or raise("tar compress failed")
     end
-    return verify.(snapshot, dir)
+
+    return verify.(snapshot, data_dir)
   end
 
   # Remote

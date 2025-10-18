@@ -1,3 +1,4 @@
+require_relative 'common'
 require_relative 'constants'
 
 require 'digest'
@@ -131,7 +132,7 @@ module Utils
     url = "https://#{host}:8006/api2/json/#{path}"
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", method: Net::HTTP::Post,
-        body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM, log: false)
+                         body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM, log: false)
       Logs.request!(uri, response, true, msg: "Proxmox: Ticket")
       headers = { 'Cookie' => "PVEAuthCookie=#{response.json['data']['ticket']}", 'CSRFPreventionToken' => response.json['data']['CSRFPreventionToken'] }
     else
@@ -169,20 +170,28 @@ module Utils
       return Logs.returns("no release for '#{version}'", false) unless release
     end
 
-    # Install
+    archive_path = File.join(tmpdir, File.basename(URI.parse(download_url).path))
 
+    # Download
     download_url = Logs.raise_if_blank(
       release[:assets].find { |a| a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }&.
         [](:browser_download_url) || release[:tarball_url], "missing asset for '#{version}'")
+    Logs.try!("download archive #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
 
-    Dir.mktmpdir do |tmpdir|
-      archive_path = File.join(tmpdir, File.basename(download_url))
-      Logs.try!("download archive #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
-
+    # Archive
+    if download_url.end_with?('.tar.gz', '.tgz', '.zip')
       (system("tar -xzf #{Shellwords.escape(archive_path)} -C #{Shellwords.escape(app_dir)}") or
-        raise "tar extract failed for #{archive_path}") if extract && download_url.end_with?('.tar.gz', '.tgz', '.zip')
+        raise "tar extract failed for #{archive_path}") if extract
     end
 
+    # Binary
+    FileUtils.mv(Dir.glob("#{tmpdir}/*"), app_dir)
+    Dir.glob(File.join(app_dir, '*')).each do |path|
+      next unless File.file?(path) && !File.symlink?(path)
+      Logs.try!("set executable #{File.basename(path)}") do FileUtils.chmod(0755, path) end
+    end
+
+    # Version
     Ctx.dsl(ctx).file version_file do
       content version.to_s
       owner Default.user(ctx)
@@ -190,11 +199,12 @@ module Utils
       mode '0755'
       action :create
     end
-
     return version
+
   end
 
   def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0754', action: :create)
+    Common.directories(Ctx.dsl(ctx), File.dirname(path), owner: owner, group: group, mode: mode)
     Ctx.dsl(ctx).remote_file path do
       source url.respond_to?(:call)? lazy { url.call } : url
       owner  owner

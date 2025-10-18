@@ -186,7 +186,7 @@ module Utils
         (system("tar -xzf #{Shellwords.escape(archive_path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or
           raise "tar extract failed for #{archive_path}") if extract
       else # Binary
-        FileUtils.mv(archive_path,  File.join(tmpdir, name || repo))
+        FileUtils.mv(archive_path,  File.join(app_dir, name || repo))
       end
 
       FileUtils.chown_R(user, group, app_dir)

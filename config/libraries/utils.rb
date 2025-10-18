@@ -170,28 +170,55 @@ module Utils
       return Logs.returns("no release for '#{version}'", false) unless release
     end
 
+    # Install
+
+    download_url = Logs.raise_if_blank(
+      release[:assets].find { |a| a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }&.
+        [](:browser_download_url) || release[:tarball_url], "missing asset for '#{version}'")
+
+    FileUtils.mkdir_p(app_dir)
+
+    Dir.mktmpdir do |tmpdir|
+      archive_path = File.join(tmpdir, File.basename(URI.parse(download_url).path))
+      Logs.try!("download asset #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
+
+      if extract && archive_path.end_with?('.tar.gz', '.tgz', '.zip')
+        (system("tar -xzf #{Shellwords.escape(archive_path)} -C #{Shellwords.escape(tmpdir)}") or
+          raise "tar extract failed for #{archive_path}") if extract
+      else # Binary
+        FileUtils.mv(archive_path,  File.join(tmpdir, name || repo))
+      end
+
+      Dir.glob(File.join(tmpdir, '*')).each do |path|
+        next unless File.file?(path) && !File.symlink?(path)
+        Logs.try!("set executable #{File.basename(path)}") do FileUtils.chmod(0755, path) end
+      end
+      FileUtils.mv(Dir.glob("#{tmpdir}/*"), app_dir)
+
+    end
+
+    # Version
+    Ctx.dsl(ctx).file version_file do
+      content version.to_s
+      owner Default.user(ctx)
+      group Default.group(ctx)
+      mode '0755'
+      action :create
+    end
+    return version
+
     Dir.mktmpdir do |tmpdir|
 
       # Download
-      download_url = Logs.raise_if_blank(
-        release[:assets].find { |a| a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }&.
-          [](:browser_download_url) || release[:tarball_url], "missing asset for '#{version}'")
+
 
       archive_path = File.join(tmpdir, File.basename(URI.parse(download_url).path))
       Logs.try!("download archive #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
 
-      # Archive
-      if download_url.end_with?('.tar.gz', '.tgz', '.zip')
-        (system("tar -xzf #{Shellwords.escape(archive_path)} -C #{Shellwords.escape(app_dir)}") or
-          raise "tar extract failed for #{archive_path}") if extract
-      end
 
-      # Binary
+
       FileUtils.mv(Dir.glob("#{tmpdir}/*"), app_dir)
-      Dir.glob(File.join(app_dir, '*')).each do |path|
-        next unless File.file?(path) && !File.symlink?(path)
-        Logs.try!("set executable #{File.basename(path)}") do FileUtils.chmod(0755, path) end
-      end
+
     end
 
     # Version

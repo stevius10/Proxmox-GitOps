@@ -54,11 +54,14 @@ if Utils.install(self, owner: "Koenkk", repo: "zigbee2mqtt", app_dir: node['brid
 
 end
 
-ruby_block "restore_snapshot_if_exists" do
-  block { Utils.snapshot(self, node['snapshot']['data'], restore: true) }
-end
+ruby_block "restore_snapshot_if_exists" do block do
+  Utils.snapshot(self, node['snapshot']['data'], restore: true)
+end end
 
-Common.application(self, cookbook_name, cwd: node['bridge']['dir'],
-  exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
-  unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
-    'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )
+ruby_block "#{self.cookbook_name}_application" do block do
+  Common.application(self, cookbook_name, cwd: node['bridge']['dir'],
+    exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
+    unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
+      'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )
+end end
+

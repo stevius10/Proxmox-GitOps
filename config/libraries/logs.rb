@@ -11,7 +11,8 @@ module Logs
   end
 
   def self.info(msg); log(msg) end; def self.warn(msg); log(msg, level: :warn) end
-  def self.error(msg, raise: true); log(msg, level: :error); raise msg if raise end
+  def self.error(msg, raise: false); log(msg, level: :error); raise msg if raise end # raise ist jetzt standardmäßig false
+  def self.error!(msg); error(msg, raise: true) end # Die "gefährliche" Version, die immer eine Exception auslöst
   def self.info?(msg, result: true); log(msg); result; end
   def self.request(uri, response); info("requested #{uri}: #{response&.code} #{response&.message}"); return response end
   def self.return(msg); log(msg.to_s); return msg end
@@ -48,6 +49,13 @@ module Logs
     end
     debug("[#{msg}] responded #{res}", [:uri, uri, :response, response], ctx: ctx)
     return response
+  end
+
+  # Raise
+
+  def self.raise_if_blank(value, msg)
+    error!(msg) if value.nil? || (value.respond_to?(:empty?) && value.empty?)
+    value
   end
 
   # Helper

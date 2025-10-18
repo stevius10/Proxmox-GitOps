@@ -140,7 +140,7 @@ module Utils
     request(url, headers: headers).json['data']
   end
 
-  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', extract: true, snapshot_dir: false)
+  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', extract: true, snapshot_restore: false)
     version_file = File.join(app_dir, '.version')
     version_installed = ::File.exist?(version_file) ? ::File.read(version_file).strip : nil
     release = nil

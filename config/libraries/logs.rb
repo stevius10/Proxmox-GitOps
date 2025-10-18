@@ -24,11 +24,8 @@ module Logs
     input = flat.each_slice(2).to_h.transform_keys(&:to_s)
     payload = input.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
     log([msg, payload].reject { |s| s.blank? }.join(" "), level: level)
-
-    if ctx
-      node = Ctx.node(ctx)
-      log("Context: { cookbook: #{node.cookbook_name}, recipe: #{node.recipe_name}, platform: #{node['platform']} }", level: :debug)
-    end
+    log("#{ctx.cookbook_name}::#{ctx.recipe_name}", level: :debug) \
+      if ctx && ctx.respond_to?(:cookbook_name) && ctx.respond_to?(:recipe_name)
   end
 
   def self.try!(msg, *pairs, ctx: nil, raise: false)

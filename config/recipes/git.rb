@@ -1,5 +1,5 @@
 ruby_block 'git_install' do block do
-  Utils.install(node, owner: "go-gitea", repo: "gitea", app_dir: node['git']['dir']['app'], name: "gitea")
+  Utils.install(self, owner: "go-gitea", repo: "gitea", app_dir: node['git']['dir']['app'], name: "gitea")
 end end
 
 template "#{node['git']['dir']['app']}/app.ini" do

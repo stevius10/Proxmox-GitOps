@@ -53,7 +53,7 @@ module Logs
 
   # Raise
 
-  def self.raise_if_blank(value, msg)
+  def self.raise_if_blank(msg, value)
     error!(msg) if value.nil? || (value.respond_to?(:empty?) && value.empty?)
     value
   end

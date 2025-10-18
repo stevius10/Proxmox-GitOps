@@ -77,7 +77,7 @@ run() {
   docker exec "$CONTAINER_ID" bash -c "$command"  || err "failed execution"
 }
 
-if [[ "${LIB_NAME}" != "config" ]]; then suffixes=("::repo"); else suffixes=("::default"); fi
+if [[ "${LIB_NAME}" != "config" ]]; then suffixes=("::default"); else suffixes=("::repo"); fi
 run ""; while true; do
   log "rerun" "$LIB_NAME"; read -r
   log "rerun" "start"

@@ -107,7 +107,7 @@ module Common
           (is_active = Mixlib::ShellOut.new(verify_cmd)).run_command
           is_active.exitstatus.zero? ? (ok = true; break) : (sleep verify_interval)
         end
-        Logs.error("service '#{name}' failed health check") unless ok
+        Logs.error!("service '#{name}' failed health check") unless ok
       end
       action :nothing
       subscribes :run, "service[#{name}]", :delayed if verify

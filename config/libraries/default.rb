@@ -17,7 +17,7 @@ module Default
 
   def self.snapshot_dir(ctx, default: nil)
     node = Ctx.node(ctx)
-    @snapshot_dir ||= (default.presence ? '/share/snapshots' : presence_or(Env.get(node, "app_snapshot_dir"), config(node, default: true))).to_s
+    @snapshot_dir ||= (default.presence ? '/share/snapshots' : presence_or(Env.get(node, "app_snapshot_dir"), snapshot_dir(node, default: true))).to_s
   end
 
   def self.presence_or(var, default)

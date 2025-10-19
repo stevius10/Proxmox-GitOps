@@ -1,3 +1,6 @@
+require_relative 'common'
+require_relative 'constants'
+
 require 'digest'
 require 'fileutils'
 require 'json'
@@ -53,51 +56,49 @@ module Utils
 
   # System
 
-  def self.arch(ctx)
-    case ctx['kernel']['machine'].to_s
-    when /arm64|aarch64/
-      'arm64'
-    when /armv6|armv7l/
-      'armv7'
-    else
-      'amd64'
-    end
+  def self.arch
+    { 'x86_64'=>'amd64', 'aarch64'=>'arm64', 'arm64'=>'arm64', 'armv7l'=>'armv7' }.fetch(`uname -m`.strip, 'amd64')
   end
 
-  def self.snapshot(ctx, dir, snapshot_dir: '/share/snapshots', name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), mode: 0o755)
-    timestamp = Time.now.strftime('%H%M-%d%m%y')
-    snapshot = File.join(snapshot_dir, name, "#{name}-#{timestamp}.tar.gz")
+  def self.snapshot(ctx, data_dir, name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), snapshot_dir: Default.snapshot_dir(ctx), mode: 0o755)
+
+    snapshot_dir = "#{snapshot_dir}/#{name}"
+    snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%H%M-%d%m%y')}.tar.gz")
+
     md5_dir = ->(path) {
       entries = Dir.glob("#{path}/**/*", File::FNM_DOTMATCH)
       files = entries.reject { |f| File.directory?(f) || File.symlink?(f) || ['.', '..'].include?(File.basename(f)) || File.basename(f).start_with?('._') }
       Digest::MD5.new.tap { |md5| files.sort.each { |f| File.open(f, 'rb') { |io| md5.update(io.read) } } }.hexdigest  }
+
     verify = ->(archive, compare_dir) {
       Dir.mktmpdir do |tmp|
         Logs.try!("snapshot extraction", [:archive, archive, :tmp, tmp], raise: true) do
           system("tar -xzf #{Shellwords.escape(archive)} -C #{Shellwords.escape(tmp)}") or raise("snapshot verification failed")
         end
         raise("verify snapshot failed") unless md5_dir.(tmp) == (Dir.exist?(compare_dir) ? md5_dir.(compare_dir) : '')
-      end
-      true
-    }
+      end; true }
+
     if restore
-      latest = Dir[File.join(snapshot_dir, name, "#{name}-*.tar.gz")].max_by { |f| [File.mtime(f), File.basename(f)] }
+      latest = Dir[File.join(snapshot_dir, "#{name}-*.tar.gz")].max_by { |f| [File.mtime(f), File.basename(f)] }
       if latest && ::File.exist?(latest)
-        FileUtils.rm_rf(dir)
-        FileUtils.mkdir_p(dir)
-        Logs.try!("snapshot restore", [:dir, dir, :archive, latest], raise: true) do
-          system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(dir)}") or raise("tar extract failed")
+        FileUtils.rm_rf(data_dir)
+        FileUtils.mkdir_p(data_dir)
+        Logs.try!("snapshot restore", [:app_dir, data_dir, :archive, latest], raise: true) do
+          system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(data_dir)}") or raise("tar extract failed")
         end
-        FileUtils.chown_R(user, group, dir)
-        FileUtils.chmod_R(mode, dir)
+        FileUtils.chown_R(user, group, data_dir)
+        FileUtils.chmod_R(mode, data_dir)
       end
+      return true
     end
-    return true unless Dir.exist?(dir) # true to be idempotent integrable before installation
+    return true unless Dir.exist?(data_dir) && !Dir.glob("#{data_dir}/*").empty? # true to be idempotent integrable before installation
+
     FileUtils.mkdir_p(File.dirname(snapshot))
-    Logs.try!("snapshot creation", [:dir, dir, :snapshot, snapshot], raise: true) do
-      system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(dir)} .") or raise("tar compress failed")
+    Logs.try!("snapshot creation", [:data_dir, data_dir, :snapshot, snapshot], raise: true) do
+      system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(data_dir)} .") or raise("tar compress failed")
     end
-    return verify.(snapshot, dir)
+
+    return verify.(snapshot, data_dir)
   end
 
   # Remote
@@ -140,51 +141,85 @@ module Utils
     request(url, headers: headers).json['data']
   end
 
-  def self.install(ctx, uri, app_dir, data_dir, version_dir: "/app", snapshot_dir: '/share/snapshots')
-    version_file = File.join(version_dir, '.version')
+  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', user: Default.user(ctx), group: Default.group(ctx), extract: true)
+    version_file = File.join(app_dir, '.version')
     version_installed = ::File.exist?(version_file) ? ::File.read(version_file).strip : nil
-    version = latest(uri, version_installed)
-    Common.directories(ctx, app_dir, recreate: version)
-    snapshot(ctx, data_dir, snapshot_dir: snapshot_dir) if version
-    return false unless version
+    release = nil
 
-    ctx.file version_file do
+    FileUtils.mkdir_p(app_dir)
+    assets = ->(a) { a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }
+
+    if version == 'latest'
+      release = Logs.raise_if_blank("check latest", latest(owner, repo))
+      release = release.first if release.is_a?(Array)
+      return false unless release
+      version = release[:tag_name].to_s.gsub(/^v/, '')
+    end
+
+    if version_installed.nil?
+      Logs.info("initial installation (version '#{version}')")
+    elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
+      Logs.info("update from '#{version_installed}' to '#{version}'")
+    else
+      return Logs.info?("no update required from '#{version_installed}' to '#{version}'", result: false)
+    end
+
+    unless release
+      uri = Constants::URI_GITHUB_TAG.call(owner, repo, version)
+      release = Logs.try!("get release by tag", [:uri, uri]) do
+        response = request(uri, headers: { 'Accept' => 'application/vnd.github+json' }, log: false)
+        response.is_a?(Net::HTTPSuccess) ? response.json(symbolize_names: true) : nil
+      end
+      return Logs.returns("no release for '#{version}'", false) unless release
+    end
+
+    download_url, filename = (if (asset = release[:assets].find(&assets))
+        [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
+      else [release[:tarball_url], "#{repo}-#{version}.tar.gz"]
+      end); Logs.raise_if_blank(download_url, "missing asset for '#{version}'")
+
+    Dir.mktmpdir do |tmpdir|
+      archive_path = File.join(tmpdir, filename)
+      Logs.try!("download asset #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
+
+      if extract && archive_path.end_with?('.tar.gz', '.tgz', '.zip')
+        (system("tar -xzf #{Shellwords.escape(archive_path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or
+          raise "tar extract failed for #{archive_path}") if extract
+      else # Binary
+        FileUtils.mv(archive_path,  File.join(app_dir, name || repo))
+      end
+
+      FileUtils.chown_R(user, group, app_dir)
+      FileUtils.chmod_R(0755, app_dir)
+    end
+
+    Ctx.dsl(ctx).file version_file do
       content version.to_s
       owner Default.user(ctx)
       group Default.group(ctx)
-      mode 775
+      mode '0755'
       action :create
     end
-
     return version
+
   end
 
   def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0754', action: :create)
-    ctx.remote_file path do
-      source url.respond_to?(:call) ? lazy { url.call } : url
+    Common.directories(Ctx.dsl(ctx), File.dirname(path), owner: owner, group: group, mode: mode)
+    Ctx.dsl(ctx).remote_file path do
+      source url.respond_to?(:call)? lazy { url.call } : url
       owner  owner
       group  group
       mode   mode
       action action
-    end
+    end.run_action(action)
   end
 
-  def self.latest(url, installed_version = nil)
-    latest_version = (request(url).body[/title>.*?v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)/, 1] || "latest").to_s
-    Logs.info("latest version: '#{latest_version}' (#{url})")
-
-    if installed_version.nil?
-      Logs.info("initial installation (version '#{latest_version}')")
-      return latest_version
-    end
-
-    if Gem::Version.new(latest_version) > Gem::Version.new(installed_version)
-      Logs.info("update from '#{installed_version}' to '#{latest_version}'")
-      return latest_version
-    else
-      Logs.info("no update required from version '#{installed_version}' to '#{latest_version}'")
-      return false
-    end
+  def self.latest(owner, repo)
+    api_url = Constants::URI_GITHUB_LATEST.call(owner, repo)
+    response = request(api_url, headers: { 'Accept' => 'application/vnd.github+json' }, log: false)
+    return false unless response.is_a?(Net::HTTPSuccess)
+    response.json(symbolize_names: true)
   end
 
 end

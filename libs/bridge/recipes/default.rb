@@ -64,4 +64,3 @@ ruby_block "#{self.cookbook_name}_application" do block do
     unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
       'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )
 end end
-

@@ -4,7 +4,7 @@ Thank you for considering contributing to Proxmox-GitOps.
 
 This document provides guidelines for contributing. These are conventions, not strict mandates; feel free to propose improvements to this document via a pull request.
 
-This project is governed by the [Code of Conduct](.github/CODE_OF_CONDUCT.md) and released under the [MIT License](LICENSE). By participating, contributors agree to uphold these terms.
+This project is governed by the [Code of Conduct](CODE_OF_CONDUCT.md) and released under the [MIT License](../LICENSE). By participating, contributors agree to uphold these terms.
 
 ### Workflow
 - Branching: Fork the repository and create a branch from `develop`. The `main` branch is for stable releases, while `develop` is the active integration branch.

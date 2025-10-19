@@ -5,13 +5,22 @@
   respond @external 403
 }
 
-<% @hosts.each do |entry| -%><% domain, ip = entry.split(' ') -%>
+<% @hosts.each do |entry| -%><% domain, ip, hostname = entry.split(' ') -%>
 <%= domain %> {
   reverse_proxy <%= ip %>
   tls internal
   log {
-    output file <%= @log_dir %>/<%= domain %>.log
+    output file <%= @log_dir %>/<%= domain %>.log {
+      roll_size 2MiB
+      roll_keep 3
+      roll_keep_for 1d
+    }
   }
+
+  header_up Host {host}
+  header_up X-Container-IP <%= ip %>
+
+  import <%= @config_dir %>/<%= hostname %>
   import internal
 }
 

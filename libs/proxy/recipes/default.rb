@@ -33,7 +33,7 @@ remote_directory node['proxy']['dir']['config'] do
   owner node['app']['user']
   group node['app']['group']
   files_mode '0664'
-  notifies :run, "service[#{cookbook_name}]", :delayed
+  notifies :restart, "service[#{cookbook_name}]", :delayed
 end
 
 Common.application(self, cookbook_name,

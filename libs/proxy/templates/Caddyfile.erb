@@ -5,14 +5,44 @@
   respond @external 403
 }
 
-<% @hosts.each do |entry| -%><% domain, ip = entry.split(' ') -%>
-<%= domain %> {
-  reverse_proxy <%= ip %>
-  tls internal
-  log {
-    output file <%= @log_dir %>/<%= domain %>.log
+(security_headers) {
+  header {
+    Strict-Transport-Security "max-age=31536000;"
+    X-Frame-Options "DENY"
+    X-Content-Type-Options "nosniff"
+    Permissions-Policy "interest-cohort=()"
+    -Server
   }
-  import internal
 }
 
+(proxy_headers) {
+  header_up Host {host}
+  header_up X-Real-IP {remote_ip}
+  header_up X-Forwarded-For {remote_ip}
+  header_up X-Forwarded-Proto {scheme}
+}
+
+<% @hosts.each do |entry| -%>
+  <% domain, upstream, hostname = entry.split(' ') -%>
+  <%= domain %> {
+    import security_headers
+    import internal
+
+    reverse_proxy <%= upstream %> {
+      import proxy_headers
+      header_up X-Container-IP <%= upstream.split(':').first %>
+    }
+
+    tls internal
+
+    log {
+      output file <%= @log_dir %>/<%= domain %>.log {
+        roll_size     <%= @logs_roll_size %>
+        roll_keep     <%= @logs_roll_keep %>
+        roll_keep_for <%= @logs_roll_for %>
+      }
+    }
+
+    import <%= @config_dir %>/<%= hostname %>*.caddy
+  }
 <% end -%>

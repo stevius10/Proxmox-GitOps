@@ -7,4 +7,6 @@ local/*.hash
 .DS_Store
 .idea
 
+# git add --force '**/*.local*'
+
 *.local.caddy

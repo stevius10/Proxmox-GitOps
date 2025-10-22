@@ -30,9 +30,6 @@ remote_directory node['proxy']['dir']['config'] do
   owner node['app']['user']
   group node['app']['group']
   mode '0664'
-  owner node['app']['user']
-  group node['app']['group']
-  files_mode '0664'
 end
 
 Common.application(self, cookbook_name,

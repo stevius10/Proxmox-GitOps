@@ -6,3 +6,5 @@ local/*.hash
 
 .DS_Store
 .idea
+
+*.local.caddy

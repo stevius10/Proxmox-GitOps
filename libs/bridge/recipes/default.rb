@@ -1,8 +1,8 @@
 Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
-login = Env.get(self, 'login')
-password = Env.get(self, 'password')
-broker = Env.get(self, 'broker')
+login     = Env.get(self, 'login')
+password  = Env.get(self, 'password')
+broker    = Env.get(self, 'broker')
 
 package "npm"
 
@@ -17,8 +17,7 @@ group 'dialout' do
   append true
 end
 
-if (latest_version = Utils.install(self, "https://github.com/Koenkk/zigbee2mqtt/releases/latest",
-  node['bridge']['dir'], node['bridge']['data']))
+if Utils.install(self, owner: "Koenkk", repo: "zigbee2mqtt", app_dir: node['bridge']['dir'])
 
   if ::File.exist?("/etc/systemd/system/zigbee2mqtt.service")
     execute 'stop_zigbee2mqtt' do
@@ -27,24 +26,12 @@ if (latest_version = Utils.install(self, "https://github.com/Koenkk/zigbee2mqtt/
     end
   end
 
-  Utils.download(self, "/tmp/zigbee2mqtt.zip",
-    url: "https://github.com/Koenkk/zigbee2mqtt/archive/refs/tags/#{latest_version}.zip")
-
-  execute 'zigbee2mqtt_files' do
-    command lazy { "unzip -o /tmp/zigbee2mqtt.zip -d #{node['bridge']['dir']} && mv #{node['bridge']['dir']}/zigbee2mqtt*/* #{node['bridge']['dir']}/ && rm -rf #{node['bridge']['dir']}/zigbee2mqtt*" }
-    user node['app']['user']
-    group node['app']['group']
-    only_if { ::File.exist?('/tmp/zigbee2mqtt.zip') }
-    notifies :run, 'execute[zigbee2mqtt_build]', :immediately
-  end
-
   execute 'zigbee2mqtt_build' do
     command 'pnpm install --frozen-lockfile && pnpm build'
     user node['app']['user']
     group node['app']['group']
     environment('HOME' => '/tmp')
     cwd node['bridge']['dir']
-    action :nothing
   end
 
   template "#{node['bridge']['data']}/configuration.yaml" do
@@ -65,13 +52,15 @@ if (latest_version = Utils.install(self, "https://github.com/Koenkk/zigbee2mqtt/
     only_if { !::File.exist?("#{node['bridge']['data']}/configuration.yaml") }
   end
 
-  ruby_block "restore_snapshot_if_exists" do
-    block { Utils.snapshot(self, node['snapshot']['data'], restore: true) }
-  end
-
 end
 
-Common.application(self, cookbook_name, cwd: node['bridge']['dir'],
-  exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
-  unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
-    'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )
+ruby_block "restore_snapshot_if_exists" do block do
+  Utils.snapshot(self, node['snapshot']['data'], restore: true)
+end end
+
+ruby_block "#{self.cookbook_name}_application" do block do
+  Common.application(self, cookbook_name, cwd: node['bridge']['dir'],
+    exec: "/usr/bin/node #{node['bridge']['dir']}/index.js",
+    unit: { 'Service' => { 'Environment' => 'NODE_ENV=production', 'PermissionsStartOnly' => 'true',
+      'ExecStartPre' => "-/bin/chown #{node['app']['user']}:#{node['app']['group']} #{node['bridge']['serial']}" } } )
+end end

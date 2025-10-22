@@ -1,3 +1,7 @@
+default['title']                      = "Proxmox-GitOps"
+default['online']                     = "https://github.com/stevius10/Proxmox-GitOps"
+default['version']                    = "v1.2-2"
+
 default['id']                         = ENV['ID']
 default['host']                       = (default['ip'] = ENV['IP'].to_s.presence || "127.0.0.1")
 default['key']                        = ENV['KEY'].to_s.presence || "/share/.ssh/#{node['id']}"
@@ -34,3 +38,5 @@ default['runner']['dir']['app']       = '/app/runner'
 default['runner']['dir']['cache']     = '/tmp'
 
 default['runner']['conf']['label']    = 'shell'
+
+default['runner']['source']           = 'https://gitea.com/gitea/act_runner/releases'

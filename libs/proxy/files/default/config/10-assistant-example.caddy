@@ -1,0 +1,4 @@
+# http:
+#   use_x_forwarded_for: true
+#   trusted_proxies:
+#     - <IP_REVERSE_PROXY> # e. g. 192.168.178.101

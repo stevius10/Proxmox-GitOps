@@ -1,13 +1,16 @@
 FROM debian:trixie
-ARG TARGETARCH=arm64
 
-ENV IP=127.0.0.1 ID=254 ANSIBLE_ROLES_PATH=/tmp/config/base LC_ALL=C.UTF-8
+ARG TARGETARCH
+ENV TARGETARCH=${TARGETARCH}
+
+ENV IP=127.0.0.1 ID=254 LC_ALL=C.UTF-8
+ENV  ANSIBLE_ROLES_PATH=/tmp/config/base
+
 STOPSIGNAL SIGRTMIN+3
 
-RUN apt update -y && \
-    apt install -y systemd python3 python3-pip python3-proxmoxer openssh-client ansible && \
-    apt clean all && \
-    apt autoremove -y
+RUN apt update -y && apt install -y \
+      systemd python3 python3-pip python3-proxmoxer openssh-client ansible && \
+    apt clean all && apt autoremove -y
 
 RUN rm -rf /lib/systemd/system/multi-user.target.wants/* && \
     rm -rf /etc/systemd/system/*.wants/* && \

@@ -13,6 +13,7 @@ end
     owner node['app']['user']
     group node['app']['group']
     mode '0644'
+    variables(title: node['title'])
   end
 end
 
@@ -31,5 +32,6 @@ end
     owner node['app']['user']
     group node['app']['group']
     mode '0644'
+    variables(title: node['title'], online: node['online'], version: node['version'])
   end
 end

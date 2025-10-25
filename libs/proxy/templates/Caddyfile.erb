@@ -1,11 +1,10 @@
 (internal) {
-  @external {
-    not remote_ip 192.168.0.0/24
-  }
-  respond @external 403
+  @internal remote_ip 192.168.0.0/24
+  @external not remote_ip 192.168.0.0/24
+  respond @external "Forbidden" 403
 }
 
-(security_headers) {
+(header) {
   header {
     Strict-Transport-Security "max-age=31536000;"
     X-Frame-Options "DENY"
@@ -15,34 +14,39 @@
   }
 }
 
-(proxy_headers) {
-  header_up Host {host}
-  header_up X-Real-IP {remote_ip}
-  header_up X-Forwarded-For {remote_ip}
-  header_up X-Forwarded-Proto {scheme}
+(common) {
+  import internal
+  import header
+
+  tls internal
+
+  log {
+    output file <%= @log_dir %>/{args.0}.log {
+      roll_size     <%= @logs_roll_size %>
+      roll_keep     <%= @logs_roll_keep %>
+      roll_keep_for <%= @logs_roll_for %>
+    }
+  }
 }
 
-<% @hosts.each do |entry| -%>
-  <% domain, upstream, hostname = entry.split(' ') -%>
+(default) {
+  import common {args.0}
+
+  vars upstream {args.1}
+
+  reverse_proxy {args.1} {
+    header_up Host {args.0}
+    header_up X-Real-IP {remote_ip}
+    header_up X-Forwarded-For {remote_ip}
+    header_up X-Container-IP {args.1}
+  }
+}
+
+<% @hosts.each do |entry| -%> <% domain, upstream, hostname = entry.split(' ') -%>
   <%= domain %> {
-    import security_headers
-    import internal
-
-    reverse_proxy <%= upstream %> {
-      import proxy_headers
-      header_up X-Container-IP <%= upstream.split(':').first %>
-    }
-
-    tls internal
-
-    log {
-      output file <%= @log_dir %>/<%= domain %>.log {
-        roll_size     <%= @logs_roll_size %>
-        roll_keep     <%= @logs_roll_keep %>
-        roll_keep_for <%= @logs_roll_for %>
-      }
-    }
-
-    import <%= @config_dir %>/<%= hostname %>*.caddy
+    import default <%= hostname %> <%= upstream %>
+    import <%= @config_dir %>/*<%= hostname %>.caddy
   }
 <% end -%>
+
+import <%= @config_dir %>/*.local.caddy

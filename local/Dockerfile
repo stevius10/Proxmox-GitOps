@@ -22,7 +22,7 @@ RUN rm -rf /lib/systemd/system/multi-user.target.wants/* && \
 
 RUN ansible-galaxy collection install community.general --force
 
-RUN mkdir -p /app /share/.certs /share/.ssh
+RUN mkdir -p /app/.ssh /share/.certs /share/.ssh
 RUN ssh-keygen -t ed25519 -f "/share/.ssh/${ID}" -N ''
 
 COPY ../base/roles /tmp/config/base

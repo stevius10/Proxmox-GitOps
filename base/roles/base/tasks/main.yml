@@ -52,7 +52,7 @@
   include_tasks: state.yml
   vars:
     extra:
-      - { path: "/app", state: "directory", mode: "0755", owner: "app", group: "config" }
+      - { path: "/app/.ssh", state: "directory", mode: "0755", owner: "app", group: "config" }
       - { path: "{{ key_dir }}", state: "directory", mode: "0711", owner: "app", group: "config" }
       - { path: "{{ cert_dir }}", state: "directory", mode: "0711", owner: "app", group: "config" }
 

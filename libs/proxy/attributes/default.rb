@@ -4,6 +4,7 @@ default['app']['user']                = Default.user(node)
 default['app']['group']               = Default.group(node)
 
 default['proxy']['dir']['app']        = '/app/proxy'
+default['proxy']['dir']['certs']      = '/share/.certs'
 default['proxy']['dir']['config']     = '/app/proxy/conf.d'
 default['proxy']['dir']['logs']       = '/app/proxy/logs'
 

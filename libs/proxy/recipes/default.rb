@@ -1,6 +1,7 @@
 Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
-Common.directories(self, [node['proxy']['dir']['app'], node['proxy']['dir']['config'], node['proxy']['dir']['logs']])
+Common.directories(self, [node['proxy']['dir']['app'],
+  node['proxy']['dir']['certs'], node['proxy']['dir']['config'], node['proxy']['dir']['logs']])
 
 package 'caddy'
 
@@ -25,15 +26,17 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
     logs_roll_keep: node['proxy']['logs']['roll_keep'], logs_roll_for: node['proxy']['logs']['roll_for'] )
 end
 
-remote_directory node['proxy']['dir']['config'] do
-  source 'config'
+remote_directory node['proxy']['dir']['conf'] do
+  source 'conf'
   owner node['app']['user']
   group node['app']['group']
   mode '0775'
   files_mode '0664'
 end
 
-Common.application(self, cookbook_name,
-  exec: "/bin/caddy run --config #{node['proxy']['dir']['app']}/Caddyfile --adapter caddyfile",
-  subscribe: ["template[#{node['proxy']['dir']['app']}/Caddyfile]", "remote_directory[#{node['proxy']['dir']['config']}]"],
-  unit: { 'Service' => { 'AmbientCapabilities' => 'CAP_NET_BIND_SERVICE' } } )
+ruby_block "#{self.cookbook_name}_application" do block do
+  Common.application(self, cookbook_name,
+    exec: "/bin/caddy run --config #{node['proxy']['dir']['app']}/Caddyfile --adapter caddyfile",
+    subscribe: ["template[#{node['proxy']['dir']['app']}/Caddyfile]", "remote_directory[#{node['proxy']['dir']['config']}]"],
+    unit: { 'Service' => { 'AmbientCapabilities' => 'CAP_NET_BIND_SERVICE' } } )
+end end

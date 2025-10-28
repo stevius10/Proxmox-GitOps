@@ -1,6 +1,10 @@
+{
+  storage file_system <%= @caddy_dir %>
+}
+
 (internal) {
-  @internal remote_ip 192.168.0.0/24
-  @external not remote_ip 192.168.0.0/24
+  @internal remote_ip 192.168.178.0/24
+  @external not remote_ip 192.168.178.0/24
   respond @external "Forbidden" 403
 }
 
@@ -15,10 +19,7 @@
 }
 
 (common) {
-  import internal
   import header
-
-  tls internal
 
   log {
     output file <%= @log_dir %>/{args.0}.log {
@@ -45,6 +46,10 @@
 <% @hosts.each do |entry| -%> <% domain, upstream, hostname = entry.split(' ') -%>
   <%= domain %> {
     import default <%= hostname %> <%= upstream %>
+    import internal
+
+    tls internal
+
     import <%= @config_dir %>/*<%= hostname %>.caddy
   }
 <% end -%>

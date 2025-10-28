@@ -5,6 +5,7 @@ default['app']['group']               = Default.group(node)
 
 default['proxy']['dir']['app']        = '/app/proxy'
 default['proxy']['dir']['certs']      = '/share/.certs'
+default['proxy']['dir']['caddy']      = "#{node['proxy']['dir']['certs']}/caddy"
 default['proxy']['dir']['config']     = '/app/proxy/conf.d'
 default['proxy']['dir']['logs']       = '/app/proxy/logs'
 

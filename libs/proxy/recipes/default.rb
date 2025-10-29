@@ -35,8 +35,18 @@ remote_directory node['proxy']['dir']['config'] do
   files_mode '0664'
 end
 
+execute "#{self.cookbook_name}_initialize" do
+  command "/bin/caddy trust --config #{node['proxy']['dir']['app']}/Caddyfile"
+  user 'root'
+  timeout 120
+  not_if { ::File.directory?("#{node['proxy']['dir']['caddy']}/certificates") ||
+    ::File.directory?("#{node['proxy']['dir']['caddy']}/pki") }
+  subscribes :run, "template[#{node['proxy']['dir']['app']}/Caddyfile]", :immediately
+  action :nothing
+end
+
 ruby_block "#{self.cookbook_name}_application" do block do
-  Common.application(self, cookbook_name,
+  Common.application(self, cookbook_name, actions: [:start, :enable],
     exec: "/bin/caddy run --config #{node['proxy']['dir']['app']}/Caddyfile",
     subscribe: ["template[#{node['proxy']['dir']['app']}/Caddyfile]", "remote_directory[#{node['proxy']['dir']['config']}]"],
     unit: { 'Service' => { 'AmbientCapabilities' => 'CAP_NET_BIND_SERVICE' } } )

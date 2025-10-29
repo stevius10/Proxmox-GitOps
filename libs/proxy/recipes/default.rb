@@ -21,9 +21,9 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
   owner node['app']['user']
   group node['app']['group']
   mode   '0644'
-  variables( hosts: lazy { node.run_state['proxy_hosts'] || [] },
-    caddy_dir: node['proxy']['dir']['caddy'], config_dir: node['proxy']['dir']['config'],
-    log_dir: node['proxy']['dir']['logs'], logs_roll_size: node['proxy']['logs']['roll_size'],
+  variables( hosts: lazy { node.run_state['proxy_hosts'] || [] }, config_dir: node['proxy']['dir']['config'],
+    caddy_dir: node['proxy']['dir']['caddy'], log_dir: node['proxy']['dir']['logs'],
+    internal: node['proxy']['config']['internal'], logs_roll_size: node['proxy']['logs']['roll_size'],
     logs_roll_keep: node['proxy']['logs']['roll_keep'], logs_roll_for: node['proxy']['logs']['roll_for'] )
 end
 

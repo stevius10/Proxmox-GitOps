@@ -7,7 +7,9 @@ alias .....='cd ../../../..'
 
 # General
 
+alias c='cd'
 alias l='ls -lhA --group-directories-first'
+alias s='systemctl'
 alias grep='grep --color=auto'
 alias mdir='mkdir -pv'
 
@@ -71,6 +73,14 @@ extract () {
    else
        echo "'$1' no valid file"
    fi
+}
+
+exe() {
+  docker exec -it "$(docker ps -qf name=$1)" /bin/bash
+}
+
+j() {
+  journalctl -xe --no-pager -u "$1" || journalctl -xe --no-pager
 }
 
 package() {

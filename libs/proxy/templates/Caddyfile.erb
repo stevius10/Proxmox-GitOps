@@ -3,8 +3,8 @@
 }
 
 (internal) {
-  @internal remote_ip 192.168.178.0/24
-  @external not remote_ip 192.168.178.0/24
+  @internal remote_ip <%= @internal %>
+  @external not remote_ip <%= @internal %>
   respond @external "Forbidden" 403
 }
 
@@ -51,6 +51,12 @@
     tls internal
 
     import <%= @config_dir %>/*<%= hostname %>.caddy
+
+    route {
+      reverse_proxy @internal <%= upstream %> {
+        trusted_proxies <%= @internal %>
+      }
+    }
   }
 <% end -%>
 

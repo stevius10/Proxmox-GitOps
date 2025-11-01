@@ -7,7 +7,6 @@ alias .....='cd ../../../..'
 
 # General
 
-alias c='cd'
 alias l='ls -lhA --group-directories-first'
 alias s='systemctl'
 alias grep='grep --color=auto'
@@ -56,8 +55,6 @@ backport() {
 
 # Functions
 
-cdir() { mkdir "$1" && cd "$1"; }
-
 extract () {
    if [ -f "$1" ] ; then
        case "$1" in
@@ -79,8 +76,19 @@ exe() {
   docker exec -it "$(docker ps -qf name=$1)" /bin/bash
 }
 
+c() {
+  [ -z "$1" ] && { cd; return; }
+  [ -d "$1" ] && { cd "$1"; return; } ||
+  [ -f "$1" ] && file -b "$1" | grep -q -e "text" -e "empty" && { cat "$1"; return; } ||
+  file "$1"
+}
+
 j() {
   journalctl -xe --no-pager -u "$1" || journalctl -xe --no-pager
+}
+
+m() {
+  mkdir "$1" && cd "$1";
 }
 
 package() {

@@ -49,5 +49,6 @@ ruby_block "#{self.cookbook_name}_application" do block do
   Common.application(self, cookbook_name, actions: [:start, :enable],
     exec: "/bin/caddy run --config #{node['proxy']['dir']['app']}/Caddyfile",
     subscribe: ["template[#{node['proxy']['dir']['app']}/Caddyfile]", "remote_directory[#{node['proxy']['dir']['config']}]"],
-    unit: { 'Service' => { 'AmbientCapabilities' => 'CAP_NET_BIND_SERVICE' } } )
+    unit: { 'Unit': { 'Wants' => 'share.service', 'After' => 'network.target share.service' },
+      'Service' => { 'AmbientCapabilities' => 'CAP_NET_BIND_SERVICE' } } )
 end end

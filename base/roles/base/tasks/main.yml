@@ -1,8 +1,9 @@
 - name: Base container configuration
   block:
-    - name: Set key directory
+    - name: Set shared directories
       set_fact:
-        key_dir: "{{ KEYS_DIR | default('/share/.ssh') }}"
+        cert_dir: "{{ share_dir }}/.certs"
+        key_dir: "{{ share_dir }}/.ssh"
 
     - name: Update system
       apt:
@@ -53,6 +54,8 @@
     extra:
       - { path: "/app", state: "directory", mode: "0755", owner: "app", group: "config" }
       - { path: "/app/.ssh", state: "directory", mode: "0711", owner: "app", group: "config" }
+      - { path: "{{ key_dir }}", state: "directory", mode: "0711", owner: "app", group: "config" }
+      - { path: "{{ cert_dir }}", state: "directory", mode: "0711", owner: "app", group: "config" }
 
 - name: Container accessibility
   import_tasks: access.yml

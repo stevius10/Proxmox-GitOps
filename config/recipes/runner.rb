@@ -9,7 +9,7 @@ ruby_block 'runner' do block do
 
   Utils.wait("http://localhost:#{node['git']['port']['http']}")
 
-  Common.application(self, self.recipe_name, user: node['app']['user'] , actions: [:enable], cwd: node['runner']['dir']['app'],
+  Common.application(self, self.recipe_name, user: node['app']['user'] , actions: [:start, :enable], cwd: node['runner']['dir']['app'],
     exec: "#{node['runner']['dir']['app']}/#{self.recipe_name} daemon --config #{node['runner']['dir']['app']}/config.yaml",
     subscribe: ["template[#{node['runner']['dir']['app']}/config.yaml]", "remote_file[#{node['runner']['dir']['app']}/#{self.recipe_name}]"] )
 

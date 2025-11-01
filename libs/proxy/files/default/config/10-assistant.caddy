@@ -1,0 +1,19 @@
+# *-container.local.caddy (.gitignore): create, e. g. home.gitops.pm
+#
+# home.gitops.pm {
+#     import default api 192.178.168.110
+#     tls /share/.certs/.lego/certificates/gitops.pm.crt /share/.certs/.lego/certificates/gitops.pm.key
+# .. }
+
+# *-container.caddy: edit, e. g. assistant (10-assistant.caddy)
+
+route {
+    reverse_proxy @internal {vars.upstream}:8123
+}
+
+
+# Attachment: Home Assistant configuration
+# http:
+#   use_x_forwarded_for: true
+#   trusted_proxies:
+#     - <IP_REVERSE_PROXY> # e. g. 192.168.178.101

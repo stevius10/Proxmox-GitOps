@@ -1,3 +1,5 @@
+require_relative 'default'
+
 module Common
 
   # General
@@ -33,14 +35,10 @@ module Common
     end
   end
 
-  def self.application(ctx, name, user: nil, group: nil,
+  def self.application(ctx, name, user: Default.user(ctx).to_s, group: Default.group(ctx).to_s,
       exec: nil, cwd: nil, unit: {}, actions: [:enable, :start], subscribe: nil, reload: 'systemd_reload',
       restart: 'on-failure', restart_delay: 10, restart_limit: 10, restart_max: 600,
       verify: true, verify_timeout: 60, verify_interval: 5, verify_cmd: "systemctl is-active --quiet #{name}")
-    user  ||= Default.user(ctx)
-    group ||= Default.group(ctx)
-    user  = user.to_s
-    group = group.to_s
 
     if exec
       daemon(ctx, reload)
@@ -69,7 +67,7 @@ module Common
 
       # Mask default application service
       conflicts = %Q(systemctl list-unit-files '*#{File.basename(exec.split.first)}*.service' --no-legend | awk '$2!="masked" {print $1}')
-      Ctx.dsl(ctx).execute "mask_conflicts_#{name}" do
+      Ctx.dsl(ctx).execute "application_mask_#{name}" do
         command "#{conflicts} | xargs -r -IUNIT sh -c 'systemctl stop UNIT && systemctl mask UNIT'"
         only_if conflicts
         returns [0, 123] # already masked returns '123'
@@ -81,15 +79,22 @@ module Common
         group   'root'
         mode    '0664'
         content unit_content
+        notifies :run, "execute[application_reset_#{name}]", :immediately
         notifies :run, "execute[#{reload}]", :immediately
         notifies :restart, "service[#{name}]", :delayed
       end
 
     end
 
+    Ctx.dsl(ctx).execute "application_reset_#{name}" do
+      command "systemctl reset-failed #{name}.service"
+      only_if "systemctl is-failed --quiet #{name}.service"
+      action :nothing
+    end
+
     if actions.include?(:force_restart)
-      Ctx.dsl(ctx).execute "force_restart_#{name}" do
-        command "systemctl reset-failed #{name}; systemctl stop #{name} || true && sleep 1 && systemctl start #{name}"
+      Ctx.dsl(ctx).execute "application_restart_#{name}" do
+        command "systemctl stop #{name} || true && sleep 1 && systemctl start #{name}"
         action :run
       end
     else
@@ -107,11 +112,12 @@ module Common
           (is_active = Mixlib::ShellOut.new(verify_cmd)).run_command
           is_active.exitstatus.zero? ? (ok = true; break) : (sleep verify_interval)
         end
-        Logs.error!("service '#{name}' failed health check") unless ok
+        raise (Logs.debug("service '#{name}' failed health check", [
+          Mixlib::ShellOut.new("systemctl status #{name} --no-pager").run_command.stdout.strip,
+          Mixlib::ShellOut.new("journalctl -u #{name} --no-pager").run_command.stdout.strip,
+        ], level: :error)) unless ok
       end
-      action :nothing
-      subscribes :run, "service[#{name}]", :delayed if verify
-      subscribes :run, "file[/etc/systemd/system/#{name}.service]", :delayed if verify
+      only_if { verify }
     end
   end
 

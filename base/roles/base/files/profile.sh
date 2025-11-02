@@ -7,17 +7,6 @@ alias .....='cd ../../../..'
 
 # General
 
-alias l='ls -lhA --group-directories-first'
-alias grep='grep --color=auto'
-alias mdir='mkdir -pv'
-
-alias df='df -h'
-alias free='free -h'
-alias du='du -h'
-
-alias journal='journalctl -xef --output=short-iso --no-pager'
-alias ports='ss -tulpn'
-alias proc='ps aux | grep -v grep | grep -i'
 alias redo='sudo "$(fc -ln -1)"'
 
 # Development
@@ -54,8 +43,6 @@ backport() {
 
 # Functions
 
-cdir() { mkdir "$1" && cd "$1"; }
-
 extract () {
    if [ -f "$1" ] ; then
        case "$1" in
@@ -66,18 +53,60 @@ extract () {
            *.tar)       tar xvf "$1"     ;;
            *.tgz)       tar xvzf "$1"    ;;
            *.zip)       unzip "$1"       ;;
-           *)           echo "'$1' failed" ;;
        esac
-   else
-       echo "'$1' no valid file"
    fi
+}
+
+exe() {
+  docker exec -it "$(docker ps -qf name=$1)" /bin/bash
+}
+
+c() {
+  [ -z "$1" ] && { cd; return; }
+  [ -d "$1" ] && { cd "$1"; return; } ||
+  [ -f "$1" ] && file -b "$1" | grep -q -e "text" -e "empty" && { cat "$1"; return; } ||
+  file "$1"
+}
+
+d() {
+  mkdir -pv "$1" && cd "$1";
+}
+
+f() {
+    case "$1" in
+      /*) grep --color=auto -rni "$1" . ;;
+       *) find . -iname "*${1:1}*" ;;
+    esac
+}
+
+l() {
+  command ls -lAhF --color=auto "$@";
+}
+
+j() {
+  journalctl -xe --no-pager -u "$1" || journalctl -xe --no-pager
+}
+
+p() {
+  [ -z "$1" ] && { ps aux; return $?; }
+  local search
+  search="[${1:0:1}]${1:1}"
+  ps aux | grep --color=auto "$search"
+}
+
+s() {
+  [ -z "$1" ] && { cd /etc/systemd/system; return $?; }
+  case "$1" in start|stop|restart|reload|enable|disable|status|is-active|is-enabled|is-failed|mask|unmask|daemon-reload|reset-failed| \
+    cat|show|edit|list-units|list-unit-files|list-dependencies|list-jobs)
+      command systemctl "$@"; return $?;;
+  esac
+  systemctl cat "$1" && echo && systemctl status --no-pager "$1"
 }
 
 package() {
   local project
   project=$(basename "$PWD")
-  local out="${project}-packaged.txt"
-
+  local out="${project}.txt"
   rm -f -- "$out"
 
   if [ -d .git ]; then
@@ -88,7 +117,7 @@ package() {
 
   while IFS= read -r file; do
     if file --mime-type --brief "$file" | grep -q '^text/'; then
-      printf "# Filename: %s\n\n" "$file"
+      printf "# %s\n\n" "$file"
       sed '' "$file"
       printf "\n---\n\n"
     fi

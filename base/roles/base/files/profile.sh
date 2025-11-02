@@ -87,6 +87,13 @@ j() {
   journalctl -xe --no-pager -u "$1" || journalctl -xe --no-pager
 }
 
+p() {
+  [ -z "$1" ] && { ps aux; return $?; }
+  local search
+  search="[${1:0:1}]${1:1}"
+  ps aux | grep --color=auto "$search"
+}
+
 s() {
   [ -z "$1" ] && { cd /etc/systemd/system; return $?; }
   case "$1" in start|stop|restart|reload|enable|disable|status|is-active|is-enabled|is-failed|mask|unmask|daemon-reload|reset-failed| \

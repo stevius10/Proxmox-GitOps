@@ -7,18 +7,6 @@ alias .....='cd ../../../..'
 
 # General
 
-alias l='ls -lhA --group-directories-first'
-alias s='systemctl'
-alias grep='grep --color=auto'
-alias mdir='mkdir -pv'
-
-alias df='df -h'
-alias free='free -h'
-alias du='du -h'
-
-alias journal='journalctl -xef --output=short-iso --no-pager'
-alias ports='ss -tulpn'
-alias proc='ps aux | grep -v grep | grep -i'
 alias redo='sudo "$(fc -ln -1)"'
 
 # Development
@@ -65,10 +53,7 @@ extract () {
            *.tar)       tar xvf "$1"     ;;
            *.tgz)       tar xvzf "$1"    ;;
            *.zip)       unzip "$1"       ;;
-           *)           echo "'$1' failed" ;;
        esac
-   else
-       echo "'$1' no valid file"
    fi
 }
 
@@ -83,12 +68,23 @@ c() {
   file "$1"
 }
 
-j() {
-  journalctl -xe --no-pager -u "$1" || journalctl -xe --no-pager
+d() {
+  mkdir -pv "$1" && cd "$1";
 }
 
-m() {
-  mkdir "$1" && cd "$1";
+f() {
+    case "$1" in
+      /*) grep --color=auto -rni "$1" . ;;
+       *) find . -iname "*${1:1}*" ;;
+    esac
+}
+
+l() {
+  command ls -lAhF --color=auto "$@";
+}
+
+j() {
+  journalctl -xe --no-pager -u "$1" || journalctl -xe --no-pager
 }
 
 p() {
@@ -110,8 +106,7 @@ s() {
 package() {
   local project
   project=$(basename "$PWD")
-  local out="${project}-packaged.txt"
-
+  local out="${project}.txt"
   rm -f -- "$out"
 
   if [ -d .git ]; then
@@ -122,7 +117,7 @@ package() {
 
   while IFS= read -r file; do
     if file --mime-type --brief "$file" | grep -q '^text/'; then
-      printf "# Filename: %s\n\n" "$file"
+      printf "# %s\n\n" "$file"
       sed '' "$file"
       printf "\n---\n\n"
     fi

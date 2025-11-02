@@ -91,6 +91,15 @@ m() {
   mkdir "$1" && cd "$1";
 }
 
+s() {
+  [ -z "$1" ] && { cd /etc/systemd/system; return $?; }
+  case "$1" in start|stop|restart|reload|enable|disable|status|is-active|is-enabled|is-failed|mask|unmask|daemon-reload|reset-failed| \
+    cat|show|edit|list-units|list-unit-files|list-dependencies|list-jobs)
+      command systemctl "$@"; return $?;;
+  esac
+  systemctl cat "$1" && echo && systemctl status --no-pager "$1"
+}
+
 package() {
   local project
   project=$(basename "$PWD")

@@ -1,4 +1,9 @@
-<% (node['git']['org'] || {}).values.compact.each do |org| %>
-  <a class="item" href="{{AppSubUrl}}/<%= org %>"><%= org %></a>
-<% end %>
-<a class="item" href="{{AppSubUrl}}/main/config">monorepo</a>
+<a class="item" href="{{AppSubUrl}}/-/admin/actions/runners/1">{{svg "octicon-dot"}}</a>
+
+<div class="ui dropdown jump item visible">{{svg "octicon-arrow-down-right"}}
+  <div class="item menu">
+    <% (node['git']['org'] || {}).values.compact.each do |org| %>
+      <a class="item" role="menuitem" href="{{AppSubUrl}}/<%= org %>"><%= org %></a>
+    <% end %>
+  </div>
+</div>

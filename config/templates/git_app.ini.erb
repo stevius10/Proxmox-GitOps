@@ -13,6 +13,8 @@ START_SSH_SERVER = true
 BUILTIN_SSH_SERVER_USER = <%= @ssh_user %>
 HTTP_ADDR = 0.0.0.0
 
+LANDING_PAGE = <%= @org_main %>
+
 [database]
 DB_TYPE  = sqlite3
 PATH     = <%= @app_dir %>/gitea.db
@@ -34,7 +36,6 @@ DISABLE_MIGRATIONS = true
 
 [ui]
 ENABLE_USER_HEATMAP = false
-ONLY_SHOW_RELEVANT_REPOS = true
 EXPLORE_PAGING_DEFAULT_SORT = alphabetically
 
 [service]
@@ -42,6 +43,13 @@ ENABLE_REGISTRATION_CAPTCHA = false
 DISABLE_GRAVATAR = true
 ENABLE_FEDERATED_AVATAR = false
 SHOW_USER_EMAIL = false
+SHOW_MILESTONES_DASHBOARD_PAGE = false
+
+[service.explore]
+REQUIRE_SIGNIN_VIEW = true
+DISABLE_USERS_PAGE = true
+DISABLE_ORGANIZATIONS_PAGE = true
+DISABLE_CODE_PAGE = true
 
 [avatar]
 DISABLE_AVATAR = true
@@ -59,3 +67,13 @@ GC_ARGS = --aggressive
 [log]
 MODE = console
 LEVEL = Error
+
+[cron]
+ENABLED = true
+
+[other]
+SHOW_FOOTER_VERSION = false
+SHOW_FOOTER_TEMPLATE_LOAD_TIME = false
+SHOW_FOOTER_POWERED_BY = false
+ENABLE_SITEMAP = false
+ENABLE_FEED = false

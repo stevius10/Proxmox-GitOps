@@ -98,9 +98,9 @@ Common.directories(self, [destination, working], recreate: true)
       m = File.join(path_destination, 'main.rb')
       g = Dir.glob(File.join(path_destination, '*.rb')).sort
       s = if File.file?(d); 'default.rb'
-          elsif File.file?(m); 'main.rb'
-          elsif g.any?; File.basename(g.first)
-          end
+        elsif File.file?(m); 'main.rb'
+        elsif g.any?; File.basename(g.first)
+        end
       node.run_state["#{name_repo}_script"] = s
     end
   end
@@ -127,7 +127,7 @@ Common.directories(self, [destination, working], recreate: true)
   execute "task_repo_base_commit_#{name_repo}" do
     command <<-EOH
       git add --all
-      git commit --allow-empty -m "init" || true
+      git commit --allow-empty -m "init [skip ci]" || true
       git push -u origin main
     EOH
     cwd path_destination
@@ -139,12 +139,13 @@ Common.directories(self, [destination, working], recreate: true)
       WORKFLOW_FILE="#{path_destination}/.gitea/workflows/ruby.yml"
       if [ -f "$WORKFLOW_FILE" ]; then
         touch "$WORKFLOW_FILE" && git add "$WORKFLOW_FILE"
-        git commit --allow-empty -m "touch workflow" || true
+        git commit --allow-empty -m "touch workflow  [skip ci]" || true
         git push origin main || true
       fi
     EOH
     cwd path_destination
     user node['app']['user']
+    not_if { ['127.0.0.1', 'localhost', '::1'].include?(Env.get(self, 'host')) }
   end
 
   directory path_destination do

@@ -48,7 +48,7 @@ execute "repo_#{name_repo}_init_base" do
   only_if { Logs.info?("[#{repository} (#{name_repo})] base commit") }
   command <<-EOH
     git commit --allow-empty -m "base commit [skip ci]" && git checkout -b release
-    git push -u origin main && git push -u origin HEAD:snapshot && git push -u origin release
+    git push -u origin main && git push -u origin release
   EOH
   cwd path_destination
   user node['app']['user']

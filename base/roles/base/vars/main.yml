@@ -2,6 +2,7 @@ default_packages:
   - sudo
   - locales
   - curl
+  - jq
   - unzip
   - vim
 
@@ -10,6 +11,8 @@ default_groups: ["config"]
 default_users:
   - { name: "app",  groups: ["config"], create_home: false, home: "/app" }
   - { name: "config", groups: ["config", "root", "sudo"], create_home: false, home: "/app" }
+
+share_dir: "/share"
 
 ssh_users:
   - config

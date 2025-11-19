@@ -50,8 +50,8 @@ Common.directories(self, [destination, working], recreate: true)
     block do
       uri = "#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['tasks']}/repos"
       r = Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
-                        user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
-                        body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.json)
+        user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
+        body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.json)
       Logs.request!(uri, r, [201], msg: "Create #{name_repo}")
       r.json
     end
@@ -69,10 +69,7 @@ Common.directories(self, [destination, working], recreate: true)
     owner node['app']['user']
     group node['app']['group']
     mode '0644'
-    variables(repo: name_repo,
-              config: node['app']['config'],
-              org: node['git']['org']['tasks'],
-              ssh: node['git']['host']['ssh'])
+    variables(repo: name_repo, config: node['app']['config'], org: node['git']['org']['tasks'], ssh: node['git']['host']['ssh'])
     only_if { ::File.directory?("#{path_destination}/.git") }
   end
 
@@ -101,10 +98,9 @@ Common.directories(self, [destination, working], recreate: true)
       m = File.join(path_destination, 'main.rb')
       g = Dir.glob(File.join(path_destination, '*.rb')).sort
       s = if File.file?(d); 'default.rb'
-          elsif File.file?(m); 'main.rb'
-          elsif g.any?; File.basename(g.first)
-          end
-      raise 'no ruby script found' unless s
+        elsif File.file?(m); 'main.rb'
+        elsif g.any?; File.basename(g.first)
+        end
       node.run_state["#{name_repo}_script"] = s
     end
   end
@@ -124,11 +120,8 @@ Common.directories(self, [destination, working], recreate: true)
     owner node['app']['user']
     group node['app']['group']
     mode '0644'
-    variables lazy { {
-      org:   node['git']['org']['tasks'],
-      repo:  name_repo,
-      script: node.run_state["#{name_repo}_script"],
-      cron:   node.run_state["#{name_repo}_cron"] } }
+    variables lazy { { org: node['git']['org']['tasks'], repo: name_repo,
+      script: node.run_state["#{name_repo}_script"], cron: node.run_state["#{name_repo}_cron"] } }
   end
 
   execute "task_repo_base_commit_#{name_repo}" do
@@ -139,6 +132,20 @@ Common.directories(self, [destination, working], recreate: true)
     EOH
     cwd path_destination
     user node['app']['user']
+  end
+
+  execute "task_repo_touch_workflow_#{name_repo}" do
+    command <<-EOH
+      WORKFLOW_FILE="#{path_destination}/.gitea/workflows/ruby.yml"
+      if [ -f "$WORKFLOW_FILE" ]; then
+        touch "$WORKFLOW_FILE" && git add "$WORKFLOW_FILE"
+        git commit --allow-empty -m "touch workflow  [skip ci]" || true
+        git push origin main || true
+      fi
+    EOH
+    cwd path_destination
+    user node['app']['user']
+    not_if { ['127.0.0.1', 'localhost', '::1'].include?(Env.get(self, 'host')) }
   end
 
   directory path_destination do

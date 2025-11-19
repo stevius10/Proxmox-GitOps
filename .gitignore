@@ -9,4 +9,5 @@ local/*.hash
 
 # git add --force '**/*.local*'
 
-*.local.caddy
+*.local.*
+!.*.local.*

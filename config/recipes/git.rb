@@ -9,7 +9,8 @@ template "#{node['git']['dir']['app']}/app.ini" do
   mode '0644'
   variables(host: node['host'], app_user: node['app']['user'] , ssh_user: node['app']['config'],
     app_dir: node['git']['dir']['app'], home_dir: node['git']['dir']['home'],
-    http_port: node['git']['port']['http'], ssh_port: node['git']['port']['ssh'] )
+    http_port: node['git']['port']['http'], ssh_port: node['git']['port']['ssh'],
+    org_main: node['git']['org']['main'])
   action :create_if_missing
 end
 

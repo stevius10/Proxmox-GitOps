@@ -2,7 +2,7 @@
   block:
   - name: Wait for container to be created
     uri:
-      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/config"
+      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ PROXMOX_NODE | default('pve') }}/lxc/{{ id }}/config"
       method: GET
       headers: "{{ proxmox_auth }}"
     delay: "{{ check_delay }}"

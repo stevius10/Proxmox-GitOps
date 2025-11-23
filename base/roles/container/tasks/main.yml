@@ -1,6 +1,22 @@
 - name: Environment
   include_tasks: env.yml
 
+- name: Get architecture
+  uri:
+    url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ PROXMOX_NODE | default('pve') }}/status"
+    method: GET
+    headers: "{{ proxmox_auth }}"
+    return_content: yes
+    validate_certs: no
+  register: status
+
+- name: Set OS template
+  set_fact:
+    os: |-
+      {{ OS | default(storage ~ '/' ~ template ~ '_' ~
+        ('arm64' if (status.json.data['current-kernel'].machine | default('x86_64')
+        | lower is search('arm|aarch64')) else 'amd64') ~ '.tar.zst' ) }}
+
 - name: Container orchestration
   block:
   - name: Check container

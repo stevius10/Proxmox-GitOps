@@ -1,6 +1,6 @@
 [![main](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml) [![develop](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml)
 
-[![PVE 8.4](https://img.shields.io/badge/PVE-8.4-orange)](https://www.proxmox.com/) [![PVE 9.0](https://img.shields.io/badge/PVE-9.0-orange)](https://www.proxmox.com/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![PVE 8.4](https://img.shields.io/badge/PVE-8.4-orange)](https://www.proxmox.com/) [![PVE 9.1](https://img.shields.io/badge/PVE-9.1-orange)](https://www.proxmox.com/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Table of Contents
 - [Overview](#overview)

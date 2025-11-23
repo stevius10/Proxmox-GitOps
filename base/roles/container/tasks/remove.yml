@@ -8,7 +8,7 @@
 
   - name: Wait for container to be stopped
     uri:
-      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/status/current"
+      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ PROXMOX_NODE | default('pve') }}/lxc/{{ id }}/status/current"
       method: GET
       headers: "{{ proxmox_auth }}"
     delay: "{{ check_delay }}"
@@ -25,7 +25,7 @@
 
   - name: Wait for container to be removed
     uri:
-      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/lxc/{{ id }}/status/current"
+      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ PROXMOX_NODE | default('pve') }}/lxc/{{ id }}/status/current"
       method: GET
       headers: "{{ proxmox_auth }}"
     delay: "{{ check_delay }}"

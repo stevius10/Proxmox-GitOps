@@ -1,9 +1,8 @@
 ---
 - name: "Base Container"
   hosts: localhost
-  gather_facts: no
   vars:
-    os: "{{ OS | default('local:vztmpl/debian-13-standard_13.1-1_amd64.tar.zst') }}"
+    os: "{{ OS | default('local:vztmpl/debian-13-standard_13.1-2_' ~ (ansible_architecture is match('aarch64|armv.*') | ternary('arm64', 'amd64')) ~ '.tar.zst') }}"
     share_dir: "{{ SHARE | default('/share') }}"
     cert_dir:  "{{ share_dir }}/.cert"
     key_dir:   "{{ share_dir }}/.ssh"

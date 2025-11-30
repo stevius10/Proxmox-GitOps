@@ -60,6 +60,12 @@ module Utils
     { 'x86_64'=>'amd64', 'aarch64'=>'arm64', 'arm64'=>'arm64', 'armv7l'=>'armv7' }.fetch(`uname -m`.strip, 'amd64')
   end
 
+  def self.json(path)
+    JSON.parse(File.read( File.expand_path(path, ENV['PWD'].presence || Dir.presence)))
+  rescue Exception, Error => e
+    Logs.returns("#{path}: #{e.message}", {})
+  end
+
   def self.snapshot(ctx, data_dir, name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), snapshot_dir: Default.snapshot_dir(ctx), mode: 0o755)
 
     snapshot_dir = "#{snapshot_dir}/#{name}"

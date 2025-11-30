@@ -11,6 +11,7 @@ default['app']['group']               = Default.group(node, default: true)
 default['app']['config']              = Default.config(node, default: true)
 
 default['git']['conf']['customize']   = true
+default['git']['conf']['environment'] = [ "./env.local.json", "./local/config.json" ]
 default['git']['conf']['repo']        = [ "./", "./base", "./config/libraries", "./libs" ]
 
 default['git']['dir']['app']          = '/app/git'

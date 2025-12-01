@@ -80,5 +80,5 @@ run ""; while true; do
   log "configure" "$LIB"; read -r
   log "configure" "rerun"
   for s in "${suffixes[@]}"; do run "$s"; done
-  log "rerun" "done"
+  log "" "rerun"
 done

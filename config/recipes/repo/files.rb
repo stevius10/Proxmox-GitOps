@@ -1,4 +1,4 @@
-name_repo = @name_repo; repository = @repository;path_source = @path_source; path_destination = @path_destination
+name_repo = @name_repo; repository = @repository; path_source = @path_source; path_destination = @path_destination
 
 ruby_block "repo_#{name_repo}_files" do
   block do

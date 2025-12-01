@@ -31,7 +31,7 @@ submodules.each do |submodule|
       fi
       git submodule update --init --recursive
       if [ "#{is_bootstrap}" = "true" ]; then
-         git add . && git add -f '*.local.*' '**/*.local.*'
+         git add --all; git add -f '*.local.*'; git add -f '**/*.local*'
       fi
     EOH
     cwd path_destination

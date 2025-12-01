@@ -4,7 +4,7 @@ execute "repo_#{name_repo}_push" do
   cwd path_destination
   user node['app']['user']
   command <<-EOH
-  git add --all; git add -f '*.local.*'; git add -f '**/*.local*'
+  git add --all; git add -f '*.local.*' 2>/dev/null || true; git add -f '**/*.local*' 2>/dev/null || true
   if ! git diff --quiet || ! git diff --cached --quiet; then
     git commit --allow-empty -m "initial commit [skip ci]"
     git push -f origin HEAD:main

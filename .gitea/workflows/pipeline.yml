@@ -9,6 +9,7 @@ jobs:
     outputs:
       ip: ${{ steps.config.outputs.ip }}
       id: ${{ steps.config.outputs.id }}
+      hostname: ${{ steps.config.outputs.hostname }}
       cores: ${{ steps.config.outputs.cores }}
       memory: ${{ steps.config.outputs.memory }}
       swap: ${{ steps.config.outputs.swap }}
@@ -21,8 +22,8 @@ jobs:
       - name: Set configuration
         id: config
         run: |
-          echo "hostname=config" >> $GITEA_OUTPUT
           for env in container{.env,.local.env}; do [[ -f "$env" ]] && source "$env" || true; done
+          echo "hostname=config" >> $GITEA_OUTPUT
           echo "ip=$IP" >> $GITEA_OUTPUT
           echo "id=$ID" >> $GITEA_OUTPUT
           echo "cores=$CORES" >> $GITEA_OUTPUT

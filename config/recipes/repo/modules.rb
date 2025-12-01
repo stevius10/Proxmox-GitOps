@@ -30,8 +30,8 @@ submodules.each do |submodule|
         git submodule add #{module_url} #{path_module}
       fi
       git submodule update --init --recursive
-      if [ "#{is_bootstrap}" = "true" ] && [ -f local/config.json ]; then
-        git add -f local/config.json
+      if [ "#{is_bootstrap}" = "true" ]; then
+         git add . && git add -f '*.local.*' '**/*.local.*'
       fi
     EOH
     cwd path_destination

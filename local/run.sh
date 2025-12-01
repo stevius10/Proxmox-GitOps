@@ -29,7 +29,7 @@ case "$(uname -m)" in
 esac
 export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/${TARGETARCH}}"
 
-log "container"
+log "" "container"
 
 if [[ -z "$(docker images -q "${DOCKER_IMAGE}")" || "$HASH_STORED" != "$HASH_SUM" ]]; then
     log "container" "build"
@@ -45,14 +45,14 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER}$"; then
     sleep "$DOCKER_WAIT"
 fi
 
-log "container" "start"
+log "container" "run"
 CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --add-host=host.docker.internal:host-gateway \
     $( [[ -d "${LOCAL}/share" ]] && echo "-v ${LOCAL}/share:/share:ro " ) \
     $( [[ -n "$1" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
     --name "$DOCKER_CONTAINER" --platform "linux/${TARGETARCH}" -w /tmp/config "$DOCKER_IMAGE" sleep infinity) || err "failed to start container"
-log "container" "started [${CONTAINER_ID}]"
+log "container" "started ${DOCKER_CONTAINER} [${CONTAINER_ID:0:6}]"
 
-log "configure"
+log "container" "configure"
 
 sync() {
   log "configure" "sync"

@@ -60,6 +60,13 @@ module Utils
     { 'x86_64'=>'amd64', 'aarch64'=>'arm64', 'arm64'=>'arm64', 'armv7l'=>'armv7' }.fetch(`uname -m`.strip, 'amd64')
   end
 
+  def self.mapping(file)
+    JSON.parse(File.read(File.expand_path(file, ENV['PWD'] || Dir.pwd)))
+      .each_with_object({}) { |(k, v), hash| hash[k] = v.presence } # unless v.nil? || (v.respond_to?(:empty?) && v.empty?) }
+  rescue Exception => e
+    Logs.returns("#{file}: #{e.message}", {}, level: :warn )
+  end
+
   def self.snapshot(ctx, data_dir, name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), snapshot_dir: Default.snapshot_dir(ctx), mode: 0o755)
 
     snapshot_dir = "#{snapshot_dir}/#{name}"

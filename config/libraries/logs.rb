@@ -23,8 +23,8 @@ module Logs
 
   def self.try!(msg, *pairs, fail: false)
     result = yield; Logs.returns(["(try: #{msg})", result].join(" "), result, level: :debug)
-  rescue => exception
-    fail ? raise("[#{log(verbose: false)}] #{msg}: #{exception.message}") : debug("(try) #{msg}: #{exception.message}", pairs: pairs)
+  rescue Exception => e
+    fail ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(try) #{msg}: #{e.message}", *pairs)
   end
 
   def self.request!(uri, response, valid=[], msg: nil)

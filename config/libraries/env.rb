@@ -36,7 +36,7 @@ module Env
 
   def self.endpoint(ctx)
     node = Ctx.node(ctx)
-    "http://#{ENV['IP'] || node['host'] || '127.0.0.1'}:#{node.dig('git','port','http') || 8080}/api/#{node.dig('git','api','version') || 'v1'}"
+    "http://#{get(node, "host")}:#{node.dig('git','port','http') || 8080}/api/#{node.dig('git','api','version') || 'v1'}"
   end
 
   def self.request(ctx, key, body: nil, repo: nil, owner: nil, expect: false)

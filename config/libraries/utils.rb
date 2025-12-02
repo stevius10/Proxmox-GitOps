@@ -62,7 +62,7 @@ module Utils
 
   def self.mapping(file)
     JSON.parse(File.read(File.expand_path(file, ENV['PWD'] || Dir.pwd)))
-      .each_with_object({}) { |(k, v), hash| hash[k] = v.presence } # unless v.nil? || (v.respond_to?(:empty?) && v.empty?) }
+      .each_with_object({}) { |(k, v), hash| hash[k] = v.presence unless v.nil? || (v.respond_to?(:empty?) && v.empty?) }
   rescue Exception => e
     Logs.returns("#{file}: #{e.message}", {}, level: :warn )
   end
@@ -157,7 +157,7 @@ module Utils
     assets = ->(a) { a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }
 
     if version == 'latest'
-      release = Logs.raise_if_blank("check latest", latest(owner, repo))
+      release = Logs.blank!("check latest", latest(owner, repo))
       release = release.first if release.is_a?(Array)
       return false unless release
       version = release[:tag_name].to_s.gsub(/^v/, '')
@@ -183,7 +183,7 @@ module Utils
     download_url, filename = (if (asset = release[:assets].find(&assets))
         [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
       else [release[:tarball_url], "#{repo}-#{version}.tar.gz"]
-      end); Logs.raise_if_blank(download_url, "missing asset for '#{version}'")
+      end); Logs.blank!(download_url, "missing asset for '#{version}'")
 
     Dir.mktmpdir do |tmpdir|
       archive_path = File.join(tmpdir, filename)

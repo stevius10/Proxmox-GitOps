@@ -9,8 +9,8 @@ module Logs
   end
 
   def self.info(msg); log(msg) end; def self.warn(msg); log(msg, level: :warn) end
-  def self.error(msg, raise: false); log(msg, level: :error); raise msg if raise end
-  def self.error!(msg); error(msg, raise: true) end
+  def self.error(msg, fail: false); log(msg, level: :error); raise msg if fail end
+  def self.error!(msg); error(msg, fail: true) end
   def self.info?(msg, result: true); log(msg); result; end
   def self.request(uri, response); debug("#{response&.code} #{response&.message} (#{uri})"); return response end
   def self.return(msg); log(msg); return msg end
@@ -21,11 +21,10 @@ module Logs
     log([msg, ((flat.each_slice(2).to_h.transform_keys(&:to_s)).map { |k, v| "#{k}=#{v.inspect}" }.join(" "))].reject(&:blank?).join(" "), level: level)
   end
 
-  def self.try!(msg, *pairs, raise: false)
+  def self.try!(msg, *pairs, fail: false)
     result = yield; Logs.returns(["(try: #{msg})", result].join(" "), result, level: :debug)
   rescue => exception
-    info("(try) #{msg}: #{exception.message}", level: raise ? :error : :warn)
-    raise("[#{log(verbose: false)}] #{msg}: #{exception.message}") if raise
+    fail ? raise("[#{log(verbose: false)}] #{msg}: #{exception.message}") : debug("(try) #{msg}: #{exception.message}", pairs: pairs)
   end
 
   def self.request!(uri, response, valid=[], msg: nil)

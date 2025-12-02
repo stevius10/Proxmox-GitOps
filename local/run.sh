@@ -31,12 +31,6 @@ export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/${TARGETARCH}}"
 
 log "" "container"
 
-if [[ -z "$(docker images -q "${DOCKER_IMAGE}")" || "$HASH_STORED" != "$HASH_SUM" ]]; then
-    log "container" "build"
-    docker build --no-cache --build-arg TARGETARCH="$TARGETARCH" -t "$DOCKER_IMAGE" -f "$DOCKER_FILE" "$(pwd)" || err "image build failed"
-    echo "$HASH_SUM" > "$HASH_FILE"
-fi
-
 if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER}$"; then
     log "container" "clean"
     docker stop "$DOCKER_CONTAINER" >/dev/null || true
@@ -45,40 +39,44 @@ if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER}$"; then
     sleep "$DOCKER_WAIT"
 fi
 
+if [[ -z "$(docker images -q "${DOCKER_IMAGE}")" || "$HASH_STORED" != "$HASH_SUM" ]]; then
+    log "container" "build"
+    docker build --no-cache --build-arg TARGETARCH="$TARGETARCH" -t "$DOCKER_IMAGE" -f "$DOCKER_FILE" "$(pwd)" || err "image build failed"
+    echo "$HASH_SUM" > "$HASH_FILE"
+fi
+
 log "container" "run"
 CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --add-host=host.docker.internal:host-gateway \
     $( [[ -d "${LOCAL}/share" ]] && echo "-v ${LOCAL}/share:/share:ro " ) \
     $( [[ -n "$1" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
     --name "$DOCKER_CONTAINER" --platform "linux/${TARGETARCH}" -w /tmp/config "$DOCKER_IMAGE" sleep infinity) || err "failed to start container"
-log "container" "started ${DOCKER_CONTAINER} [${CONTAINER_ID:0:6}]"
+log "container" "${DOCKER_CONTAINER} [${CONTAINER_ID:0:6}]"
 
-log "container" "configure"
+log "" "configuration"
 
 sync() {
-  log "configure" "sync"
-  docker exec "$CONTAINER_ID" bash -c "rm -rf /tmp/config/*" || log "sync" "cleanup error"
-  docker cp "$(pwd)/." "$CONTAINER_ID:/tmp/config/" || err "sync"
+  docker exec "$CONTAINER_ID" bash -c "rm -rf /tmp/config/*" || err "cleanup error"
+  docker cp "$(pwd)/." "$CONTAINER_ID:/tmp/config/" || err "remote error"
 
   if [[ "${LIB}" != "config" ]]; then
-    log "configure" "libraries"
+    log "configuration" "sync libraries (${LIB})"
     docker exec "$CONTAINER_ID" bash -c "mkdir -p '/tmp/config/libs/${LIB}/libraries' && \
-      cp -a /tmp/config/config/libraries/. '/tmp/config/libs/${LIB}/libraries/'" || err "sync libraries"
+      cp -a /tmp/config/config/libraries/. '/tmp/config/libs/${LIB}/libraries/'" || err "copy error"
   fi
 }
 
-run() {
-  log "configure" "run"
-  sync
+configuration() {
+  log "configuration" "sync" && sync
+  log "configuration" "execute ($LIB$1)"
   command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID,HOST \
     cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
       --config-option cookbook_path='"$LIBS"' '"$CONFIG"' -o '"$LIB$1"''
-  docker exec "$CONTAINER_ID" bash -c "$command"  || err "failed execution"
+  docker exec "$CONTAINER_ID" bash -c "$command"  || err "execution error"
+  log "configuration" "executed ($LIB$1)"
 }
 
 if [[ "${LIB}" != "config" ]]; then suffixes=("::default"); else suffixes=("::repo"); fi
-run ""; while true; do
-  log "configure" "$LIB"; read -r
-  log "configure" "rerun"
-  for s in "${suffixes[@]}"; do run "$s"; done
-  log "" "rerun"
+configuration ""; while true; do
+  log "configuration" "$LIB${suffixes[@]}"; read -r
+  for s in "${suffixes[@]}"; do configuration "$s"; done
 done

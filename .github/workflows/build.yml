@@ -24,11 +24,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Set config.env
+      - name: Set container.env
         id: config
         run: |
           echo "hostname=config" >> $GITHUB_OUTPUT
-          source config.env
+          source container.env
           echo "ip=127.0.0.1" >> $GITHUB_OUTPUT
           echo "id=$ID" >> $GITHUB_OUTPUT
           echo "cores=$CORES" >> $GITHUB_OUTPUT
@@ -100,8 +100,8 @@ jobs:
           PASSWORD: "test"
         run: |
           for lib in $(ls libs); do
-            if [ -f "libs/$lib/config.env" ]; then
-              source "libs/$lib/config.env"
+            if [ -f "libs/$lib/container.env" ]; then
+              source "libs/$lib/container.env"
               cp -r config/libraries libs/$lib
             fi
             if [ "$lib" = "proxy" ]; then

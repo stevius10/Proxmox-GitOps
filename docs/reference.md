@@ -219,8 +219,8 @@ Logs and returns `msg`.
 ### `Logs.debug(msg, *pairs, ctx: nil, level: :info)`
 Structured message with optional key/value pairs and deep environment dump at debug level.
 
-### `Logs.try!(msg, *pairs, ctx: nil, raise: false) { ... }`
-Executes a block with error handling and structured logging; re‑raises when `raise: true`.
+### `Logs.try!(msg) { ... }`
+Executes a block with error handling and structured logging; re‑raises when `fail: true`.
 
 ### `Logs.request!(uri, response, valid = [], msg: nil, ctx: nil)`
 Validates HTTP status codes (`valid` Array or `true` for any 2xx). Raises on unexpected status.

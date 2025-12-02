@@ -1,13 +1,11 @@
-**/.git/
-
-local/share
-local/config.json
-local/*.hash
-
-.DS_Store
-.idea
-
-# git add --force '**/*.local*'
-
+# git add --force '**/*.local.*'
 *.local.*
 !.*.local.*
+
+local/*
+!local/Dockerfile
+!local/config.json
+!local/run.sh
+
+.idea
+.DS_Store

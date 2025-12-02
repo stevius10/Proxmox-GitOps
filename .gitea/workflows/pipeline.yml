@@ -22,8 +22,8 @@ jobs:
       - name: Set configuration
         id: config
         run: |
+          for env in container{.env,.local.env}; do [[ -f "$env" ]] && source "$env" || true; done
           echo "hostname=config" >> $GITEA_OUTPUT
-          source config.env
           echo "ip=$IP" >> $GITEA_OUTPUT
           echo "id=$ID" >> $GITEA_OUTPUT
           echo "cores=$CORES" >> $GITEA_OUTPUT
@@ -70,7 +70,7 @@ jobs:
           password: ${{ vars.PASSWORD }}
         run: |
           tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" 'sudo tar xz -C /tmp
-            sudo -E IP="'"${ip}"'" ID="'"${id}"'" ENDPOINT=${{ vars.ENDPOINT }} LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
+            sudo -E IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
               cinc-client --local-mode --config-option cookbook_path="[\"/tmp/config\", \"/tmp/config/libs\"]" -o share'
     if: ${{ gitea.ref == 'refs/heads/release' }}
 
@@ -93,6 +93,6 @@ jobs:
         run: |
           git -C config submodule update --remote --recursive
           tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" 'sudo tar xz -C /tmp
-            CONFIG_ARGS=; [ -f /tmp/config/local/config.json ] && CONFIG_ARGS="-j /tmp/config/local/config.json"
+            CONFIG_FILE="-j /tmp/config/local/config.json"; [ -f /tmp/config/local/config.local.json ] && CONFIG_FILE="-j /tmp/config/local/config.local.json"
             sudo -E IP="'"${ip}"'" ID="'"${id}"'" ENDPOINT=${{ vars.ENDPOINT }} LOGIN="'"${login}"'" PASSWORD="'"${password}"'" EMAIL="'"${email}"'" PWD=/tmp/config \
-              cinc-client --local-mode $CONFIG_ARGS --config-option cookbook_path="/tmp/config" -o config'
+              cinc-client --local-mode $CONFIG_FILE --config-option cookbook_path="/tmp/config" -o config'

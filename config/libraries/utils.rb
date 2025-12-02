@@ -62,7 +62,7 @@ module Utils
 
   def self.mapping(file)
     JSON.parse(File.read(File.expand_path(file, ENV['PWD'] || Dir.pwd)))
-      .each_with_object({}) { |(k, v), hash| hash[k] = v.presence } # unless v.nil? || (v.respond_to?(:empty?) && v.empty?) }
+      .each_with_object({}) { |(k, v), hash| hash[k] = v.presence unless v.nil? || (v.respond_to?(:empty?) && v.empty?) }
   rescue Exception => e
     Logs.returns("#{file}: #{e.message}", {}, level: :warn )
   end
@@ -79,7 +79,7 @@ module Utils
 
     verify = ->(archive, compare_dir) {
       Dir.mktmpdir do |tmp|
-        Logs.try!("snapshot extraction", [:archive, archive, :tmp, tmp], raise: true) do
+        Logs.try!("snapshot extraction", [:archive, archive, :tmp, tmp], fail: true) do
           system("tar -xzf #{Shellwords.escape(archive)} -C #{Shellwords.escape(tmp)}") or raise("snapshot verification failed")
         end
         raise("verify snapshot failed") unless md5_dir.(tmp) == (Dir.exist?(compare_dir) ? md5_dir.(compare_dir) : '')
@@ -90,7 +90,7 @@ module Utils
       if latest && ::File.exist?(latest)
         FileUtils.rm_rf(data_dir)
         FileUtils.mkdir_p(data_dir)
-        Logs.try!("snapshot restore", [:app_dir, data_dir, :archive, latest], raise: true) do
+        Logs.try!("snapshot restore", [:app_dir, data_dir, :archive, latest], fail: true) do
           system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(data_dir)}") or raise("tar extract failed")
         end
         FileUtils.chown_R(user, group, data_dir)
@@ -101,7 +101,7 @@ module Utils
     return true unless Dir.exist?(data_dir) && !Dir.glob("#{data_dir}/*").empty? # true to be idempotent integrable before installation
 
     FileUtils.mkdir_p(File.dirname(snapshot))
-    Logs.try!("snapshot creation", [:data_dir, data_dir, :snapshot, snapshot], raise: true) do
+    Logs.try!("snapshot creation", [:data_dir, data_dir, :snapshot, snapshot], fail: true) do
       system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(data_dir)} .") or raise("tar compress failed")
     end
 
@@ -157,7 +157,7 @@ module Utils
     assets = ->(a) { a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }
 
     if version == 'latest'
-      release = Logs.raise_if_blank("check latest", latest(owner, repo))
+      release = Logs.blank!("check latest", latest(owner, repo))
       release = release.first if release.is_a?(Array)
       return false unless release
       version = release[:tag_name].to_s.gsub(/^v/, '')
@@ -183,7 +183,7 @@ module Utils
     download_url, filename = (if (asset = release[:assets].find(&assets))
         [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
       else [release[:tarball_url], "#{repo}-#{version}.tar.gz"]
-      end); Logs.raise_if_blank(download_url, "missing asset for '#{version}'")
+      end); Logs.blank!(download_url, "missing asset for '#{version}'")
 
     Dir.mktmpdir do |tmpdir|
       archive_path = File.join(tmpdir, filename)

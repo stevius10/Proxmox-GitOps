@@ -68,9 +68,10 @@ end
   ruby_block "dump_variables_#{org}" do
     action :nothing
     block do
-      (mappings = node['git']['conf']['environment'].map { |file| Utils.mapping(file) }
-        .reduce({}, :merge!)).each { |k, v| node.default[k] = v }
-      Env.dump(self, *mappings.keys, owner: org)
+      try { Env.dump(self, *node['git']['conf']['defaults'], owner: org) }
+      try { Env.dump(self, *(node['git']['conf']['environment']
+        .map { |file| Utils.mapping(file) }.reduce({}, :merge!)
+      ).each { |k, v| node.default[k] = v }.keys, owner: org) }
     end
   end
 

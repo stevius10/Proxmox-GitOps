@@ -93,6 +93,6 @@ jobs:
         run: |
           git -C config submodule update --remote --recursive
           tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" 'sudo tar xz -C /tmp
-            sudo -E IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" EMAIL="'"${email}"'" \
-              PWD=/tmp/config CONFIG_SUFFIX=$( [ -f "$PWD/local/config.local.json" ] && echo ".local" ) CONFIG_PATH="$PWD/local/config${CONFIG_SUFFIX}.json" \
-              cinc-client --local-mode $([ -f "$CONFIG_PATH" ] && echo "-j $CONFIG_PATH") --config-option cookbook_path="/tmp/config" -o config'
+            CONFIG_FILE="-j /tmp/config/local/config.json"; [ -f /tmp/config/local/config.local.json ] && CONFIG_FILE="-j /tmp/config/local/config.local.json"
+            sudo -E IP="'"${ip}"'" ID="'"${id}"'" ENDPOINT=${{ vars.ENDPOINT }} LOGIN="'"${login}"'" PASSWORD="'"${password}"'" EMAIL="'"${email}"'" PWD=/tmp/config \
+              cinc-client --local-mode $CONFIG_FILE --config-option cookbook_path="/tmp/config" -o config'

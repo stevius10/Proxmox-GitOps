@@ -24,7 +24,7 @@ module Logs
   def self.try!(msg, *pairs, raise: false)
     result = yield; Logs.returns(["(try: #{msg})", result].join(" "), result, level: :debug)
   rescue => exception
-    info("(try) #{msg}: #{exception.message}", *pairs, level: raise ? :error : :warn)
+    info("(try) #{msg}: #{exception.message}", level: raise ? :error : :warn)
     raise("[#{log(verbose: false)}] #{msg}: #{exception.message}") if raise
   end
 

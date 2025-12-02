@@ -94,8 +94,6 @@ jobs:
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
-          HOST: 127.0.0.1
-          ENDPOINT: http://127.0.0.1:8080/api/v1
           LOGIN: "test"
           PASSWORD: "test"
         run: |
@@ -134,7 +132,7 @@ jobs:
               s.serve_forever()
               """; exec(textwrap.dedent(s))' >/dev/null 2>&1 &
             fi
-            sudo env IP="$IP" ID="$ID" HOST="$HOST" ENDPOINT="$ENDPOINT" LOGIN="$LOGIN" PASSWORD="$PASSWORD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="['$(pwd)', '$(pwd)/config','$(pwd)/libs']" -o "$lib"
+            sudo env IP="$IP" ID="$ID" HOST="127.0.0.1" ENDPOINT="http://127.0.0.1:8080/api/v1" LOGIN="$LOGIN" PASSWORD="$PASSWORD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="['$(pwd)', '$(pwd)/config','$(pwd)/libs']" -o "$lib"
           done
 
       - name: Idempotency

@@ -30,9 +30,7 @@ submodules.each do |submodule|
         git submodule add #{module_url} #{path_module}
       fi
       git submodule update --init --recursive
-      if [ "#{is_bootstrap}" = "true" ]; then
-        git add -f '*.local.*' 2>/dev/null || true; git add -f '**/*.local*' 2>/dev/null || true
-      fi
+      git -C config submodule update --remote --recursive
     EOH
     cwd path_destination
     user node['app']['user']

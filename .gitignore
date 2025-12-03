@@ -1,11 +1,16 @@
-# git add --force '**/*.local.*'
-*.local.*
-!.*.local.*
+# Application (git add --force '**/*.local.*')
+
+**/*.local.*
+!**/*.*.local.*
+
+# Local
 
 local/*
 !local/Dockerfile
 !local/config.json
 !local/run.sh
+
+# Miscellaneous
 
 .idea
 .DS_Store

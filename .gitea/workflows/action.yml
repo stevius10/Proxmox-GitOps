@@ -73,3 +73,4 @@ runs:
           sudo -E IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} PWD="$(pwd)" \
             cinc-client --local-mode $CONFIG_ARGS --config-option cookbook_path="/tmp" -o "${{ env.repo }}"'
       shell: bash
+

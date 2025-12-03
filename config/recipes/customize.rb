@@ -26,7 +26,7 @@ directory (dir_templates = ::File.join(node['git']['dir']['custom'], 'templates'
   mode '0755'
 end
 
-%w[header extra_links extra_tabs body_inner_pre body_inner_post body_outer_pre body_outer_post footer].each do |template|
+%w[header extra_links extra_tabs footer].each do |template|
   template "#{dir_templates}/#{template}.tmpl" do
     source "custom/templates/#{template}.tmpl.erb"
     owner node['app']['user']

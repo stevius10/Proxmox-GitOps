@@ -22,7 +22,7 @@ alias vim="vim -c 'startinsert'"
 
 # Workflow
 
-alias ignored='git status --ignored --untracked-files=all'
+alias ignore='git status --ignored --untracked-files=all'
 alias status='git status -sb'
 alias log='git log --oneline --graph --decorate --all'
 alias reset='git reset --mixed HEAD~1'

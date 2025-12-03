@@ -1,7 +1,7 @@
 # ! cron '0 */3 * * *'
 
 Dir[File.join(__dir__, 'libraries', '**', '*.rb')].sort.each { |f| require f }
-ctx = { "endpoint"=>ENV["ENDPOINT"], "host"=>ENV["HOST"], "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"] }
+ctx = { "host"=>ENV["HOST"], "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"] }
 
 def check_service(hostname, id, ip)
   begin
@@ -34,7 +34,7 @@ Utils.proxmox(ctx, 'nodes/pve/lxc').each do |container|
 
   # Set repository description
 
-  uri = "#{Env.get(ctx, "ENDPOINT")}/repos/main/#{hostname}"
+  uri = "#{Env.endpoint(self)}/repos/main/#{hostname}"
   Logs.try!("Set #{hostname} to #{val}",[:uri, uri, :hostname, hostname, :status, status]) do
     response = Utils.request(uri, user: ctx['login'], pass: ctx['password'],
       method: Net::HTTP::Patch, headers: Constants::HEADER_JSON,

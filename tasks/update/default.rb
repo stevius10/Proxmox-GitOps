@@ -1,7 +1,7 @@
 # ! cron '0 0 * * 0'
 
 Dir[File.join(__dir__, 'libraries', '**', '*.rb')].sort.each { |f| require f }
-ctx = { "endpoint"=>ENV["ENDPOINT"], "host"=>ENV["HOST"], "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"] }
+ctx = { "host"=>ENV["HOST"], "login"=>ENV["LOGIN"], "password"=>ENV["PASSWORD"] }
 
 def update_container(id, ip)
   script = <<~SHELL

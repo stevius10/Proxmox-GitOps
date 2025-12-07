@@ -21,12 +21,11 @@ runs:
       id: init
       run: |
         repository="${{ inputs.repo }}"
-        stage=${{ gitea.repository_owner }}"    
         echo "repo=${repository##*/}" >> "$GITEA_ENV"
-        echo "name=${stage != main && echo \"$stage-\"}$repo" >> "$GITEA_ENV"
+        echo "stage=${repository%/*}" >> "$GITEA_ENV"
+        echo "name=${{ gitea.repository_owner != 'main' && format('{0}-', gitea.repository_owner) || '' }}$repo" >> "$GITEA_ENV"
         
-        cd repo
-        for env in container{.env,.local.env,${{ env.stage }}.env}; do [[ -f "$env" ]] && source "$env" || true; done
+        cd repo && for env in container{".env",".local.env",".${{ env.stage }}.env"}; do [[ -f "$env" ]] && source "$env" || true; done
         echo "ip=$IP" >> $GITEA_ENV
         echo "id=$ID" >> $GITEA_ENV
         echo "cores=$CORES" >> $GITEA_ENV

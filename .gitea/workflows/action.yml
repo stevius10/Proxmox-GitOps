@@ -22,8 +22,10 @@ runs:
       run: |
         repository="${{ inputs.repo }}"
         echo "repo=${repository##*/}" >> "$GITEA_ENV"
-        cd repo && for env in container{.env,.local.env}; do [[ -f "$env" ]] && source "$env" || true; done
         
+        cd repo
+        for env in container{.env,.local.env,${{ gitea.repository_owner }}.env}; do [[ -f "$env" ]] && source "$env" || true; done
+        [[ "${{ gitea.repository_owner }}" == "stage" && -f container.stage.env ]] && source container.stage.env
         echo "ip=$IP" >> $GITEA_ENV
         echo "id=$ID" >> $GITEA_ENV
         echo "cores=$CORES" >> $GITEA_ENV

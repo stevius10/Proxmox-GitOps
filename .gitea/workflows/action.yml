@@ -21,11 +21,12 @@ runs:
       id: init
       run: |
         repository="${{ inputs.repo }}"
+        stage=${{ gitea.repository_owner }}"    
         echo "repo=${repository##*/}" >> "$GITEA_ENV"
+        echo "name=${stage != main && echo \"$stage-\"}$repo" >> "$GITEA_ENV"
         
         cd repo
-        for env in container{.env,.local.env,${{ gitea.repository_owner }}.env}; do [[ -f "$env" ]] && source "$env" || true; done
-        [[ "${{ gitea.repository_owner }}" == "stage" && -f container.stage.env ]] && source container.stage.env
+        for env in container{.env,.local.env,${{ env.stage }}.env}; do [[ -f "$env" ]] && source "$env" || true; done
         echo "ip=$IP" >> $GITEA_ENV
         echo "id=$ID" >> $GITEA_ENV
         echo "cores=$CORES" >> $GITEA_ENV
@@ -34,6 +35,7 @@ runs:
         echo "disk=$DISK" >> $GITEA_ENV
         echo "boot=$BOOT" >> $GITEA_ENV
         echo "mount=$MOUNT" >> $GITEA_ENV
+
       shell: bash
 
     - name: Base configuration
@@ -41,7 +43,7 @@ runs:
       with:
         ip: ${{ env.ip }}
         id: ${{ env.id }}
-        hostname: ${{ env.repo }}
+        hostname: ${{ env.name }}
         cores: ${{ env.cores }}
         memory: ${{ env.memory }}
         swap: ${{ env.swap }}
@@ -72,6 +74,6 @@ runs:
     - name: Configure container
       run: |
         tar -c "${{ env.repo }}" -cz | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${{ env.id }}" "config@${{ env.ip }}" 'sudo tar xz -C /tmp
-          sudo -E IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} PWD="$(pwd)" \
+          sudo -E IP=${{ env.ip }} ID=${{ env.id }} HOST=${{ vars.HOST }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} DIR="$(pwd)" PWD="$(pwd)" \
             cinc-client --local-mode $CONFIG_ARGS --config-option cookbook_path="/tmp" -o "${{ env.repo }}"'
       shell: bash

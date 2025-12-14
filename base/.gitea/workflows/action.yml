@@ -26,10 +26,18 @@ inputs:
   mount:
     required: true
     type: string
-  share:
+
+# Overwrite
+
+  share: # config: network share
     required: false
     default: false
     type: boolean
+
+  dir:
+    required: no
+    default: "/tmp/config"
+    type: string
 
 runs:
   using: "composite"
@@ -43,7 +51,8 @@ runs:
         ansible-playbook default.yml -e "ip=${{ inputs.ip }}" -e "id=${{ inputs.id }}" \
           -e "hostname=${{ inputs.hostname }}" -e "cores=${{ inputs.cores }}" -e "memory=${{ inputs.memory }}" \
           -e "swap=${{ inputs.swap }}" -e "disk=${{ inputs.disk }}" -e "boot=${{ inputs.boot }}" \
-          -e "mount=${{ inputs.mount }}" -e "share=${{ env.PROXMOX_PASSWORD && inputs.share || 'false' }}"
+          -e "mount=${{ inputs.mount }}" -e "share=${{ env.PROXMOX_PASSWORD && inputs.share || 'false' }}" \
+          -e "DIR=${{ inputs.dir }}"
       env:
         HOST: ${{ vars.HOST }}
         LOGIN: ${{ vars.LOGIN }}

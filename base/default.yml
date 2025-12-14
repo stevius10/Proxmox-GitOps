@@ -3,11 +3,12 @@
   hosts: localhost
   gather_facts: no
   vars:
-    storage:    "{{ STORAGE | default('local:vztmpl') }}"
-    template:   "{{ TEMPLATE | default('debian-13-standard_13.1-2') }}"
-    share_dir:  "{{ SHARE | default('/share') }}"
-    cert_dir:   "{{ share_dir }}/.cert"
-    key_dir:    "{{ share_dir }}/.ssh"
+    dir:       "{{ (lookup('env', 'DIR')      | default('') | trim) or '/tmp/config' }}"
+    share_dir: "{{ (lookup('env', 'SHARE')    | default('') | trim) or '/share' }}"
+    storage:   "{{ (lookup('env', 'STORAGE')  | default('') | trim) or 'local:vztmpl' }}"
+    template:  "{{ (lookup('env', 'TEMPLATE') | default('') | trim) or 'debian-13-standard_13.1-2' }}"
+    cert_dir:  "{{ share_dir }}/.cert"
+    key_dir:   "{{ share_dir }}/.ssh"
   tasks:
 
     - name: Ensure directories

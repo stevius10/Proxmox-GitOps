@@ -28,6 +28,6 @@ template "#{path_destination}/.gitea/workflows/pipeline.yml" do
   owner node['app']['user']
   group node['app']['group']
   mode '0644'
-  only_if { repository.include?('libs/') and File.exist?("#{path_destination}/config.env") }
+  only_if { repository.include?('libs/') and Dir.glob("#{path_destination}/container*.env").any? }
   not_if { File.exist?("#{path_destination}/.gitea/workflows/pipeline.yml") }
 end

@@ -1,33 +1,16 @@
-name_repo = @name_repo; repository = @repository; monorepo = @monorepo; login = @login; password = @password;
+if @monorepo or @repository.include?('libs/')
 
-ruby_block "repo_#{name_repo}_fork_clean" do
-  block do
-    uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}"
-    if Utils.request(uri, user: login, pass: password).code.to_i != 404
-      response = Utils.request(uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['stage']}/#{name_repo}",
-        method: Net::HTTP::Delete, user: login, pass: password)
-      Logs.request!(uri, response, [204, 404], msg: "Clean: #{node['git']['org']['stage']}/#{name_repo}")
-    end
+  main = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{@name_repo}"
+  fork = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['stage']}/#{@name_repo}"
+
+  req = ->(path, method: Net::HTTP::Get, body: nil, expect: nil) do
+    Utils.request(path, method: method, body: body&.to_json, **({ user: @login, pass: @password }), headers: Constants::HEADER_JSON, expect: expect)
   end
-  only_if { repository.include?('libs/') }
-end
 
-ruby_block "repo_#{name_repo}_fork_create" do
-  block do
-    uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}/forks"
-    Logs.request!(uri, Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
-      body: { name: name_repo, organization: node['git']['org']['stage'] }.json, user: login, pass: password ),
-      [201, 202], msg: "Fork: #{node['git']['org']['stage']}/#{name_repo}")
-  end
-  only_if { repository.include?('libs/') }
-end
-
-ruby_block "repo_#{name_repo}_fork_staging" do
-  block do
-    uri = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['stage']}/#{name_repo}"
-    Logs.request!(uri, Utils.request(uri, method: Net::HTTP::Patch, headers: Constants::HEADER_JSON,
-      body: { has_actions: true }.json, user: login, pass: password ),
-      [200, 204], msg: "Staging: #{node['git']['org']['stage']}/#{name_repo}")
-    end
-  only_if { repository.include?('libs/') }
+  ruby_block "fork_#{@name_repo}" do block do
+    req.call(fork, method: Net::HTTP::Delete) if req.call(fork, expect: true)
+    req.call("#{main}/forks", body: { organization: node['git']['org']['stage'], has_actions: true }, method: Net::HTTP::Post)
+    req.call(fork, method: Net::HTTP::Patch, body: { has_actions: true })
+    req.call("#{fork}/pulls", body: { head: "main", base: "release", title: "Staging Pull Request", body: "Created automatically for deployment." }, method: Net::HTTP::Post)
+  end end
 end

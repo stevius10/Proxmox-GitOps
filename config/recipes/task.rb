@@ -139,7 +139,7 @@ Common.directories(self, [destination, working], recreate: true)
       WORKFLOW_FILE="#{path_destination}/.gitea/workflows/ruby.yml"
       if [ -f "$WORKFLOW_FILE" ]; then
         touch "$WORKFLOW_FILE" && git add "$WORKFLOW_FILE"
-        git commit --allow-empty -m "touch workflow  [skip ci]" || true
+        git commit --allow-empty -m "initialize workflow"
         git push origin main || true
       fi
     EOH

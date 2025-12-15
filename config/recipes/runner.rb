@@ -4,7 +4,7 @@ runner_source = node['runner']['source']
 ruby_block 'runner' do block do
 
   Utils.download(node, "#{node['runner']['dir']['app']}/#{self.recipe_name}",
-    url: -> { version = (Utils.request(runner_source, log: false).body[%r{/releases/tag/v?([0-9]+\.[0-9]+\.[0-9]+)}, 1].to_s)
+    url: -> { version = (Utils.request(runner_source).body[%r{/releases/tag/v?([0-9]+\.[0-9]+\.[0-9]+)}, 1].to_s)
       "#{runner_source}/download/v#{version}/act_runner-#{version}-linux-#{Utils.arch()}" } )
 
   Utils.wait("http://localhost:#{node['git']['port']['http']}")

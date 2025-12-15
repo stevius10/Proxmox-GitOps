@@ -38,9 +38,8 @@ Common.directories(self, [destination, working], recreate: true)
 
   ruby_block "task_repo_reset_#{name_repo}" do
     block do
-      uri = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['tasks']}/#{name_repo}"
-      r = Utils.request(uri, method: Net::HTTP::Delete, user: Env.get(self, 'login'), pass: Env.get(self, 'password'))
-      Logs.request!(uri, r, [204, 404], msg: "Delete #{name_repo}")
+      Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['tasks']}/#{name_repo}",
+        log: "Delete #{name_repo}", method: Net::HTTP::Delete, expect: [204, 404], user: Env.get(self, 'login'), pass: Env.get(self, 'password'))
     end
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -49,11 +48,11 @@ Common.directories(self, [destination, working], recreate: true)
     only_if { Logs.info?("[tasks/#{name_repo}] create repo") }
     block do
       uri = "#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['tasks']}/repos"
-      r = Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
+      Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
         user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
         body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.json)
-      Logs.request!(uri, r, [201], msg: "Create #{name_repo}")
-      r.json
+      Utils.request(uri, method: Net::HTTP::Patch, headers: Constants::HEADER_JSON, user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
+        body: { has_issues: false, has_wiki: false, has_projects: false, has_packages: false, has_releases: false }.json )
     end
   end
 

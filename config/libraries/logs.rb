@@ -12,7 +12,6 @@ module Logs
   def self.error(msg, fail: false); log(msg, level: :error); raise msg if fail end
   def self.error!(msg); error(msg, fail: true) end
   def self.info?(msg, result: true); log(msg); result; end
-  def self.request(uri, response); debug("#{response&.code} #{response&.message} (#{uri})"); return response end
   def self.return(msg); log(msg); return msg end
   def self.returns(msg, result, level: :info); log("#{msg}: #{result}", level: level); return result end
 
@@ -25,11 +24,6 @@ module Logs
     result = yield; Logs.returns(["(try: #{msg})", result].join(" "), result, level: :debug)
   rescue Exception => e
     fail ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(try) #{msg}: #{e.message}", *pairs)
-  end
-
-  def self.request!(uri, response, valid=[], msg: nil)
-    raise("[#{log(verbose: false)}] #{msg}") unless valid.blank? || ([true, false].include?(valid) ? response.is_a?(Net::HTTPSuccess) : valid.include?(response.code.to_i))
-    returns("#{msg}: #{response&.code} #{response&.message} (#{uri})", response)
   end
 
   def self.blank!(msg, value); error!(msg) if value.nil? || (value.respond_to?(:empty?) && value.empty?); value; end

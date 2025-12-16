@@ -207,7 +207,7 @@ Level‑specific conveniences.
 ### `Logs.error(msg, raise: true)`
 Logs error; raises by default.
 
-### `Logs.info?(msg, result: true)`
+### `Logs.true(msg, result: true)`
 Logs and returns `result` for inline use.
 
 ### `Logs.request(uri, response)`

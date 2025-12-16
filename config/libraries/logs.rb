@@ -12,18 +12,20 @@ module Logs
   def self.error(msg, raise: false); log(msg, level: :error); raise msg if raise end
 
   def self.debug(msg, *args, level: :debug)
+    message = [msg, [args.reject(&:blank?).join(" ")]].join(": ")
+    log("[(debug) #{message}])", level: level)
   end
 
   def self.return(msg, result, *args, level: :info)
     message = "(return) #{msg}: #{result}"
-    info(message)
+    args.blank? ? log(message, level: level) : debug(message, *args, level: level)
     return result
   end
 
   def self.try!(msg, *args, raise: false)
     Logs.return("(try) #{msg}", yield, args, level: :info)
   rescue Exception => e
-    #raise ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(tried) #{msg}: #{e.message}", *args)
+    raise ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(tried) #{msg}: #{e.message}", *args)
   end
 
   def self.blank!(msg, value); error(msg, raise: true) if value.nil? || (value.respond_to?(:empty?) && value.empty?); value; end
@@ -31,7 +33,8 @@ module Logs
   class << self
     %i[true false nil].each do |result|
       define_method(result) do |msg = result.to_s, *args, level: :info|
-        self.return(msg, result, *args, level: level)
+        self.debug(msg, *args, level: level)
+        return result
       end
     end
   end

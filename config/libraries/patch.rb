@@ -6,7 +6,7 @@ class Object
   def presence; blank? ? nil : self; end
   def presence_in(collection); return nil unless collection&.respond_to?(:include?); collection.include?(self) ? self : nil; end
   def log; return self if blank?
-    Logs.returns("#{Logs.method_label(Logs.callsite)}: #{self.inspect}", self, level: :info)
+    Logs.return("#{Logs.method_label(Logs.callsite)}: #{self.inspect}", self, level: :info)
   end
   def try(method_name = nil, *args, &block)
     return nil if nil?; return instance_eval(&block) if block
@@ -26,7 +26,7 @@ end
 class String
   def blank?; strip.empty? end
   def squish; strip.gsub(/\s+/, " ") end
-  def mask; (length <= 4) ? '*' * length : "#{self[0]}#{self[1]}#{'*' * (length - 4)}#{self[-2]}#{self[-1]}" ; end
+  def mask; (length <= 4) ? '***': "#{self[0]}#{self[1]}#{'**'}#{self[-2]}#{self[-1]}" ; end
 end
 
 class Integer

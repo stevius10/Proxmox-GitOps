@@ -30,8 +30,8 @@ ruby_block 'config_set_key' do
         method: Net::HTTP::Delete) if k['key'] && k['key'].strip == key
     end
 
-    Utils.request(uri, body: { title: login, key: key }.json,
-      log: "set key", expect: [201, 422], user: login, pass: password, method: Net::HTTP::Post, headers: Constants::HEADER_JSON)
+    Utils.request(uri, body: { title: login, key: key }.json, headers: Constants::HEADER_JSON,
+      log: "set key", expect: [201, 422], method: Net::HTTP::Post, user: login, pass: password)
   end
   only_if { ::File.exist?("#{node['key']}.pub") }
   not_if do

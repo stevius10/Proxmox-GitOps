@@ -16,7 +16,7 @@ Common.directories(self, [destination, working], recreate: true)
   path_destination = File.expand_path(name_repo, destination)
 
   ruby_block "task_repo_exists_#{name_repo}" do
-    only_if { Logs.info?("[tasks/#{name_repo}] exists?") }
+    only_if { Logs.true("[tasks/#{name_repo}] exists?") }
     block do
       uri = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['tasks']}/#{name_repo}"
       node.run_state["#{name_repo}_repo_exists"] = Utils.request(uri, user: Env.get(self, 'login'), pass: Env.get(self, 'password')).code.to_i != 404
@@ -45,13 +45,13 @@ Common.directories(self, [destination, working], recreate: true)
   end
 
   ruby_block "task_repo_create_#{name_repo}" do
-    only_if { Logs.info?("[tasks/#{name_repo}] create repo") }
+    only_if { Logs.true("[tasks/#{name_repo}] create repo") }
     block do
-      uri = "#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['tasks']}/repos"
-      Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
-        user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
+      Utils.request("#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['tasks']}/repos",
+        method: Net::HTTP::Post, user: Env.get(self, 'login'), pass: Env.get(self, 'password'), headers: Constants::HEADER_JSON,
         body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.json)
-      Utils.request(uri, method: Net::HTTP::Patch, headers: Constants::HEADER_JSON, user: Env.get(self, 'login'), pass: Env.get(self, 'password'),
+      Utils.request("#{node.dig('git','api','endpoint')}/repos/#{node['git']['org']['tasks']}/#{name_repo}",
+        method: Net::HTTP::Patch, user: Env.get(self, 'login'), pass: Env.get(self, 'password'), headers: Constants::HEADER_JSON,
         body: { has_issues: false, has_wiki: false, has_projects: false, has_packages: false, has_releases: false }.json )
     end
   end

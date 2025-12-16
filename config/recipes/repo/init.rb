@@ -1,7 +1,7 @@
 name_repo = @name_repo; repository = @repository; monorepo = @monorepo; path_destination = @path_destination; login = @login; password = @password;
 
 ruby_block "repo_#{name_repo}_init_request" do
-  only_if { Logs.info?("[#{repository} (#{name_repo})] create repository") }
+  only_if { Logs.true("[#{repository} (#{name_repo})] create repository") }
   block do
     uri="#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['main']}/repos"
     Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
@@ -42,7 +42,7 @@ template "#{path_destination}/.git/config" do
 end
 
 execute "repo_#{name_repo}_init_base" do
-  only_if { Logs.info?("[#{repository} (#{name_repo})] base commit") }
+  only_if { Logs.true("[#{repository} (#{name_repo})] base commit") }
   command <<-EOH
     git commit --allow-empty -m "base commit [skip ci]" && git checkout -b release
     git push -u origin main && git push -u origin release

@@ -1,7 +1,7 @@
 name_repo = @name_repo; repository = @repository; path_working = @path_working; login = @login; password = @password;
 
 ruby_block "repo_#{name_repo}_exists" do
-  only_if { Logs.info?("#{repository} (#{name_repo})") }
+  only_if { Logs.true("#{repository} (#{name_repo})") }
   block do
     node.run_state["#{name_repo}_repo_exists"] =
       (Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",

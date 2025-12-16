@@ -165,7 +165,7 @@ module Utils
     elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
       Logs.info("update from '#{version_installed}' to '#{version}'")
     else
-      return Logs.true("no update required from '#{version_installed}' to '#{version}'", result: false)
+      return Logs.false("no update required from '#{version_installed}' to '#{version}'")
     end
 
     unless release

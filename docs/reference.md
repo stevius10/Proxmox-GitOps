@@ -207,8 +207,10 @@ Level‑specific conveniences.
 ### `Logs.error(msg, raise: true)`
 Logs error; raises by default.
 
-### `Logs.true(msg, result: true)`
-Logs and returns `result` for inline use.
+### `Logs.true(msg)`
+### `Logs.false(msg)`
+### `Logs.nil(msg)`
+Logs and returns `true`, `false` or `nil` for inline use (e. g. `only_if`).
 
 ### `Logs.request(uri, response)`
 Standardizes request/response logs; returns `response` unchanged.

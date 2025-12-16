@@ -30,7 +30,7 @@ module Env
   def self.set_variable(ctx, key, val, repo: nil, owner: nil, upcase: true)
     key = (upcase ? key.to_s.upcase : key.to_s).gsub('-', '_').gsub(/[^\w]/, '')
     Logs.try!("set variable '#{key}' to #{val.try(:mask) || val}", [repo, owner], raise: true) do
-      request(Ctx.node(ctx), key, body: ({ name: key, value: (val.is_a?(String) ? val : val.json).to_s }.json), repo: repo, owner: owner, expect: true)
+      request(Ctx.node(ctx), key, body: ({ name: key, value: (val.respond_to?(:json) ? val.json : val).to_s }.json), repo: repo, owner: owner, expect: true)
     end
   end; class << self; alias_method :set, :set_variable; end
 

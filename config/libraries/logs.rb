@@ -11,9 +11,9 @@ module Logs
   def self.info(msg); log(msg) end; def self.warn(msg); log(msg, level: :warn) end
   def self.error(msg, raise: false); log(msg, level: :error); raise msg if raise end
 
-  def self.debug(msg, *args, level: :debug)
-    message = [msg, [args.reject(&:blank?).join(" ")]].join(": ")
-    log("[(debug) #{message}])", level: level)
+  def self.debug(*args, level: :debug)
+    message = args.reject(&:blank?).join(", ")
+    log("[(debug) #{message}]", level: level)
   end
 
   def self.return(msg, result, *args, level: :info)
@@ -32,9 +32,8 @@ module Logs
 
   class << self
     %i[true false nil].each do |result|
-      define_method(result) do |msg = result.to_s, *args, level: :info|
-        self.debug(msg, *args, level: level)
-        return result
+      define_method(result) do |msg|
+        self.info(msg); return result
       end
     end
   end

@@ -54,10 +54,10 @@ module Env
   def self.dump(ctx, *args, repo: nil, owner: nil)
     Logs.try!("dump", [args, repo, owner], raise: true) do
       node = Ctx.node(ctx); rec = nil; result = true
-      get = ->(key) { Logs.try!("get", [key], raise: false) { k = key.is_a?(String) ? key : key.to_s; return (node[key] || node[k] || node[k.to_sym]) } }
-      set = ->(key, value) { return value if value.blank?; Logs.try!("set", [key, value], raise: false) { Env.set_variable(node, key, value, repo: repo, owner: owner); true } }
-      req = ->(key, value) { Logs.try!("require", [key, value], raise: false) { v = value; v = v.call(node) if v.respond_to?(:call); v = node.dig(*v) if v.is_a?(Array); set.(key, v); true } }
-      prc = ->(arg) do; Logs.try!("process #{arg.inspect}", [arg], raise: false) do
+      get = ->(key) { try { k = key.is_a?(String) ? key : key.to_s; return (node[key] || node[k] || node[k.to_sym]) } }
+      set = ->(key, value) { return value if value.blank?; try { Env.set_variable(node, key, value, repo: repo, owner: owner); true } }
+      req = ->(key, value) { try { v = value; v = v.call(node) if v.respond_to?(:call); v = node.dig(*v) if v.is_a?(Array); set.(key, v); true } }
+      prc = ->(arg) do; try do
         case arg
           when Hash; arg.each { |key, value| result &&= req.(key, value) }; true
           when Array; (arg.length == 2 && !arg.first.is_a?(Array)) ? (key, value = arg; result &&= req.(key, value)) : arg.each { |x| result &&= prc.(x) }; true

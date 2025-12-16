@@ -112,7 +112,7 @@ module Common
           (is_active = Mixlib::ShellOut.new(verify_cmd)).run_command
           is_active.exitstatus.zero? ? (ok = true; break) : (sleep verify_interval)
         end
-        raise (Logs.debug("service '#{name}' failed health check", [
+        raise (Logs.debug(["service '#{name}' failed health check",
           Mixlib::ShellOut.new("systemctl status #{name} --no-pager").run_command.stdout.strip,
           Mixlib::ShellOut.new("journalctl -u #{name} --no-pager").run_command.stdout.strip,
         ], level: :error)) unless ok

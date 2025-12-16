@@ -25,7 +25,7 @@ Utils.proxmox(ctx, 'nodes/pve/lxc').each do |container| id = container['vmid']
   repository_url = "https://#{Env.get(ctx, 'PROXMOX_HOST')}:8006/#v1:0:=lxc%2F#{id}"
 
   uri = "#{Env.endpoint(ctx)}/repos/main/#{hostname}"
-  Logs.try!("Set #{hostname} to #{state}",[:uri, uri, :hostname, hostname, :state, state]) do
+  Logs.try!("Set #{hostname} to #{state}",[uri, hostname, state]) do
     Utils.request(uri, user: ctx['login'], pass: ctx['password'],
       method: Net::HTTP::Patch, headers: Constants::HEADER_JSON,
       body: { description: repository_description, website: repository_url }.json)

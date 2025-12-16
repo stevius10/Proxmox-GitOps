@@ -207,8 +207,10 @@ Level‑specific conveniences.
 ### `Logs.error(msg, raise: true)`
 Logs error; raises by default.
 
-### `Logs.info?(msg, result: true)`
-Logs and returns `result` for inline use.
+### `Logs.true(msg)`
+### `Logs.false(msg)`
+### `Logs.nil(msg)`
+Logs and returns `true`, `false` or `nil` for inline use (e. g. `only_if`).
 
 ### `Logs.request(uri, response)`
 Standardizes request/response logs; returns `response` unchanged.
@@ -216,7 +218,7 @@ Standardizes request/response logs; returns `response` unchanged.
 ### `Logs.return(msg)`
 Logs and returns `msg`.
 
-### `Logs.debug(msg, *pairs, ctx: nil, level: :info)`
+### `Logs.debug(*args, ctx: nil, level: :info)`
 Structured message with optional key/value pairs and deep environment dump at debug level.
 
 ### `Logs.try!(msg) { ... }`

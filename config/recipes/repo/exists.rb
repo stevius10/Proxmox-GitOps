@@ -1,7 +1,7 @@
 name_repo = @name_repo; repository = @repository; path_working = @path_working; login = @login; password = @password;
 
 ruby_block "repo_#{name_repo}_exists" do
-  only_if { Logs.info?("#{repository} (#{name_repo})") }
+  only_if { Logs.true("#{repository} (#{name_repo})") }
   block do
     node.run_state["#{name_repo}_repo_exists"] =
       (Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
@@ -26,9 +26,8 @@ end
 
 ruby_block "repo_#{name_repo}_exists_reset" do
   block do
-    uri = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}"
-    response = Utils.request(uri, method: Net::HTTP::Delete, user: login, pass: password)
-    Logs.request!(uri, response, [204, 404], msg: "Delete #{name_repo}")
+    Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}",
+      log: "Delete #{name_repo}", expect: [204, 404], method: Net::HTTP::Delete, user: login, pass: password)
   end
   only_if { node.run_state["#{name_repo}_repo_exists"] }
 end

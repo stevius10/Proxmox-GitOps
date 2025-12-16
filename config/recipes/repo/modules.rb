@@ -1,7 +1,7 @@
 name_repo = @name_repo; repository = @repository; submodules = @submodules; destination = @destination; path_destination = @path_destination; is_bootstrap = @is_bootstrap
 
 ruby_block 'repo_modules_rewritten' do
-  only_if { Logs.info?("#{repository} (monorepository): referencing #{submodules}") }
+  only_if { Logs.true("#{repository} (monorepository): referencing #{submodules}") }
   block do
     path_dst_gitmodules = File.join(destination, '.gitmodules')
     if File.exist?(path_dst_gitmodules)
@@ -23,7 +23,7 @@ submodules.each do |submodule|
   end
 
   execute "repo_#{name_repo}_modules_#{module_name}" do
-    only_if { Logs.info?("#{repository} (monorepository): referencing #{path_module} (#{module_name})") }
+    only_if { Logs.true("#{repository} (monorepository): referencing #{path_module} (#{module_name})") }
     command <<-EOH
       if ! git config --file .gitmodules --get-regexp path | grep -q "^submodule\\.#{module_name}\\.path"; then
         echo "submodule add: #{module_url} -> #{path_module}"

@@ -9,29 +9,32 @@ module Logs
   end
 
   def self.info(msg); log(msg) end; def self.warn(msg); log(msg, level: :warn) end
-  def self.error(msg, fail: false); log(msg, level: :error); raise msg if fail end
-  def self.error!(msg); error(msg, fail: true) end
-  def self.info?(msg, result: true); log(msg); result; end
-  def self.request(uri, response); debug("#{response&.code} #{response&.message} (#{uri})"); return response end
-  def self.return(msg); log(msg); return msg end
-  def self.returns(msg, result, level: :info); log("#{msg}: #{result}", level: level); return result end
+  def self.error(msg, raise: false); log(msg, level: :error); raise msg if raise end
 
-  def self.debug(msg, *pairs, level: :info)
-    flat = pairs.flatten; raise ArgumentError, "(#{flat.length}: #{flat.inspect})" unless flat.length.even?
-    log([msg, ((flat.each_slice(2).to_h.transform_keys(&:to_s)).map { |k, v| "#{k}=#{v.inspect}" }.join(" "))].reject(&:blank?).join(" "), level: level)
+  def self.debug(*args, level: :debug)
+    message = args.reject(&:blank?).join(", ")
+    log("[(debug) #{message}]", level: level)
   end
 
-  def self.try!(msg, *pairs, fail: false)
-    result = yield; Logs.returns(["(try: #{msg})", result].join(" "), result, level: :debug)
+  def self.return(msg, result, *args, level: :info)
+    message = "(return) #{msg}: #{result}"
+    args.blank? ? log(message, level: level) : debug(message, *args, level: level)
+    return result
+  end
+
+  def self.try!(msg, *args, raise: false)
+    Logs.return("(try) #{msg}", yield, args, level: :info)
   rescue Exception => e
-    fail ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(try) #{msg}: #{e.message}", *pairs)
+    raise ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(tried) #{msg}: #{e.message}", *args)
   end
 
-  def self.request!(uri, response, valid=[], msg: nil)
-    raise("[#{log(verbose: false)}] #{msg}") unless valid.blank? || ([true, false].include?(valid) ? response.is_a?(Net::HTTPSuccess) : valid.include?(response.code.to_i))
-    returns("#{msg}: #{response&.code} #{response&.message} (#{uri})", response)
+  def self.blank!(msg, value); error(msg, raise: true) if value.nil? || (value.respond_to?(:empty?) && value.empty?); value; end
+
+  class << self
+    %i[true false nil].each do |result|
+      define_method(result) do |msg|
+        self.info(msg); return result
+      end
+    end
   end
-
-  def self.blank!(msg, value); error!(msg) if value.nil? || (value.respond_to?(:empty?) && value.empty?); value; end
-
 end

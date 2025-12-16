@@ -64,7 +64,7 @@ module Utils
     JSON.parse(File.read(File.expand_path(file, ENV['PWD'] || Dir.pwd)))
       .each_with_object({}) { |(k, v), hash| hash[k] = v.presence unless v.nil? || (v.respond_to?(:empty?) && v.empty?) }
   rescue Exception => e
-    Logs.returns("#{file}: #{e.message}", {}, level: :warn )
+    Logs.return("#{file}: #{e.message}", {}, level: :warn )
   end
 
   def self.snapshot(ctx, data_dir, name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), snapshot_dir: Default.snapshot_dir(ctx), mode: 0o755)
@@ -79,7 +79,7 @@ module Utils
 
     verify = ->(archive, compare_dir) {
       Dir.mktmpdir do |tmp|
-        Logs.try!("snapshot extraction", [:archive, archive, :tmp, tmp], fail: true) do
+        Logs.try!("snapshot extraction", [archive, tmp], raise: true) do
           system("tar -xzf #{Shellwords.escape(archive)} -C #{Shellwords.escape(tmp)}") or raise("snapshot verification failed")
         end
         raise("verify snapshot failed") unless md5_dir.(tmp) == (Dir.exist?(compare_dir) ? md5_dir.(compare_dir) : '')
@@ -90,7 +90,7 @@ module Utils
       if latest && ::File.exist?(latest)
         FileUtils.rm_rf(data_dir)
         FileUtils.mkdir_p(data_dir)
-        Logs.try!("snapshot restore", [:app_dir, data_dir, :archive, latest], fail: true) do
+        Logs.try!("snapshot restore", [data_dir, latest], raise: true) do
           system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(data_dir)}") or raise("tar extract failed")
         end
         FileUtils.chown_R(user, group, data_dir)
@@ -101,7 +101,7 @@ module Utils
     return true unless Dir.exist?(data_dir) && !Dir.glob("#{data_dir}/*").empty? # true to be idempotent integrable before installation
 
     FileUtils.mkdir_p(File.dirname(snapshot))
-    Logs.try!("snapshot creation", [:data_dir, data_dir, :snapshot, snapshot], fail: true) do
+    Logs.try!("snapshot creation", [data_dir, snapshot], raise: true) do
       system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(data_dir)} .") or raise("tar compress failed")
     end
 
@@ -110,7 +110,7 @@ module Utils
 
   # Remote
 
-  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, log: nil, expect: false, raise: true, verify: OpenSSL::SSL::VERIFY_NONE)
+  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, log: nil, expect: false, raise: true, sensitive: false, verify: OpenSSL::SSL::VERIFY_NONE)
     request = method.new(uri = URI(uri)); headers.each { |k, v| request[k] = v }
     request.basic_auth(user, pass) if user && pass; request.body = body if body
 
@@ -120,7 +120,8 @@ module Utils
         user: user, pass: pass, headers: headers, method: method, body: body, expect: expect, log: log)
     end
 
-    Logs.info(message = "#{log + ': ' if log} #{response&.code} #{response&.message} (#{uri})")
+    Logs.info(message = "#{log + ' ' if log}[#{uri}] #{response&.code} #{response&.message} #{'(' + (sensitive ? body.try(:mask) : body) + ')' if body}")
+    Logs.debug((sensitive ? response&.body.try(:mask) : response&.body), level: :debug)
     if expect
       result = (expect == true ? response.is_a?(Net::HTTPSuccess) : expect.include?(response.code.to_i))
       (raise and not result) ? raise(message) : result
@@ -135,7 +136,7 @@ module Utils
     secret  = Env.get(ctx, 'proxmox_secret')
 
     if pass && !pass.empty?
-      response = request(uri="https://#{host}:8006/api2/json/access/ticket", log: "Proxmox: Ticket", expect: true, method: Net::HTTP::Post,
+      response = request(uri="https://#{host}:8006/api2/json/access/ticket", log: "Proxmox: Ticket", method: Net::HTTP::Post,
         body: URI.encode_www_form(username: user, password: pass), headers: Constants::HEADER_FORM)
       headers = { 'Cookie' => "PVEAuthCookie=#{response.json['data']['ticket']}", 'CSRFPreventionToken' => response.json['data']['CSRFPreventionToken'] }
     else
@@ -164,16 +165,16 @@ module Utils
     elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
       Logs.info("update from '#{version_installed}' to '#{version}'")
     else
-      return Logs.info?("no update required from '#{version_installed}' to '#{version}'", result: false)
+      return Logs.true("no update required from '#{version_installed}' to '#{version}'", result: false)
     end
 
     unless release
       uri = Constants::URI_GITHUB_TAG.call(owner, repo, version)
-      release = Logs.try!("get release by tag", [:uri, uri]) do
+      release = Logs.try!("get release by tag", [uri]) do
         response = request(uri, headers: { 'Accept' => 'application/vnd.github+json' })
         response.is_a?(Net::HTTPSuccess) ? response.json(symbolize_names: true) : nil
       end
-      return Logs.returns("no release for '#{version}'", false) unless release
+      return Logs.return("no release for '#{version}'", false) unless release
     end
 
     download_url, filename = (if (asset = release[:assets].find(&assets))

@@ -23,7 +23,7 @@ module Default
   def self.hostname(ctx); Ctx.node(ctx).dig('hostname').to_s.strip.or('main-default'); end
 
   def self.runtime(hostname)
-    stage, name = hostname.to_s.strip.split('-', 2)
+    stage, name = hostname.to_s.strip.split('-', 2).then { |split| split.size > 1 ? split : ['', split[0]] }
     { stage: stage.or('main'), name: name.or(hostname).or('default') }
   end
 

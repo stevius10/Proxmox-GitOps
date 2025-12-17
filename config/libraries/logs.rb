@@ -21,7 +21,7 @@ module Logs
   end
 
   def self.try!(msg, *args, raise: false)
-    Logs.return("(try) #{msg}", yield, args, level: :info)
+    Logs.return("(try) #{msg}", yield, args, level: :debug)
   rescue Exception => e
     raise ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(tried) #{msg}: #{e.message}", *args)
   end

@@ -21,13 +21,13 @@ module Env
     end
   end
 
-  def self.get_variable(ctx, key, repo: nil, owner: Default.info(ctx)[:stage])
+  def self.get_variable(ctx, key, repo: nil, owner: Default.runtime(Default.hostname(ctx)[:stage]))
     Logs.try!("get variable '#{key}'", [repo, owner]) do
       request(Ctx.node(ctx), key, repo: repo, owner: owner).json['data']
     end
   end
 
-  def self.set_variable(ctx, key, val, repo: nil, owner: Default.info(ctx)[:stage], upcase: true)
+  def self.set_variable(ctx, key, val, repo: nil, owner: Default.runtime(Default.hostname(ctx)[:stage]), upcase: true)
     key = (upcase ? key.to_s.upcase : key.to_s).gsub('-', '_').gsub(/[^\w]/, '')
     Logs.try!("set variable '#{key}' to #{val.try(:mask) || val}", [repo, owner], raise: true) do
       request(Ctx.node(ctx), key, body: ({ name: key, value: (val.respond_to?(:json) ? val.json : val).to_s }.json), repo: repo, owner: owner, expect: true)
@@ -39,7 +39,7 @@ module Env
     "http://#{get(node, "host")}:#{node.dig('git','port','http') || 8080}/api/#{node.dig('git','api','version') || 'v1'}"
   end
 
-  def self.request(ctx, key, body: nil, repo: nil, owner: Default.info(ctx)[:stage], expect: false, raise: false)
+  def self.request(ctx, key, body: nil, repo: nil, owner: Default.runtime(Default.hostname(ctx)[:stage]), expect: false, raise: false)
     user, pass = creds(ctx)
     uri = URI("#{endpoint(ctx)}/#{repo.to_s.strip.size > 0 ? "repos/#{owner}/#{repo.to_s}" : "orgs/#{owner}"}/actions/variables/#{key}")
     response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, expect: (body.present? or expect), raise: raise, sensitive: true)
@@ -50,7 +50,7 @@ module Env
     return response
   end
 
-  def self.dump(ctx, *args, repo: nil, owner: Default.info(ctx)[:stage])
+  def self.dump(ctx, *args, repo: nil, owner: Default.runtime(Default.hostname(ctx)[:stage]))
     Logs.try!("dump", [args, repo, owner], raise: true) do
       node = Ctx.node(ctx); rec = nil; result = true
       get = ->(key) { try { k = key.is_a?(String) ? key : key.to_s; return (node[key] || node[k] || node[k.to_sym]) } }

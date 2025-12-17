@@ -21,7 +21,7 @@ module Default
   end
 
   def self.info(ctx)
-    name, stage = (hostname = Env.get(Ctx.node(ctx), 'hostname')).split('-', 2)
+    name, stage = (hostname = Ctx.node(ctx).dig('hostname').to_s.strip).split('-', 2)
     { stage: stage.or('main'), name: name.or(hostname).or('default') }
   end
 

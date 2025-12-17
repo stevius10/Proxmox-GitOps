@@ -3,11 +3,10 @@ require 'json'
 class Object
   def blank?; respond_to?(:empty?) ? empty? : !self; end
   def present?; !blank?; end
+  def logged; Logs.return("(logged) #{self.inspect}", self, level: :info); end
+  def in(collection); return nil unless collection&.respond_to?(:include?); collection.include?(self) ? self : nil; end
+  def or(default); self.to_s.presence || default.to_s; end
   def presence; blank? ? nil : self; end
-  def presence_in(collection); return nil unless collection&.respond_to?(:include?); collection.include?(self) ? self : nil; end
-  def log; return self if blank?
-    Logs.return("#{Logs.method_label(Logs.callsite)}: #{self.inspect}", self, level: :info)
-  end
   def try(method_name = nil, *args, &block)
     return nil if nil?; return instance_eval(&block) if block
     return nil unless method_name && respond_to?(method_name, true)

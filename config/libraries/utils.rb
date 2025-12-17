@@ -129,11 +129,11 @@ module Utils
   end
 
   def self.proxmox(ctx, path)
-    host    = Env.get(ctx, 'proxmox_host')
-    user    = Env.get(ctx, 'proxmox_user')
-    pass    = Env.get(ctx, 'proxmox_password')
-    token   = Env.get(ctx, 'proxmox_token')
-    secret  = Env.get(ctx, 'proxmox_secret')
+    host    = Env.get_variable(ctx, 'proxmox_host', owner: Default.stage)
+    user    = Env.get_variable(ctx, 'proxmox_user', owner: Default.stage)
+    pass    = Env.get_variable(ctx, 'proxmox_password', owner: Default.stage)
+    token   = Env.get_variable(ctx, 'proxmox_token', owner: Default.stage)
+    secret  = Env.get_variable(ctx, 'proxmox_secret', owner: Default.stage)
 
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", log: "Proxmox: Ticket", method: Net::HTTP::Post,

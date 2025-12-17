@@ -16,10 +16,8 @@ module Logs
     log("[(debug) #{message}]", level: level)
   end
 
-  def self.return(msg, result, *args, level: :info)
-    message = "(return) #{msg}: #{result}"
-    args.blank? ? log(message, level: level) : debug(message, *args, level: level)
-    return result
+  def self.return(msg, result, *args, level: :debug)
+    debug("(return) #{msg}: #{result}", *args, level: level); return result
   end
 
   def self.try!(msg, *args, raise: false)

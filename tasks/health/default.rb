@@ -22,10 +22,9 @@ Utils.proxmox(ctx, 'nodes/pve/lxc').each do |container| id = container['vmid']
   }.compact)), repo: 'health', owner: 'tasks')
 
   repository_description = "[<b>#{state['status']}</b>] #{id} (#{ip})"
-  repository_url = "https://#{Env.get(ctx, 'PROXMOX_HOST')}:8006/#v1:0:=lxc%2F#{id}"
+  repository_url = "https://#{Env.get_variable(ctx, 'PROXMOX_HOST', owner: Default.stage)}:8006/#v1:0:=lxc%2F#{id}"
 
-  stage, name = Default.runtime(hostname)
-  uri = "#{Env.endpoint(ctx)}/repos/#{stage}/#{name}"
+  uri = "#{Env.endpoint(ctx)}/repos/#{Default.runtime(hostname)[:stage]}/#{Default.runtime(hostname)[:name]}"
   Logs.try!("Set #{hostname} to #{state}", [uri, hostname, state]) do
     Utils.request(uri, user: ctx['login'], pass: ctx['password'],
       method: Net::HTTP::Patch, headers: Constants::HEADER_JSON,

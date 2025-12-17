@@ -2,26 +2,27 @@ module Default
 
   def self.user(ctx, default: nil)
     node = Ctx.node(ctx)
-    @user ||= (default.presence ? 'app' : presence_or(Env.get(node, "app_user"), user(node, default: true))).to_s
+    @user ||= default.presence ? 'app' : Env.get(node, "app_user").or(user(node, default: true)).to_s
   end
 
   def self.group(ctx, default: nil)
     node = Ctx.node(ctx)
-    @group ||= (default.presence ? 'config' : presence_or(Env.get(node, "app_group"), group(node, default: true))).to_s
+    @group ||= default.presence ? 'config' : Env.get(node, "app_group").or(group(node, default: true)).to_s
   end
 
   def self.config(ctx, default: nil)
     node = Ctx.node(ctx)
-    @config ||= (default.presence ? 'config' : presence_or(Env.get(node, "app_config"), config(node, default: true))).to_s
+    @config ||= default.presence ? 'config' : Env.get(node, "app_config").or(config(node, default: true)).to_s
   end
 
   def self.snapshot_dir(ctx, default: nil)
     node = Ctx.node(ctx)
-    @snapshot_dir ||= (default.presence ? '/share/snapshots' : presence_or(Env.get(node, "app_snapshot_dir"), snapshot_dir(node, default: true))).to_s
+    @snapshot_dir ||= default.presence ? '/share/snapshots' : Env.get(node, "app_snapshot_dir").or(snapshot_dir(node, default: true)).to_s
   end
 
-  def self.presence_or(var, default)
-    var.to_s.presence || default.to_s
+  def self.info(ctx)
+    name, stage = (hostname = Env.get(Ctx.node(ctx), 'hostname')).split('-', 2)
+    { stage: stage.or('main'), name: name.or(hostname).or('default') }
   end
 
 end

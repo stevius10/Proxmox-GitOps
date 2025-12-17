@@ -32,7 +32,7 @@ module Default
 
   def self.runtime(hostname)
     stage, name = hostname.to_s.strip.split('-', 2).then { |split| split.size > 1 ? split : ['', split[0]] }
-    {:name => name, :stage => stage}
+    {:name => name.or(name), :stage => stage.or(stage)}
   end
 
 end

@@ -3,9 +3,9 @@
 Dir[File.join(__dir__, 'libraries', '**', '*.rb')].sort.each { |f| require f }
 ctx = { "host" => ENV["HOST"], "login" => ENV["LOGIN"], "password" => ENV["PASSWORD"] }
 
-def check_service(hostname, id, ip)
+def check_service(name, id, ip)
   begin
-    result = `ssh -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=no -i "/share/.ssh/#{id}" "config@#{ip}" 'systemctl is-active --quiet #{hostname} && echo "healthy" || echo "unhealthy"'`
+    result = `ssh -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=no -i "/share/.ssh/#{id}" "config@#{ip}" 'systemctl is-active --quiet #{name} && echo "healthy" || echo "unhealthy"'`
     result.strip == 'healthy' ? 'healthy' : 'unhealthy'
   rescue
     'unreachable'
@@ -18,7 +18,7 @@ Utils.proxmox(ctx, 'nodes/pve/lxc').each do |container| id = container['vmid']
 
   Env.set(ctx, (hostname = config['hostname'] || id.to_s), (state=({
     'ip '=> (ip=(config['net0'] && config['net0'][/ip=(\d+\.\d+\.\d+\.\d+)/, 1])),
-    'status' => (current['status'] == 'running' ? check_service(hostname, id, ip) : current['status'])
+    'status' => (current['status'] == 'running' ? check_service(Default.runtime(hostname)[:name], id, ip) : current['status'])
   }.compact)), repo: 'health', owner: 'tasks')
 
   repository_description = "[<b>#{state['status']}</b>] #{id} (#{ip})"

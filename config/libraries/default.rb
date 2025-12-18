@@ -20,11 +20,11 @@ module Default
     @snapshot_dir ||= default.presence ? '/share/snapshots' : Env.get(node, "app_snapshot_dir").or(snapshot_dir(node, default: true)).to_s
   end
 
-  def self.name(ctx: nil, default: "config")
+  def self.name(ctx=nil, default: "config")
     ctx.nil? ? default : runtime(hostname(ctx))[:name].or(default)
   end
 
-  def self.stage(ctx: nil, default: "main")
+  def self.stage(ctx=nil, default: "main")
     ctx.nil? ? default : runtime(hostname(ctx))[:stage].or(default)
   end
 

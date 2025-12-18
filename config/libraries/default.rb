@@ -21,18 +21,22 @@ module Default
   end
 
   def self.name(ctx: nil, default: "config")
-    ctx.present? ? runtime(hostname(ctx))[:name].or(default) : default
+    ctx.nil? ? default : runtime(hostname(ctx))[:name].or(default)
   end
 
   def self.stage(ctx: nil, default: "main")
-    ctx.present? ? runtime(hostname(ctx))[:stage].or(default) : default
+    ctx.nil? ? default : runtime(hostname(ctx))[:stage].or(default)
   end
 
   def self.hostname(ctx); Ctx.node(ctx).dig('hostname'); end
 
   def self.runtime(hostname)
-    stage, name = hostname.to_s.strip.split('-', 2).then { |split| split.size > 1 ? split : ['', split[0]] }
-    {:name => name.or(name), :stage => stage.or(stage)}
+    if hostname.include?('-')
+      stage, name = hostname.to_s.strip.split('-', 2)
+    else
+      stage, name = Default.stage, hostname
+    end
+    {:name => name, :stage => stage}
   end
 
 end

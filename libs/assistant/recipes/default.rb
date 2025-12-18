@@ -26,7 +26,7 @@ end
 end
 
 execute 'install_assistant' do
-  command "uv pip install --python #{node['assistant']['dir']['env']}/bin/python webrtcvad wheel homeassistant mysqlclient psycopg2-binary isal"
+  command "uv pip install --python #{node['assistant']['dir']['env']}/bin/python webrtcvad wheel homeassistant mysqlclient psycopg2-binary isal pycares==4.3.0"
   user node['app']['user']
   group node['app']['group']
   environment 'UV_CACHE_DIR' => '/app/uv-cache'

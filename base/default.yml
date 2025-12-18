@@ -3,8 +3,10 @@
   hosts: localhost
   gather_facts: no
   vars:
-    os: "{{ OS | default('local:vztmpl/debian-13-standard_13.1-1_amd64.tar.zst') }}"
-    share_dir: "{{ SHARE | default('/share') }}"
+    dir:       "{{ (lookup('env', 'DIR')      | default('') | trim) or '/tmp/config' }}"
+    share_dir: "{{ (lookup('env', 'SHARE')    | default('') | trim) or '/share' }}"
+    storage:   "{{ (lookup('env', 'STORAGE')  | default('') | trim) or 'local:vztmpl' }}"
+    template:  "{{ (lookup('env', 'TEMPLATE') | default('') | trim) or 'debian-13-standard_13.1-2' }}"
     cert_dir:  "{{ share_dir }}/.cert"
     key_dir:   "{{ share_dir }}/.ssh"
   tasks:

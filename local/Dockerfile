@@ -3,8 +3,8 @@ FROM debian:trixie
 ARG TARGETARCH
 ENV TARGETARCH=${TARGETARCH}
 
-ENV IP=127.0.0.1 ID=100 LC_ALL=C.UTF-8
-ENV ANSIBLE_ROLES_PATH=/tmp/config/base
+ENV DIR=/tmp/config ID=100 IP=127.0.0.1
+ENV ANSIBLE_ROLES_PATH=${DIR}/base LC_ALL=C.UTF-8
 
 STOPSIGNAL SIGRTMIN+3
 
@@ -25,7 +25,7 @@ RUN ansible-galaxy collection install community.general --force
 RUN mkdir -p /app/.ssh /share/.certs /share/.ssh
 RUN ssh-keygen -t ed25519 -f "/share/.ssh/${ID}" -N ''
 
-COPY ../base/roles /tmp/config/base
+COPY ../base/roles ${ANSIBLE_ROLES_PATH}
 RUN ansible localhost -m include_role -a name=base \
     -e "ip=${IP}" -e "id=${ID}" -e "SHARE=/share" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
     -e "private_key='$(cat /share/.ssh/${ID})\n'" -e "public_key='$(cat /share/.ssh/${ID}.pub)\n'"

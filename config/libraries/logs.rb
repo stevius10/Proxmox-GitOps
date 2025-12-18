@@ -1,75 +1,38 @@
 module Logs
 
-  def self.log(msg, level: :info)
-    c = callsite
-    label = method_label(c)
-    if label
-      Chef::Log.send(level, FORMAT_WITH % [label, msg, File.basename(c.path), c.lineno])
-    else
-      Chef::Log.send(level, FORMAT_NO % [msg, File.basename(c.path), c.lineno])
-    end
+  FORMAT="\e[1m[%s] %s (%s:%d)\e[0m"; NO_FORMAT="%s (%s:%d)"
+
+  def self.log(msg=nil, verbose: true, level: :info)
+    (c = (s = caller_locations(2, 60)).find { |l| [__FILE__, %r{libraries}].none? { |ig| ig.is_a?(Regexp) ? l.path =~ ig : l.path == ig } } || s.first); f = File.basename(c.path); l = c.lineno
+    m = ((label = (c.respond_to?(:label) ? c.label : c.to_s).sub(/block.*in /, '')).eql?('from_file') ? nil : label)
+    verbose ? Chef::Log.send(level, m ? FORMAT % [m, msg, f, l] : NO_FORMAT % [msg, f, l]) : (m ? "[#{m}]#{f}:#{l}" : "#{f}:#{l}")
   end
 
   def self.info(msg); log(msg) end; def self.warn(msg); log(msg, level: :warn) end
   def self.error(msg, raise: false); log(msg, level: :error); raise msg if raise end
-  def self.error!(msg); error(msg, raise: true) end
-  def self.info?(msg, result: true); log(msg); result; end
-  def self.request(uri, response); info("requested #{uri}: #{response&.code} #{response&.message}"); return response end
-  def self.return(msg); log(msg.to_s); return msg end
-  def self.returns(msg, result, level: :info); log(msg.to_s, level: level); return result end
 
-  def self.debug(msg, *pairs, ctx: nil, level: :info)
-    flat = pairs.flatten
-    raise ArgumentError, "debug requires key value pairs (#{flat.length}: #{flat.inspect})" unless flat.length.even?
-    input = flat.each_slice(2).to_h.transform_keys(&:to_s)
-    payload = input.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
-    log([msg, payload].reject { |s| s.blank? }.join(" "), level: level)
-    log("#{ctx.cookbook_name}::#{ctx.recipe_name}", level: :debug) \
-      if ctx && ctx.respond_to?(:cookbook_name) && ctx.respond_to?(:recipe_name)
+  def self.debug(*args, level: :debug)
+    message = args.reject(&:blank?).join(", ")
+    log("[(debug) #{message}]", level: level)
   end
 
-  def self.try!(msg, *pairs, ctx: nil, raise: false)
-    return yield
-  rescue => exception
-    debug("failed: #{msg}: #{exception.message}", *(pairs.flatten), ctx: ctx, level: (raise ? :error : :warn))
-    # debug(*(pairs.flatten), ctx: ctx, level: :debug)
-    raise("[#{method_label(callsite)}] #{exception.message} #{msg}") if raise
+  def self.return(msg, result, *args, level: :debug)
+    debug("(return) #{msg}: #{result}", *args, level: level); return result
   end
 
-  def self.request!(uri, response, valid=[], msg: nil, ctx: nil)
-    res = try!("failed request", [:uri, uri, :response, response]) do
-      if valid.presence # if valid status code required
-        raise("[#{method_label(callsite)}] #{msg}") unless
-          (valid == true && (response.is_a?(Net::HTTPSuccess) or valid.include?(response.code.to_i)))
+  def self.try!(msg, *args, raise: false)
+    Logs.return("(try) #{msg}", yield, args, level: :debug)
+  rescue Exception => e
+    raise ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(tried) #{msg}: #{e.message}", *args)
+  end
+
+  def self.blank!(msg, value); error(msg, raise: true) if value.nil? || (value.respond_to?(:empty?) && value.empty?); value; end
+
+  class << self
+    %i[true false nil].each do |result|
+      define_method(result) do |msg|
+        self.info(msg); return result
       end
-      response ? "#{response.code} #{response.message}" : response
     end
-    debug("[#{msg}] responded #{res}", [:uri, uri, :response, response], ctx: ctx)
-    return response
   end
-
-  # Raise
-
-  def self.raise_if_blank(msg, value)
-    error!(msg) if value.nil? || (value.respond_to?(:empty?) && value.empty?)
-    value
-  end
-
-  # Helper
-
-  FORMAT_WITH = "\e[1m[%s] %s (%s:%d)\e[0m"
-  FORMAT_NO   = "%s (%s:%d)"
-  IGNORES = [__FILE__, %r{libraries}]
-
-  def self.callsite
-    s = caller_locations(2,60)
-    s.find { |l| IGNORES.none? { |ig| ig.is_a?(Regexp) ? l.path =~ ig : l.path == ig } } || s.first
-  end
-
-  def self.method_label(loc)
-    label = (loc.respond_to?(:label) ? loc.label : loc.to_s).sub(/block.*in /, '')
-    return nil if label == 'from_file'
-    label
-  end
-
 end

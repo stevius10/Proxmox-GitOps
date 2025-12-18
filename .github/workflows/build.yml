@@ -24,11 +24,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - name: Set config.env
+      - name: Set container.env
         id: config
         run: |
           echo "hostname=config" >> $GITHUB_OUTPUT
-          source config.env
+          source container.env
           echo "ip=127.0.0.1" >> $GITHUB_OUTPUT
           echo "id=$ID" >> $GITHUB_OUTPUT
           echo "cores=$CORES" >> $GITHUB_OUTPUT
@@ -94,14 +94,12 @@ jobs:
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
-          HOST: 127.0.0.1
-          ENDPOINT: http://127.0.0.1:8080/api/v1
           LOGIN: "test"
           PASSWORD: "test"
         run: |
           for lib in $(ls libs); do
-            if [ -f "libs/$lib/config.env" ]; then
-              source "libs/$lib/config.env"
+            if [ -f "libs/$lib/container.env" ]; then
+              source "libs/$lib/container.env"
               cp -r config/libraries libs/$lib
             fi
             if [ "$lib" = "proxy" ]; then
@@ -134,7 +132,7 @@ jobs:
               s.serve_forever()
               """; exec(textwrap.dedent(s))' >/dev/null 2>&1 &
             fi
-            sudo env IP="$IP" ID="$ID" HOST="$HOST" ENDPOINT="$ENDPOINT" LOGIN="$LOGIN" PASSWORD="$PASSWORD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="['$(pwd)', '$(pwd)/config','$(pwd)/libs']" -o "$lib"
+            sudo env IP="127.0.0.1" ID="$ID" HOST="127.0.0.1" LOGIN="$LOGIN" PASSWORD="$PASSWORD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="['$(pwd)', '$(pwd)/config','$(pwd)/libs']" -o "$lib"
           done
 
       - name: Idempotency

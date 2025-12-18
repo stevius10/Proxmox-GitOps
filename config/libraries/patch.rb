@@ -3,8 +3,10 @@ require 'json'
 class Object
   def blank?; respond_to?(:empty?) ? empty? : !self; end
   def present?; !blank?; end
+  def logged; Logs.return("(logged) #{self.inspect}", self, level: :info); end
+  def in(collection); return nil unless collection&.respond_to?(:include?); collection.include?(self) ? self : nil; end
+  def or(default); self.to_s.presence || default.to_s; end
   def presence; blank? ? nil : self; end
-  def presence_in(collection); return nil unless collection&.respond_to?(:include?); collection.include?(self) ? self : nil; end
   def try(method_name = nil, *args, &block)
     return nil if nil?; return instance_eval(&block) if block
     return nil unless method_name && respond_to?(method_name, true)
@@ -23,7 +25,7 @@ end
 class String
   def blank?; strip.empty? end
   def squish; strip.gsub(/\s+/, " ") end
-  def mask; (length <= 4) ? '*' * length : "#{self[0]}#{self[1]}#{'*' * (length - 4)}#{self[-2]}#{self[-1]}" ; end
+  def mask; (length <= 4) ? '***': "#{self[0]}#{self[1]}#{'**'}#{self[-2]}#{self[-1]}" ; end
 end
 
 class Integer

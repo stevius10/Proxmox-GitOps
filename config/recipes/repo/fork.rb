@@ -1,24 +1,19 @@
-name_repo = @name_repo; repository = @repository; monorepo = @monorepo; login = @login; password = @password;
+if @monorepo or @repository.include?('libs/')
 
-ruby_block "repo_#{name_repo}_fork_clean" do
-  block do
-    uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}"
-    if Utils.request(uri, user: login, pass: password).code.to_i != 404
-      response = Utils.request(uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['stage']}/#{name_repo}",
-        method: Net::HTTP::Delete, user: login, pass: password)
-      Logs.request!(uri, response, [204, 404], msg: "Clean #{node['git']['org']['stage']}/#{name_repo}")
-    end
-  end
-  only_if { monorepo or repository.include?('libs/') }
-end
+  main = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{@name_repo}"
+  fork = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['stage']}/#{@name_repo}"
 
-ruby_block "repo_#{name_repo}_fork_create" do
-  block do
-    uri="#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['main']}/#{name_repo}/forks"
-    Logs.request!(uri, Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
-      user: login, pass: password,
-      body: { name: name_repo, organization: node['git']['org']['stage'] }.json ),
-      [201, 202], msg: "Fork to #{node['git']['org']['stage']}/#{name_repo}")
+  req = ->(path, method: Net::HTTP::Get, body: nil, expect: nil, raise: nil) do
+    Utils.request(path, method: method, body: body&.to_json, **({ user: @login, pass: @password }), headers: Constants::HEADER_JSON, expect: expect, raise: raise)
   end
-  only_if { monorepo or repository.include?('libs/') }
+
+  ruby_block "fork_#{@name_repo}" do block do
+    req.call(fork, method: Net::HTTP::Delete) if req.call(fork, expect: true, raise: false)
+
+    req.call("#{main}/forks", method: Net::HTTP::Post, body: { organization: node['git']['org']['stage'] })
+    req.call(fork, method: Net::HTTP::Patch, body: { has_actions: true, has_issues: false, has_wiki: false, has_projects: false, has_packages: false, has_releases: false })
+
+    req.call("#{fork}/pulls", method: Net::HTTP::Post, body: { title: "Staging Pull Request", body: "Created automatically for deployment.",
+      head: "main", base: "release" } ) unless @is_bootstrap
+  end end
 end

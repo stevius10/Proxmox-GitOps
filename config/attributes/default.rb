@@ -1,6 +1,6 @@
 default['title']                      = "Proxmox-GitOps"
 default['online']                     = "https://github.com/stevius10/Proxmox-GitOps"
-default['version']                    = "v1.2-3"
+default['version']                    = "v1.3"
 
 default['id']                         = ENV['ID']
 default['host']                       = (default['ip'] = ENV['IP'].to_s.presence || "127.0.0.1")
@@ -11,6 +11,8 @@ default['app']['group']               = Default.group(node, default: true)
 default['app']['config']              = Default.config(node, default: true)
 
 default['git']['conf']['customize']   = true
+default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password', 'email']
+default['git']['conf']['environment'] = [ "./env.json", "./env.local.json" ] # order prioritize .*.local.*
 default['git']['conf']['repo']        = [ "./", "./base", "./config/libraries", "./libs" ]
 
 default['git']['dir']['app']          = '/app/git'

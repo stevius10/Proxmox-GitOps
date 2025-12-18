@@ -17,7 +17,7 @@ execute 'config_set_user' do
     fi
     $base create $create $user
   EOH
-  not_if { Utils.request("#{node['git']['api']['endpoint']}/user", user: login, pass: password, expect: true) }
+  not_if { Utils.request("#{node['git']['api']['endpoint']}/user", user: login, pass: password, expect: true, raise: false) }
 end
 
 ruby_block 'config_set_key' do
@@ -30,8 +30,8 @@ ruby_block 'config_set_key' do
         method: Net::HTTP::Delete) if k['key'] && k['key'].strip == key
     end
 
-    response = Utils.request(uri, body: { title: login, key: key }.json, user: login, pass: password, method: Net::HTTP::Post, headers: Constants::HEADER_JSON)
-    Logs.request!(uri, response, [201, 422], msg: "set key")
+    Utils.request(uri, body: { title: login, key: key }.json, headers: Constants::HEADER_JSON,
+      log: "set key", expect: [201, 422], method: Net::HTTP::Post, user: login, pass: password)
   end
   only_if { ::File.exist?("#{node['key']}.pub") }
   not_if do
@@ -68,15 +68,17 @@ end
   ruby_block "dump_variables_#{org}" do
     action :nothing
     block do
-      Env.dump(self, [ 'proxmox', 'host', 'login', 'password', 'email', [:endpoint, node.dig('git','api','endpoint')] ], owner: org)
+      try { Env.dump(self, *node['git']['conf']['defaults'], owner: org) }
+      try { Env.dump(self, *(node['git']['conf']['environment']
+        .map { |file| Utils.mapping(file) }.reduce({}, :merge!)
+      ).each { |k, v| node.default[k] = v }.keys, owner: org) }
     end
   end
 
   ruby_block "create_org_#{org}" do
     block do
-      uri = "#{node.dig('git','api','endpoint')}/orgs"
-      response = Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON, body: { username: org }.to_json, user: login, pass: password)
-      Logs.request!(uri, response, [201, 409, 422], msg: "create organization '#{org}'")
+      Utils.request("#{node.dig('git','api','endpoint')}/orgs", method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
+        log: "create organization '#{org}'", expect:  [201, 409, 422], body: { username: org }.to_json, user: login, pass: password)
     end
     notifies :run, "ruby_block[dump_variables_#{org}]", :immediate
   end

@@ -2,7 +2,7 @@
   block:
   - name: Download container os if missing
     uri:
-      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/storage/local/download-url"
+      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ PROXMOX_NODE | default('pve') }}/storage/local/download-url"
       method: POST
       headers: "{{ proxmox_auth | combine({'Content-Type': 'application/json'}) }}"
       body_format: json
@@ -14,7 +14,7 @@
 
   - name: Wait for os to be downloaded
     uri:
-      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/pve/storage/local/content"
+      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ PROXMOX_NODE | default('pve') }}/storage/local/content"
       method: GET
       headers: "{{ proxmox_auth }}"
     delay: "{{ check_delay }}"

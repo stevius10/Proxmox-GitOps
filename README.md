@@ -120,7 +120,9 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 ### Environment and Staging
 
 - **Environment**: Global variables can be set in [`env.json`](env.json)
-- **Files**: `.local.` files for granular versioning, e. g. `env.local.json`, `container.local.json` or `libs/proxy/files/default/config/10-assistant.local.caddy`
+
+- **Files**: `.local.` files for granular versioning, e. g. `env.local.json`, `container.local.json` or `libs/proxy/../10-assistant.local.caddy`
+
 - **Staging**: Staging configuration `container.stage.env` is sourced for forked repository deployments
 
 ### Development and Extension

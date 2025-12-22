@@ -86,12 +86,9 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 ### Deployment
 
-- [Set](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) **Proxmox VE host** and **default account** credentials in [`local/config.json`](local/config.json). 
-
-- Ensure **container configuration** in [`container.env`](container.env) and [verify storage](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv). 
-
-- Run `./local/run.sh` for local Docker environment. 
-
+- [Set](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) **Proxmox VE host** and **default account** credentials in [`local/config.json`](local/config.json).
+- Ensure **container configuration** in [`container.env`](container.env) and [verify storage](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv).
+- Run `./local/run.sh` for local Docker environment.
 - Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE. 
 
 <p align="center"><br>
@@ -168,7 +165,7 @@ Common.application(self, 'apache2') # provided by convention
 
 #### Environment
 
-- Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
+- Optionally, use [`Env.get()` and `Env.set()`](config/libraries/env.rb) to access Gitea environment variables.
 
 <p align="center"><br>
   <a href="docs/img/environment.png" target="_blank" rel="noopener noreferrer">

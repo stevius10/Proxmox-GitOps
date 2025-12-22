@@ -33,4 +33,3 @@ end
 
 node.run_state['login']     = Env.get(self, 'login')
 node.run_state['password']  = Env.get(self, 'password')
-node.run_state['email']     = Env.get(self, 'email')

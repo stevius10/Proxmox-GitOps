@@ -10,9 +10,9 @@
   - [Trade-offs](#trade-offs)
 - [Usage](#usage)
   - [Requirements](#requirements)
-  - [Configuration](#configuration)
+  - [Deployment](#deployment)
   - [Lifecycle](#lifecycle)
-  - [Environment and Staging](#environment-and-staging)
+  - [Files and Configuration](#files-and-configuration)
   - [Development and Extension](#development-and-extension)
     - [Getting Started](#getting-started)
     - [Environment](#environment)
@@ -84,12 +84,12 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 - Proxmox VE 8.4-9.1
 - See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
-### Configuration
+### Deployment
 
-- [Set](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) **Proxmox VE host** and **account credentials** in [`local/config.json`](local/config.json)
-- Ensure **container configuration** in [`container.env`](container.env) and [verify storage](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv)
-- Run `./local/run.sh` for local Docker environment
-- Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE
+- [Set](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) **Proxmox VE host** and **default account** credentials in [`local/config.json`](local/config.json).
+- Ensure **container configuration** in [`container.env`](container.env) and [verify storage](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv).
+- Run `./local/run.sh` for local Docker environment.
+- Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE. 
 
 <p align="center"><br>
   <a href="docs/img/nutshell.png" target="_blank" rel="noopener noreferrer">
@@ -104,26 +104,27 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 `git clone --recurse-submodules`, e.g. for **Version-Controlled Mirroring**
 
 - **Deployment**
-  - run `release` for container creation
-  - run `main` for container reconfiguration
+  - `release`: container deployment
+  - `main`: container configuration
 
 - **Backup**: See [Self-Containment](#self-containment)
-  - use `local/share/` for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence) or self-reference network share
-  - run `snapshot` for utils implementation 
+  - `snapshot`: [`Utils.snapshot`](https://github.com/stevius10/Proxmox-GitOps/blob/develop/config/libraries/utils.rb)
+  - use `local/share/` for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence) or self-reference network share. 
 
-- **Update**: See [Self-Containment](#self-containment), and redeploy merged
+- **Update**: See [Self-Containment](#self-containment), and redeploy merged. 
 
-- **Rollback**: See [Self-Containment](#self-containment), or push `rollback` to `release` at runtime
+- **Rollback**: See [Self-Containment](#self-containment), or push `rollback` to `release` at runtime. 
 
 *Appendix*: The self-referential language in this section is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
 
-### Environment and Staging
+### Files and Configuration
 
-- **Environment**: Global variables can be set in [`env.json`](env.json)
+- Global environment variables can be set in [`env.json`](env.json). 
 
-- **Files**: `.local.` files for granular versioning, e. g. `env.local.json`, `container.local.json` or `libs/proxy/../10-assistant.local.caddy`
+- `container.stage.env` is sourced for forked repository deployments. 
 
-- **Staging**: Staging configuration `container.stage.env` is sourced for forked repository deployments
+- `.local.` files can be used to [structure versioning](.gitignore).
+  e. g. `env.local.json`, `container.local.json` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy)
 
 ### Development and Extension
 
@@ -133,7 +134,7 @@ Reusable container definitions are stored in the [`libs`](libs) folder.
 
 Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
 
-- Add `container.env` (or `container.local.env`) to your container's root directory (e.g. `./libs/apache`):
+- Add `container.env` to your container's root directory (e.g. `./libs/apache`):
 ```dotenv
 IP=192.168.178.42
 ID=42
@@ -164,7 +165,7 @@ Common.application(self, 'apache2') # provided by convention
 
 #### Environment
 
-- Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
+- Optionally, use [`Env.get()` and `Env.set()`](config/libraries/env.rb) to access Gitea environment variables.
 
 <p align="center"><br>
   <a href="docs/img/environment.png" target="_blank" rel="noopener noreferrer">

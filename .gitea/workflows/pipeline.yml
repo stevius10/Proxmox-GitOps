@@ -89,10 +89,9 @@ jobs:
           id: ${{ needs.init.outputs.id }}
           login: ${{ vars.LOGIN }}
           password: ${{ vars.PASSWORD }}
-          email: ${{ vars.EMAIL }}
         run: |
           git -C config submodule update --remote --recursive
           tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.ssh/${id}" "config@${ip}" 'sudo tar xz -C /tmp
             CONFIG_FILE="-j /tmp/config/local/config.json"; [ -f /tmp/config/local/config.local.json ] && CONFIG_FILE="-j /tmp/config/local/config.local.json"
-            sudo -E IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" EMAIL="'"${email}"'" PWD=/tmp/config \
+            sudo -E IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" PWD=/tmp/config \
               cinc-client --local-mode $CONFIG_FILE --config-option cookbook_path="/tmp/config" -o config'

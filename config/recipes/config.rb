@@ -1,6 +1,5 @@
 login    = node.run_state['login']
 password = node.run_state['password']
-email    = node.run_state['email']
 
 Utils.wait("127.0.0.1:#{node['git']['port']['http']}", timeout: 15, sleep_interval: 1)
 
@@ -11,7 +10,7 @@ execute 'config_set_user' do
   command <<-EOH
     base="#{node['git']['dir']['app']}/gitea admin user --config #{node['git']['dir']['app']}/app.ini"
     user="--username #{login} --password #{password}"
-    create="--email #{email} --admin --must-change-password=false"
+    create="--email #{node['mail']} --admin --must-change-password=false"
     if $base list | awk '{print $2}' | grep -q "^#{login}$"; then
       $base delete $user 
     fi
@@ -55,7 +54,7 @@ end
 execute 'config_git_user' do
   command <<-SH
     git config --global user.name "#{login}"
-    git config --global user.email "#{email}"
+    git config --global user.email "#{node['mail']}"
     git config --global core.excludesfile #{ENV['PWD']}/.gitignore
   SH
   user node['app']['user']

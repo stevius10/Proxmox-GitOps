@@ -86,7 +86,7 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 ### Configuration
 
-- [Set](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) **Proxmox VE host** and **account credentials** in [`local/config.json`](local/config.json)
+- [Set](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) **Proxmox VE host** and **default account** credentials in [`local/config.json`](local/config.json)
 - Ensure **container configuration** in [`container.env`](container.env) and [verify storage](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv)
 - Run `./local/run.sh` for local Docker environment
 - Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE

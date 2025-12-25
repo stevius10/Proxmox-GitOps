@@ -36,6 +36,10 @@ RUN (VERSION=$(curl -s https://api.github.com/repos/go-gitea/gitea/releases/late
     curl -L --create-dirs "https://github.com/go-gitea/gitea/releases/download/${VERSION}/gitea-${VERSION#v}-linux-${TARGETARCH}" \
       -o /app/git/gitea && echo "${VERSION#v}" > /app/git/.version) || true
 
+RUN (VERSION=$(curl -s https://gitea.com/gitea/act_runner/releases | grep -o '/gitea/act_runner/releases/tag/v[0-9]*.[0-9]*.[0-9]*' | head -1 | sed 's|.*/v||') && \
+    curl -L --create-dirs "https://gitea.com/gitea/act_runner/releases/download/v${VERSION}/act_runner-${VERSION}-linux-${TARGETARCH}" \
+          -o /app/runner/runner && echo "${VERSION}" > /app/runner.version) || true
+
 RUN chown -R app:config /app
 
 WORKDIR /

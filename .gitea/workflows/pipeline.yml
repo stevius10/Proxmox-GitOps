@@ -18,7 +18,7 @@ jobs:
       mount: ${{ steps.config.outputs.mount }}
     steps:
       - name: Checkout repository
-        uses: https://gitea.com/actions/checkout@v4
+        uses: tasks/checkout@v4
       - name: Set configuration
         id: config
         run: |
@@ -57,7 +57,7 @@ jobs:
     needs: [ init, base ]
     steps:
       - name: Checkout repository
-        uses: https://gitea.com/actions/checkout@v4
+        uses: tasks/checkout@v4
         with:
           path: 'config'
           submodules: true
@@ -79,7 +79,7 @@ jobs:
     needs: [ init, base ]
     steps:
       - name: Checkout repository
-        uses: https://gitea.com/actions/checkout@v4
+        uses: tasks/checkout@v4
         with:
           path: 'config'
           submodules: true

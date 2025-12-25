@@ -43,7 +43,7 @@ runs:
   using: "composite"
   steps:
 
-    - uses: https://gitea.com/actions/checkout@v4
+    - uses: tasks/checkout@v4
       with:
         repository: main/base
         ref: 'main'

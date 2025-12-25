@@ -23,7 +23,7 @@ jobs:
       mount: ${{ steps.config.outputs.mount }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: tasks/checkout@v4
       - name: Set container.env
         id: config
         run: |
@@ -43,7 +43,7 @@ jobs:
     needs: [init]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: tasks/checkout@v4
       - name: Build container
         run: |
           docker build --build-arg TARGETARCH=amd64 -t proxmox-gitops -f local/Dockerfile .
@@ -54,7 +54,7 @@ jobs:
     needs: [init]
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: tasks/checkout@v4
 
       - name: Mock bootstrapping
         env:

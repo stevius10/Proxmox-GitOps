@@ -9,10 +9,10 @@
   - [Design](#design)
   - [Trade-offs](#trade-offs)
 - [Usage](#usage)
-  - [Lifecycle](#lifecycle)
-    - [Self-Containment](#self-containment)
   - [Requirements](#requirements)
-  - [Configuration](#configuration)
+  - [Deployment](#deployment)
+  - [Lifecycle](#lifecycle)
+  - [Files and Configuration](#files-and-configuration)
   - [Development and Extension](#development-and-extension)
     - [Getting Started](#getting-started)
     - [Environment](#environment)
@@ -23,7 +23,7 @@
 
 Proxmox-GitOps implements a self-contained GitOps environment for provisioning and orchestrating Linux Containers (LXC) on Proxmox VE.
 
-Encapsulating infrastructure within an extensible monorepository — recursively resolved from Git submodules at runtime — it provides a comprehensive Infrastructure-as-Code (IaC) abstraction for an entire, automated container-based infrastructure.
+Encapsulating infrastructure within an extensible monorepository - recursively resolved from Git submodules at runtime - it provides a comprehensive Infrastructure-as-Code (IaC) abstraction for an entire, automated container-based infrastructure.
 
 <p align="center"><br>
   <a href="docs/demo.gif" target="_blank" rel="noopener noreferrer">
@@ -63,8 +63,8 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 - **Integrated Baseline:** The `base` role standardizes defaults in container configuration. The control plane leverages this baseline and uses built-in infrastructure libraries to deploy itself recursively, establishing an operational pattern that is reproduced in container `libs`.
 
 <p align="center"><br>
-  <a href="docs/img/recursion.png" target="_blank" rel="noopener noreferrer">
-    <img src="docs/img/recursion.png" alt="Recursive deployment" width="600px" />
+  <a href="docs/img/staging.png" target="_blank" rel="noopener noreferrer">
+    <img src="docs/img/staging.png" alt="Recursive deployment" width="600px" />
   </a>
 </p><br>
 
@@ -78,39 +78,53 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 ## Usage
 
-### Lifecycle
-
-#### Self-Containment
-
-`git clone --recurse-submodules`, e.g. for **Version-Controlled Mirroring**
-
-- **Backup**: See [Self-Containment](#self-containment)
-  - use `local/share/` [for persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence) or self-reference network share
-
-- **Update**: See [Self-Containment](#self-containment), and redeploy merged
-
-- **Rollback**: See [Self-Containment](#self-containment), or push `rollback` to `release` at runtime
-
-*Appendix*: The self-referential language in this section is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
-
 ### Requirements
 
 - Docker
 - Proxmox VE 8.4-9.1
 - See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
-### Configuration
+### Deployment
 
-- Set **Proxmox** and **global usage credentials** in [`local/config.json`](local/config.json) or [`./local/config.local.json`](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-localconfigjson)
-- Ensure **container configuration** in [`config.env`](config.env) and [verify storage](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv)
-- Run `./local/run.sh` for local Docker environment
-- Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE
+- [Set](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) **Proxmox VE host** and **default account** credentials in [`local/config.json`](local/config.json).
+- Ensure **container configuration** in [`container.env`](container.env) and [verify storage](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv).
+- Run `./local/run.sh` for local Docker environment.
+- Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE. 
 
 <p align="center"><br>
   <a href="docs/img/nutshell.png" target="_blank" rel="noopener noreferrer">
     <img src="docs/img/nutshell.png" alt="In a nutshell" width="600px" />
   </a>
 </p><br>
+
+### Lifecycle
+
+#### Self-Containment
+
+`git clone --recurse-submodules`, e.g. for **Version-Controlled Mirroring**
+
+- **Deployment**
+  - `release`: container deployment
+  - `main`: container configuration
+
+- **Backup**: See [Self-Containment](#self-containment)
+  - `snapshot`: [`Utils.snapshot`](https://github.com/stevius10/Proxmox-GitOps/blob/develop/config/libraries/utils.rb)
+  - use `local/share/` for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence) or self-reference network share. 
+
+- **Update**: See [Self-Containment](#self-containment), and redeploy merged. 
+
+- **Rollback**: See [Self-Containment](#self-containment), or push `rollback` to `release` at runtime. 
+
+*Appendix*: The self-referential language in this section is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
+
+### Files and Configuration
+
+- Global environment variables can be set in [`env.json`](env.json). 
+
+- `container.stage.env` is sourced for forked repository deployments. 
+
+- `.local.` files can be used to [structure versioning](.gitignore).
+  e. g. `env.local.json`, `container.local.json` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy)
 
 ### Development and Extension
 
@@ -120,7 +134,7 @@ Reusable container definitions are stored in the [`libs`](libs) folder.
 
 Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](libs/proxy)) as a template, or create a new container lib from scratch and follow these steps:
 
-- Add `config.env` to your container's root directory (e.g. `./libs/apache`):
+- Add `container.env` to your container's root directory (e.g. `./libs/apache`):
 ```dotenv
 IP=192.168.178.42
 ID=42
@@ -151,7 +165,7 @@ Common.application(self, 'apache2') # provided by convention
 
 #### Environment
 
-- Optionally, use `Env.get()` and `Env.set()` to access Gitea environment variables.
+- Optionally, use [`Env.get()` and `Env.set()`](config/libraries/env.rb) to access Gitea environment variables.
 
 <p align="center"><br>
   <a href="docs/img/environment.png" target="_blank" rel="noopener noreferrer">

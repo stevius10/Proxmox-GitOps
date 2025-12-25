@@ -14,6 +14,7 @@ end
     group node['app']['group']
     mode '0644'
     variables(title: node['title'])
+    sensitive true
   end
 end
 
@@ -33,5 +34,6 @@ end
     group node['app']['group']
     mode '0644'
     variables(title: node['title'], online: node['online'], version: node['version'])
+    sensitive true
   end
 end

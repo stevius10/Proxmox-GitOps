@@ -30,6 +30,16 @@ RUN ansible localhost -m include_role -a name=base \
     -e "ip=${IP}" -e "id=${ID}" -e "SHARE=/share" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
     -e "private_key='$(cat /share/.ssh/${ID})\n'" -e "public_key='$(cat /share/.ssh/${ID}.pub)\n'"
 
+# Optional
+
+RUN (VERSION=$(curl -s https://api.github.com/repos/go-gitea/gitea/releases/latest | grep '"tag_name":' | cut -d '"' -f4) && \
+    curl -L --create-dirs "https://github.com/go-gitea/gitea/releases/download/${VERSION}/gitea-${VERSION#v}-linux-${TARGETARCH}" \
+      -o /app/git/gitea && echo "${VERSION#v}" > /app/git/.version) || true
+
+RUN (VERSION=$(curl -s https://gitea.com/gitea/act_runner/releases | grep -o '/gitea/act_runner/releases/tag/v[0-9]*.[0-9]*.[0-9]*' | head -1 | sed 's|.*/v||') && \
+    curl -L --create-dirs "https://gitea.com/gitea/act_runner/releases/download/v${VERSION}/act_runner-${VERSION}-linux-${TARGETARCH}" \
+      -o /app/runner/runner && echo "${VERSION}" > /app/runner/.version) || true
+
 RUN chown -R app:config /app
 
 WORKDIR /

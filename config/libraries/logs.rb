@@ -29,10 +29,8 @@ module Logs
   def self.blank!(msg, value); error(msg, raise: true) if value.nil? || (value.respond_to?(:empty?) && value.empty?); value; end
 
   class << self
-    %i[true false nil].each do |result|
-      define_method(result) do |msg|
-        self.info(msg); return result
-      end
+    { true: true, false: false, nil: nil }.each do |name, value|
+      define_method(name) do |msg| info(msg); value end
     end
   end
 end

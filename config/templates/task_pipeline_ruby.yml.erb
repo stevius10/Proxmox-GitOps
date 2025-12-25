@@ -12,13 +12,13 @@ jobs:
   run:
     runs-on: [ "shell" ]
     steps:
-      - uses: https://gitea.com/actions/checkout@v4
+      - uses: tasks/checkout@v4
         with:
           repository: '<%= @org %>/<%= @repo %>'
           ref: 'main'
           path: task
 
-      - uses: https://gitea.com/actions/checkout@v4
+      - uses: tasks/checkout@v4
         with:
           repository: 'main/libraries'
           ref: 'main'

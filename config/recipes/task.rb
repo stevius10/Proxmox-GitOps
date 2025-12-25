@@ -49,10 +49,10 @@ Common.directories(self, [destination, working], recreate: true)
     block do
       Utils.request("#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['tasks']}/repos",
         method: Net::HTTP::Post, user: Env.get(self, 'login'), pass: Env.get(self, 'password'), headers: Constants::HEADER_JSON,
-        body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.json)
+        body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' })
       Utils.request("#{node.dig('git','api','endpoint')}/repos/#{node['git']['org']['tasks']}/#{name_repo}",
         method: Net::HTTP::Patch, user: Env.get(self, 'login'), pass: Env.get(self, 'password'), headers: Constants::HEADER_JSON,
-        body: { has_issues: false, has_wiki: false, has_projects: false, has_packages: false, has_releases: false }.json )
+        body: { has_issues: false, has_wiki: false, has_projects: false, has_packages: false, has_releases: false } )
     end
   end
 

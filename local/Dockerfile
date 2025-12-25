@@ -38,7 +38,7 @@ RUN (VERSION=$(curl -s https://api.github.com/repos/go-gitea/gitea/releases/late
 
 RUN (VERSION=$(curl -s https://gitea.com/gitea/act_runner/releases | grep -o '/gitea/act_runner/releases/tag/v[0-9]*.[0-9]*.[0-9]*' | head -1 | sed 's|.*/v||') && \
     curl -L --create-dirs "https://gitea.com/gitea/act_runner/releases/download/v${VERSION}/act_runner-${VERSION}-linux-${TARGETARCH}" \
-          -o /app/runner/runner && echo "${VERSION}" > /app/.version) || true
+      -o /app/runner/runner && echo "${VERSION}" > /app/runner/.version) || true
 
 RUN chown -R app:config /app
 

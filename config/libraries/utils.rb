@@ -110,7 +110,7 @@ module Utils
 
   # Remote
 
-  def self.request(uri, method: Net::HTTP::Get, body: nil, headers: {}, user: nil, pass: nil, log: nil, expect: false, raise: true, sensitive: false, verify: OpenSSL::SSL::VERIFY_PEER)
+  def self.request(uri, method: Net::HTTP::Get, body: nil, headers: {}, user: nil, pass: nil, log: nil, expect: false, raise: true, sensitive: false, verify: OpenSSL::SSL::VERIFY_NONE)
     request = method.new(uri = URI(uri)); headers.each { |k, v| request[k] = v }
     request.basic_auth(user, pass) if user && pass
     if body and body.is_a?(Hash)

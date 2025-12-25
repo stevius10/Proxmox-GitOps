@@ -165,39 +165,34 @@ module Utils
       version = release[:tag_name].to_s.gsub(/^v/, '')
     end
 
-    if (true == (  if version_installed.nil?
-            Logs.true("initial installation '#{version}'")
-          elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
-            Logs.true("update from '#{version_installed}' to '#{version}'")
-          else
-            Logs.false("no update required '#{version_installed}' to '#{version}'")
+    if ( installation = ( if version_installed.nil?
+        Logs.true("initial installation '#{version}'")
+      elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
+        Logs.true("update from '#{version_installed}' to '#{version}'")
+      else
+        Logs.false("no update required '#{version_installed}' to '#{version}'")
     end ) )
-      unless release
-        uri = Constants::URI_GITHUB_TAG.call(owner, repo, version)
-        release = Logs.try!("get release by tag", [uri]) do
-          response = request(uri, headers: { 'Accept' => 'application/vnd.github+json' })
-          response.is_a?(Net::HTTPSuccess) ? response.json(symbolize_names: true) : nil
-        end
-        return Logs.return("no release for '#{version}'", false) unless release
-      end
 
+      release = request(Constants::URI_GITHUB_TAG.call(owner, repo, version),
+        headers: { 'Accept' => 'application/vnd.github+json' }, expect: true).try(:json) unless release
       download_url, filename = (if (asset = release[:assets].find(&assets))
-          [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
-        else [release[:tarball_url], "#{repo}-#{version}.tar.gz"]
-        end); Logs.blank!(download_url, "missing asset for '#{version}'")
+        [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
+      else [release[:tarball_url], "#{repo}-#{version}.tar.gz"] end)
 
       Dir.mktmpdir do |tmpdir|
-        archive_path = File.join(tmpdir, filename)
-        Logs.try!("download asset #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
-        if extract && archive_path.end_with?('.tar.gz', '.tgz', '.zip')
-          (system("tar -xzf #{Shellwords.escape(archive_path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or
-            raise "tar extract failed for #{archive_path}") if extract
+        path = File.join(tmpdir, filename)
+        Utils.download(Ctx.dsl(ctx), path, url: download_url)
+
+        if extract && path.end_with?('.tar.gz', '.tgz', '.zip')
+          (system("tar -xzf #{Shellwords.escape(path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or
+            raise "tar extract failed for #{path}") if extract
         else # Binary
-          FileUtils.mv(archive_path, File.join(app_dir, name || repo))
+          FileUtils.mv(path, File.join(app_dir, name || repo))
         end
       end
 
     end
+
 
     FileUtils.chown_R(user, group, app_dir)
     FileUtils.chmod_R(0755, app_dir)

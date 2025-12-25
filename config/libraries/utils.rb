@@ -165,15 +165,13 @@ module Utils
       version = release[:tag_name].to_s.gsub(/^v/, '')
     end
 
-    install = ( if version_installed.nil?
-        Logs.true("initial installation (version '#{version}')")
-      elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
-        Logs.true("update from '#{version_installed}' to '#{version}'")
-      else Logs.false("no update required from '#{version_installed}' to '#{version}'")
-    end )
-
-    if  install
-
+    if (true == (  if version_installed.nil?
+            Logs.true("initial installation '#{version}'")
+          elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
+            Logs.true("update from '#{version_installed}' to '#{version}'")
+          else
+            Logs.false("no update required '#{version_installed}' to '#{version}'")
+    end ) )
       unless release
         uri = Constants::URI_GITHUB_TAG.call(owner, repo, version)
         release = Logs.try!("get release by tag", [uri]) do

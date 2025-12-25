@@ -12,7 +12,7 @@ default['app']['group']               = Default.group(node, default: true)
 default['app']['config']              = Default.config(node, default: true)
 
 default['git']['conf']['customize']   = true
-default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password']
+default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password' ]
 default['git']['conf']['environment'] = [ "./env.json", "./env.local.json" ] # order prioritize .*.local.*
 default['git']['conf']['repo']        = [ "./", "./base", "./config/libraries", "./libs" ]
 
@@ -43,3 +43,4 @@ default['runner']['dir']['cache']     = '/tmp'
 default['runner']['conf']['label']    = 'shell'
 
 default['runner']['source']           = 'https://gitea.com/gitea/act_runner/releases'
+default['runner']['dependencies']     = [ 'https://gitea.com/actions/checkout' ]

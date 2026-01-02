@@ -6,7 +6,7 @@ ruby_block "repo_#{name_repo}_init_request" do
     uri="#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['main']}/repos"
     Utils.request(uri, method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
       log: "Create repository '#{name_repo}'", expect: [201], user: login, pass: password,
-      body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' }.json)
+      body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' })
   end
 end
 
@@ -14,7 +14,7 @@ ruby_block "repo_#{name_repo}_init_configure" do
   block do
     uri = "#{node.dig('git','api','endpoint')}/repos/#{node['git']['org']['main']}/#{name_repo}"
     Utils.request(uri, log: "Configure repository '#{name_repo}'", method: Net::HTTP::Patch, headers: Constants::HEADER_JSON, user: login, pass: password,
-      body: { has_issues: false, has_wiki: false, has_projects: false, has_packages: false, has_releases: false }.json )
+      body: { has_issues: false, has_wiki: false, has_projects: false, has_packages: false, has_releases: false } )
   end
 end
 

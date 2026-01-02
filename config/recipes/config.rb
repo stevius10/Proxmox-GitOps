@@ -1,6 +1,5 @@
 login    = node.run_state['login']
 password = node.run_state['password']
-email    = node.run_state['email']
 
 Utils.wait("127.0.0.1:#{node['git']['port']['http']}", timeout: 15, sleep_interval: 1)
 
@@ -11,7 +10,7 @@ execute 'config_set_user' do
   command <<-EOH
     base="#{node['git']['dir']['app']}/gitea admin user --config #{node['git']['dir']['app']}/app.ini"
     user="--username #{login} --password #{password}"
-    create="--email #{email} --admin --must-change-password=false"
+    create="--email #{node['mail']} --admin --must-change-password=false"
     if $base list | awk '{print $2}' | grep -q "^#{login}$"; then
       $base delete $user 
     fi
@@ -30,7 +29,7 @@ ruby_block 'config_set_key' do
         method: Net::HTTP::Delete) if k['key'] && k['key'].strip == key
     end
 
-    Utils.request(uri, body: { title: login, key: key }.json, headers: Constants::HEADER_JSON,
+    Utils.request(uri, body: { title: login, key: key },
       log: "set key", expect: [201, 422], method: Net::HTTP::Post, user: login, pass: password)
   end
   only_if { ::File.exist?("#{node['key']}.pub") }
@@ -55,32 +54,8 @@ end
 execute 'config_git_user' do
   command <<-SH
     git config --global user.name "#{login}"
-    git config --global user.email "#{email}"
+    git config --global user.email "#{node['mail']}"
     git config --global core.excludesfile #{ENV['PWD']}/.gitignore
   SH
   user node['app']['user']
-end
-
-# Organization
-
-[node['git']['org']['main'], node['git']['org']['stage'], node['git']['org']['tasks']].each do |org|
-
-  ruby_block "dump_variables_#{org}" do
-    action :nothing
-    block do
-      try { Env.dump(self, *node['git']['conf']['defaults'], owner: org) }
-      try { Env.dump(self, *(node['git']['conf']['environment']
-        .map { |file| Utils.mapping(file) }.reduce({}, :merge!)
-      ).each { |k, v| node.default[k] = v }.keys, owner: org) }
-    end
-  end
-
-  ruby_block "create_org_#{org}" do
-    block do
-      Utils.request("#{node.dig('git','api','endpoint')}/orgs", method: Net::HTTP::Post, headers: Constants::HEADER_JSON,
-        log: "create organization '#{org}'", expect:  [201, 409, 422], body: { username: org }.to_json, user: login, pass: password)
-    end
-    notifies :run, "ruby_block[dump_variables_#{org}]", :immediate
-  end
-
 end

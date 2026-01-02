@@ -110,9 +110,14 @@ module Utils
 
   # Remote
 
-  def self.request(uri, user: nil, pass: nil, headers: {}, method: Net::HTTP::Get, body: nil, log: nil, expect: false, raise: true, sensitive: false, verify: OpenSSL::SSL::VERIFY_NONE)
+  def self.request(uri, method: Net::HTTP::Get, body: nil, headers: {}, user: nil, pass: nil, log: nil, expect: false, raise: true, sensitive: false, verify: OpenSSL::SSL::VERIFY_NONE)
     request = method.new(uri = URI(uri)); headers.each { |k, v| request[k] = v }
-    request.basic_auth(user, pass) if user && pass; request.body = body if body
+    request.basic_auth(user, pass) if user && pass
+    if body and body.is_a?(Hash)
+      Constants::HEADER_JSON.each { |k, v| request[k] = v }
+      body = body.try(:json).or(body)
+    end
+    request.body = body
 
     response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https', verify_mode: verify ) { |http| http.request(request) }
     if response.is_a?(Net::HTTPRedirection) && (location = response['location'])
@@ -160,42 +165,37 @@ module Utils
       version = release[:tag_name].to_s.gsub(/^v/, '')
     end
 
-    if version_installed.nil?
-      Logs.info("initial installation (version '#{version}')")
-    elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
-      Logs.info("update from '#{version_installed}' to '#{version}'")
-    else
-      return Logs.false("no update required from '#{version_installed}' to '#{version}'")
-    end
+    if ( installation = ( if version_installed.nil?
+        Logs.true("initial installation '#{version}'")
+      elsif Gem::Version.new(version) > Gem::Version.new(version_installed)
+        Logs.true("update from '#{version_installed}' to '#{version}'")
+      else
+        Logs.false("no update required '#{version_installed}' to '#{version}'")
+    end ) )
 
-    unless release
-      uri = Constants::URI_GITHUB_TAG.call(owner, repo, version)
-      release = Logs.try!("get release by tag", [uri]) do
-        response = request(uri, headers: { 'Accept' => 'application/vnd.github+json' })
-        response.is_a?(Net::HTTPSuccess) ? response.json(symbolize_names: true) : nil
-      end
-      return Logs.return("no release for '#{version}'", false) unless release
-    end
-
-    download_url, filename = (if (asset = release[:assets].find(&assets))
+      release = request(Constants::URI_GITHUB_TAG.call(owner, repo, version),
+        headers: { 'Accept' => 'application/vnd.github+json' }, expect: true).try(:json) unless release
+      download_url, filename = (if (asset = release[:assets].find(&assets))
         [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
-      else [release[:tarball_url], "#{repo}-#{version}.tar.gz"]
-      end); Logs.blank!(download_url, "missing asset for '#{version}'")
+      else [release[:tarball_url], "#{repo}-#{version}.tar.gz"] end)
 
-    Dir.mktmpdir do |tmpdir|
-      archive_path = File.join(tmpdir, filename)
-      Logs.try!("download asset #{download_url}", [:to, archive_path]) { download(ctx, archive_path, url: download_url) }
+      Dir.mktmpdir do |tmpdir|
+        path = File.join(tmpdir, filename)
+        Utils.download(Ctx.dsl(ctx), path, url: download_url)
 
-      if extract && archive_path.end_with?('.tar.gz', '.tgz', '.zip')
-        (system("tar -xzf #{Shellwords.escape(archive_path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or
-          raise "tar extract failed for #{archive_path}") if extract
-      else # Binary
-        FileUtils.mv(archive_path, File.join(app_dir, name || repo))
+        if extract && path.end_with?('.tar.gz', '.tgz', '.zip')
+          (system("tar -xzf #{Shellwords.escape(path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or
+            raise "tar extract failed for #{path}") if extract
+        else # Binary
+          FileUtils.mv(path, File.join(app_dir, name || repo))
+        end
       end
 
-      FileUtils.chown_R(user, group, app_dir)
-      FileUtils.chmod_R(0755, app_dir)
     end
+
+
+    FileUtils.chown_R(user, group, app_dir)
+    FileUtils.chmod_R(0755, app_dir)
 
     Ctx.dsl(ctx).file version_file do
       content version.to_s

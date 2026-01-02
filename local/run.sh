@@ -3,14 +3,14 @@ set -eo pipefail
 
 log() { echo "[$1] $2"; };
 err() { log "error" "$1"; exit 1; }
-candidate() {
+cfg() {
   [[ -f "$1/config.local.json" ]] && echo "-j $1/config.local.json" && return 0
   [[ -f "$1/config.json" ]] && echo "-j $1/config.json"
 }
 
 NAME="$(basename "$(pwd)${1:+/config/libs/$1}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
 LIB="${1:-config}"; LOCAL="./local"
-CONFIG=$(candidate "${LOCAL}" || candidate "./libs/${LIB:-config}" || true)
+CONFIG=$(cfg "${LOCAL}" || cfg "./libs/${LIB:-config}" || true)
 LIBS="['/tmp/config','/tmp/config/libs']"
 
 DOCKER_IMAGE="$(basename "$(pwd)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"

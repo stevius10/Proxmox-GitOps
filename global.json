@@ -1,0 +1,16 @@
+{
+
+  "BASE_DIR": "/tmp/config",
+  "BASE_SHARE": "/share",
+  "BASE_STORAGE": "local:vztmpl",
+  "BASE_TEMPLATE": "debian-13-standard_13.1-2",
+
+  "BASE_GATEWAY": "192.168.178.1",
+  "BASE_MASK": "24",
+  "BASE_INTERFACE": "eth0",
+  "BASE_BRIDGE": "vmbr0",
+
+  "LIB_ADAPTER" : "zstack",
+  "LIB_SERIAL"  : "/dev/serial/by-id/"
+
+}

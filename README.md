@@ -119,12 +119,12 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 ### Files and Configuration
 
-- Global environment variables can be set in [`env.json`](env.json). 
+- Global environment variables can be set in [`global.json`](global.json). 
 
 - `container.stage.env` is sourced for forked repository deployments. 
 
 - `.local.` files can be used to [structure versioning](.gitignore).
-  e. g. `env.local.json`, `container.local.json` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy)
+  e. g. `global.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy)
 
 ### Development and Extension
 

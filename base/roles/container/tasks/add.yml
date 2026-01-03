@@ -1,7 +1,7 @@
 - name: Container addition
   block:
     - name: Check config user
-      command: "ssh -o BatchMode=yes -o ConnectTimeout=8 -i {{ key_dir }}/{{ id }} config@{{ ip }} echo success"
+      command: "ssh -o BatchMode=yes -o ConnectTimeout=8 -i {{ DIR_KEYS }}/{{ id }} config@{{ ip }} echo success"
       register: ssh_config_test
       failed_when: false
       changed_when: false
@@ -17,10 +17,10 @@
         id: "{{ id }}"
         ansible_host: "{{ ip }}"
         ansible_user: "{{ ssh_user }}"
-        ansible_ssh_private_key_file: "{{ [key_dir, id] | path_join }}"
+        ansible_ssh_private_key_file: "{{ [DIR_KEYS, id] | path_join }}"
         ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-        public_key: "{{ lookup('file', [key_dir, id ~ '.pub'] | path_join) }}"
-        private_key: "{{ lookup('file', [key_dir, id] | path_join) }}"
+        public_key: "{{ lookup('file', [DIR_KEYS, id ~ '.pub'] | path_join) }}"
+        private_key: "{{ lookup('file', [DIR_KEYS, id] | path_join) }}"
 
     - name: Reset known hosts
       ansible.builtin.known_hosts:

@@ -3,23 +3,23 @@
   hosts: localhost
   gather_facts: no
   vars:
-    dir:       "{{ (lookup('env', 'DIR')      | default('') | trim) or '/tmp/config' }}"
-    share_dir: "{{ (lookup('env', 'SHARE')    | default('') | trim) or '/share' }}"
-    storage:   "{{ (lookup('env', 'STORAGE')  | default('') | trim) or 'local:vztmpl' }}"
-    template:  "{{ (lookup('env', 'TEMPLATE') | default('') | trim) or 'debian-13-standard_13.1-2' }}"
-    cert_dir:  "{{ share_dir }}/.cert"
-    key_dir:   "{{ share_dir }}/.ssh"
+    BASE_DIR:       "{{ (lookup('env', 'BASE_DIR') }}"
+    BASE_STORAGE:   "{{ (lookup('env', 'BASE_STORAGE') }}"
+    BASE_TEMPLATE:  "{{ (lookup('env', 'BASE_TEMPLATE') }}"
+    DIR_SHARE:      "{{ (lookup('env', 'BASE_SHARE') }}"
+    DIR_CERTS:      "{{ (lookup('env', 'BASE_SHARE') }}/.cert"
+    DIR_KEYS:       "{{ (lookup('env', 'BASE_SHARE') }}/.ssh"
   tasks:
 
     - name: Ensure directories
       file:
-        path: "{{ key_dir }}"
+        path: "{{ DIR_KEYS }}"
         state: directory
-      loop: ["{{ share_dir }}", "{{ cert_dir }}", "{{ key_dir }}"]
+      loop: ["{{ DIR_SHARE }}", "{{ DIR_CERTS }}", "{{ DIR_KEYS }}"]
 
     - name: Generate container key on host
       community.crypto.openssh_keypair:
-        path: "{{ key_dir }}/{{ id }}"
+        path: "{{ DIR_KEYS }}/{{ id }}"
         type: ed25519
         force: false
 
@@ -35,7 +35,7 @@
     - name: Copy share if exists
       ansible.builtin.copy:
         src: /share/
-        dest: /share/
+        dest: "{{ DIR_SHARE }}"
         remote_src: no
         mode: "0775"
         force: no

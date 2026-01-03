@@ -7,9 +7,34 @@ cfg() {
   [[ -f "$1/config.local.json" ]] && echo "-j $1/config.local.json" && return 0
   [[ -f "$1/config.json" ]] && echo "-j $1/config.json"
 }
+arg() {
+  LIB="config"
+  LOG_LEVEL="info"
+  REBOOT="false"
 
-NAME="$(basename "$(pwd)${1:+/config/libs/$1}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
-LIB="${1:-config}"; LOCAL="./local"
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help)
+        echo "\t-l, --log-level LEVEL\n\t-d, --debug\n\t-r, --reboot"; exit 0;;
+      -l|--log-level)
+        [[ $# -gt 1 ]] && LOG_LEVEL="$2" && shift;;
+      -d|--debug)
+        LOG_LEVEL="debug";;
+      -r|--reboot)
+        REBOOT="true";;
+      -*)
+        err "unknown option: $1";;
+      *)
+        [[ -z "$LIB" || "$LIB" == "config" ]] && LIB="$1" ;;
+    esac
+    shift
+  done
+}
+
+arg "$@"
+
+NAME="$(basename "$(pwd)${LIB:+/config/libs/$LIB}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
+LIB="${LIB:-config}"; LOCAL="./local"
 CONFIG=$(cfg "${LOCAL}" || cfg "./libs/${LIB:-config}" || true)
 LIBS="['/tmp/config','/tmp/config/libs']"
 
@@ -48,7 +73,7 @@ fi
 log "container" "run"
 CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --add-host=host.docker.internal:host-gateway \
     $( [[ -d "${LOCAL}/share" ]] && echo "-v ${LOCAL}/share:/share:ro " ) \
-    $( [[ -n "$1" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
+    $( [[ "$LIB" != "config" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
     --name "$DOCKER_CONTAINER" --platform "linux/${TARGETARCH}" -w /tmp/config "$DOCKER_IMAGE" sleep infinity) || err "failed to start container"
 log "container" "${DOCKER_CONTAINER} [${CONTAINER_ID:0:6}]"
 
@@ -66,10 +91,11 @@ sync() {
 }
 
 configuration() {
+  local suffix="${1:-}"
   log "configuration" "sync" && sync
   log "configuration" "execute ($LIB$1)"
   command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID,HOST \
-    cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
+    cinc-client -l '"$LOG_LEVEL"' --local-mode --config-option node_path=/tmp/nodes \
       --config-option cookbook_path='"$LIBS"' '"$CONFIG"' -o '"$LIB$1"''
   docker exec "$CONTAINER_ID" bash -c "$command"  || err "execution error"
   log "configuration" "executed ($LIB$1)"
@@ -79,4 +105,9 @@ if [[ "${LIB}" != "config" ]]; then suffixes=("::default"); else suffixes=("::re
 configuration ""; while true; do
   log "configuration" "$LIB${suffixes[@]}"; read -r
   for s in "${suffixes[@]}"; do configuration "$s"; done
+
+  if [[ "${REBOOT}" == "true" ]]; then
+    log "configuration" "restart [${CONTAINER_ID:0:6}]"
+    sleep "$DOCKER_WAIT" && docker restart $CONTAINER_ID
+  fi
 done

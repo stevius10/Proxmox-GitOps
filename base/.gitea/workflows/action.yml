@@ -42,7 +42,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-
     - uses: tasks/checkout@v4
       with:
         repository: main/base
@@ -51,8 +50,8 @@ runs:
         ansible-playbook default.yml -e "ip=${{ inputs.ip }}" -e "id=${{ inputs.id }}" \
           -e "hostname=${{ inputs.hostname }}" -e "cores=${{ inputs.cores }}" -e "memory=${{ inputs.memory }}" \
           -e "swap=${{ inputs.swap }}" -e "disk=${{ inputs.disk }}" -e "boot=${{ inputs.boot }}" \
-          -e "mount=${{ inputs.mount }}" -e "share=${{ env.PROXMOX_PASSWORD && inputs.share || 'false' }}" \
-          -e "DIR=${{ inputs.dir }}"
+          -e "mount=${{ inputs.mount }}" -e "share=${{ env.PROXMOX_PASSWORD && inputs.share || 'false' }}"
+
       env:
         HOST: ${{ vars.HOST }}
         LOGIN: ${{ vars.LOGIN }}
@@ -62,3 +61,12 @@ runs:
         PROXMOX_PASSWORD: ${{ vars.PROXMOX_PASSWORD }}
         PROXMOX_TOKEN: ${{ vars.PROXMOX_TOKEN }}
         PROXMOX_SECRET: ${{ vars.PROXMOX_SECRET }}
+
+        BASE_DIR: ${{ vars.BASE_DIR || '/tmp/config' }}
+        BASE_SHARE: ${{ vars.BASE_SHARE || '/share' }}
+        BASE_STORAGE: ${{ vars.BASE_STORAGE || 'local:vztmpl' }}
+        BASE_TEMPLATE: ${{ vars.BASE_TEMPLATE || 'debian-13-standard_13.1-2' }}
+        BASE_GATEWAY: ${{ vars.BASE_GATEWAY || '192.168.178.1' }}
+        BASE_MASK: ${{ vars.BASE_MASK || '24' }}
+        BASE_INTERFACE: ${{ vars.BASE_INTERFACE || 'eth0' }}
+        BASE_BRIDGE: ${{ vars.BASE_BRIDGE || 'vmbr0' }}

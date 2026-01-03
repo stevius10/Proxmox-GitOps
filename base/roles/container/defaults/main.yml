@@ -18,7 +18,3 @@ proxmox_cred:
 
 check_delay: 4
 check_retries: 15
-
-network_gateway: "192.168.178.1"
-network_netmask: "24"
-network_bridge: "vmbr0"

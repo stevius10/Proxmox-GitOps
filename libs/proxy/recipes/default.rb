@@ -1,3 +1,5 @@
+require 'ipaddr'
+
 Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
 Common.directories(self, [ node['proxy']['dir']['app'],
@@ -22,9 +24,9 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
   group node['app']['group']
   mode   '0644'
   variables( hosts: lazy { node.run_state['proxy_hosts'] || [] }, config_dir: node['proxy']['dir']['config'],
-    caddy_dir: node['proxy']['dir']['caddy'], log_dir: node['proxy']['dir']['logs'],
-    internal: node['proxy']['config']['internal'], logs_roll_size: node['proxy']['logs']['roll_size'],
-    logs_roll_keep: node['proxy']['logs']['roll_keep'], logs_roll_for: node['proxy']['logs']['roll_for'] )
+    caddy_dir: node['proxy']['dir']['caddy'], log_dir: node['proxy']['dir']['logs'], logs_roll_size: node['proxy']['logs']['roll_size'],
+    logs_roll_keep: node['proxy']['logs']['roll_keep'], logs_roll_for: node['proxy']['logs']['roll_for'],
+    internal: lazy { IPAddr.new(Env.get(self, "BASE_GATEWAY").or("192.168.178.0")).mask(Env.get(self, "BASE_MASK").or("24")).to_s })
 end
 
 remote_directory node['proxy']['dir']['config'] do

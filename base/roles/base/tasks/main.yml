@@ -2,8 +2,8 @@
   block:
     - name: Set shared directories
       set_fact:
-        cert_dir: "{{ share_dir }}/.certs"
-        key_dir: "{{ share_dir }}/.ssh"
+        DIR_CERTS: "{{ DIR_SHARE }}/.certs"
+        DIR_KEYS: "{{ DIR_SHARE }}/.ssh"
 
     - name: Update system
       apt:
@@ -54,8 +54,8 @@
     extra:
       - { path: "/app", state: "directory", mode: "0755", owner: "app", group: "config" }
       - { path: "/app/.ssh", state: "directory", mode: "0711", owner: "app", group: "config" }
-      - { path: "{{ key_dir }}", state: "directory", mode: "0711", owner: "app", group: "config" }
-      - { path: "{{ cert_dir }}", state: "directory", mode: "0711", owner: "app", group: "config" }
+      - { path: "{{ DIR_KEYS }}", state: "directory", mode: "0711", owner: "app", group: "config" }
+      - { path: "{{ DIR_CERTS }}", state: "directory", mode: "0711", owner: "app", group: "config" }
 
 - name: Container accessibility
   import_tasks: access.yml

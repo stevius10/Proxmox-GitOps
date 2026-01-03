@@ -13,7 +13,7 @@ default['app']['config']              = Default.config(node, default: true)
 
 default['git']['conf']['customize']   = true
 default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password' ]
-default['git']['conf']['environment'] = [ "./env.json", "./env.local.json" ] # order prioritize .*.local.*
+default['git']['conf']['environment'] = [ "./global.json", "./global.local.json" ] # order prioritize .*.local.*
 default['git']['conf']['repo']        = [ "./", "./base", "./config/libraries", "./libs" ]
 
 default['git']['dir']['app']          = '/app/git'

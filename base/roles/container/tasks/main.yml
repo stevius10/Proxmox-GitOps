@@ -13,7 +13,7 @@
 - name: Set OS template
   set_fact:
     os: |-
-      {{ OS | default(storage ~ '/' ~ template ~ '_' ~
+      {{ OS | default(BASE_STORAGE ~ '/' ~ template ~ '_' ~
         ('arm64' if (status.json.data['current-kernel'].machine | default('x86_64')
         | lower is search('arm|aarch64')) else 'amd64') ~ '.tar.zst' ) }}
 

@@ -46,11 +46,11 @@
       ostemplate: "{{ os }}"
       cores: "{{ cores }}"
       memory: "{{ memory }}"
-      pubkey: "{{ lookup('file', [key_dir, id ~ '.pub'] | path_join) }}"
+      pubkey: "{{ lookup('file', [DIR_KEYS, id ~ '.pub'] | path_join) }}"
       swap: "{{ swap }}"
       disk: "{{ disk }}"
       netif:
-        net0: "name=eth0,gw={{ network_gateway }},ip={{ ip }}/{{ network_netmask }},bridge={{ network_bridge }}"
+        net0: "name={{ BASE_INTERFACE }},gw={{ BASE_GATEWAY }},ip={{ ip }}/{{ BASE_MASK }},bridge={{ BASE_BRIDGE }}"
       features: "{{ (features if features and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}"
       mounts: "{{ (mounts if mounts and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}"
       unprivileged: "{{ (share | default(false) and mount | default('') | trim != '') | ternary(false, true) }}"

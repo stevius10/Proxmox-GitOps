@@ -10,7 +10,7 @@ arg() { while [[ $# -gt 0 ]]; do case "$1" in
   -h|--help)
     echo -e "./local/$SCRIPT [OPTIONS] [lib]"
     echo -e "  -l, --log-level <level>\n  -s, --suffixes <list>"
-    echo -e "  -d, --debug\n  -r, --reboot"
+    echo -e "  -d, --debug\n  -r, --restart"
     echo -e "\ne. g. ./local/$SCRIPT -s \"customize\" -l error --restart, ./local/$SCRIPT -d broker\n"
     exit 0 ;;
   -l|--log-level)
@@ -18,7 +18,7 @@ arg() { while [[ $# -gt 0 ]]; do case "$1" in
   -s|--suffixes)
     [[ $# -gt 1 ]] && SUFFIXES="$2" && shift ;;
   -d|--debug)   LOG_LEVEL="debug" ;;
-  -r|--reboot)  REBOOT="true" ;;
+  -r|--restart) RESTART="true" ;;
   -*) ;;
   *) [[ -z "$LIB" || "$LIB" == "config" ]] && LIB="$1" ;;
   esac; shift; done

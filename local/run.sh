@@ -5,8 +5,24 @@ log() { echo "[$1] $2"; };
 err() { log "error" "$1"; exit 1; }
 cfg() { local lib="${1:-}"
   [[ -f "$lib/config.local.json" ]] && echo "-j $lib/config.local.json" && return 0
-  [[ -f "$lib/config.json" ]]       && echo "-j $lib/config.json"
-}
+  [[ -f "$lib/config.json" ]]       && echo "-j $lib/config.json"; }
+arg() { while [[ $# -gt 0 ]]; do case "$1" in
+  -h|--help)
+    echo -e "./local/$SCRIPT [OPTIONS] [lib]"
+    echo -e "  -l, --log-level <level>\n  -s, --suffixes <list>"
+    echo -e "  -d, --debug\n  -r, --reboot"
+    echo -e "\ne. g. ./local/$SCRIPT -s \"customize\" -l error --restart, ./local/$SCRIPT -d broker\n"
+    exit 0 ;;
+  -l|--log-level)
+    [[ $# -gt 1 ]] && LOG_LEVEL="$2" && shift ;;
+  -s|--suffixes)
+    [[ $# -gt 1 ]] && SUFFIXES="$2" && shift ;;
+  -d|--debug)   LOG_LEVEL="debug" ;;
+  -r|--reboot)  REBOOT="true" ;;
+  -*) ;;
+  *) [[ -z "$LIB" || "$LIB" == "config" ]] && LIB="$1" ;;
+  esac; shift; done
+}; LIB="config"; LOG_LEVEL="info"; RESTART="false"; SCRIPT="$(basename "$0")"; arg "$@"
 
 NAME="$(basename "$(pwd)${LIB:+/config/libs/$LIB}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
 LIB="${LIB:-config}"; LOCAL="./local"
@@ -54,27 +70,6 @@ log "container" "${DOCKER_CONTAINER} [${CONTAINER_ID:0:6}]"
 
 log "configuration" ""
 
-arg() {
-  while [[ $# -gt 0 ]]; do
-    case "$1" in
-      -h|--help)
-        script_name="$(basename "$0")"
-        echo "$SCRIPT [OPTIONS] [lib]"
-        echo "e. g. $SCRIPT -s "prepare" -l error --restart\n"
-        echo "  -l, --log-level \tLEVEL\n  -s, --SUFFIXES \tLIST"
-        echo "  -d, --debug\n  -r, --reboot"; exit 0;;
-      -l|--log-level)
-        [[ $# -gt 1 ]] && LOG_LEVEL="$2" && shift;;
-      -s|--SUFFIXES)
-        [[ $# -gt 1 ]] && SUFFIXES="$2" && shift;;
-      -d|--debug)   LOG_LEVEL="debug";;
-      -r|--reboot)  REBOOT="true";;
-      -*) ;;
-      *) [[ -z "$LIB" || "$LIB" == "config" ]] && LIB="$1" ;;
-    esac; shift
-  done
-}
-
 sync() {
   docker exec "$CONTAINER_ID" bash -c "rm -rf /tmp/config/*" || err "cleanup error"
   docker cp "$(pwd)/." "$CONTAINER_ID:/tmp/config/" || err "remote error"
@@ -97,14 +92,10 @@ configuration() {
   log "configuration" "executed ($recipe)"
 }
 
-LIB="config"; LOG_LEVEL="info"; RESTART="false"; SCRIPT="$(basename "$0")"
-arg "$@"
-if [[ -z "${SUFFIXES+x}" ]]; then
-  if [[ "${LIB}" != "config" ]]; then SUFFIXES=("default"); else SUFFIXES=("repo"); fi
-fi
-
 configuration ""
-while true; do # reconfigure, by recipe suffix
+
+if [[ -z "${SUFFIXES+x}" ]]; then if [[ "${LIB}" != "config" ]]; then SUFFIXES=("default"); else SUFFIXES=("repo"); fi; fi
+while true; do # reconfigure, by recipe suffix if set
   log "configuration" "$LIB: '${SUFFIXES[@]}'"; read -r
   for s in "${SUFFIXES[@]}"; do configuration "$s"; done
 

@@ -3,12 +3,12 @@
   hosts: localhost
   gather_facts: no
   vars:
-    BASE_DIR:       "{{ (lookup('env', 'BASE_DIR') }}"
-    BASE_STORAGE:   "{{ (lookup('env', 'BASE_STORAGE') }}"
-    BASE_TEMPLATE:  "{{ (lookup('env', 'BASE_TEMPLATE') }}"
-    DIR_SHARE:      "{{ (lookup('env', 'BASE_SHARE') }}"
-    DIR_CERTS:      "{{ (lookup('env', 'BASE_SHARE') }}/.cert"
-    DIR_KEYS:       "{{ (lookup('env', 'BASE_SHARE') }}/.ssh"
+    BASE_DIR:       "{{ lookup('env', 'BASE_DIR'     ) }}"
+    BASE_STORAGE:   "{{ lookup('env', 'BASE_STORAGE' ) }}"
+    BASE_TEMPLATE:  "{{ lookup('env', 'BASE_TEMPLATE') }}"
+    DIR_SHARE:      "{{ lookup('env', 'BASE_SHARE') }}"
+    DIR_CERTS:      "{{ lookup('env', 'BASE_SHARE') }}/.cert"
+    DIR_KEYS:       "{{ lookup('env', 'BASE_SHARE') }}/.ssh"
   tasks:
 
     - name: Ensure directories

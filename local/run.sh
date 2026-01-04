@@ -3,10 +3,9 @@ set -eo pipefail
 
 log() { echo "[$1] $2"; };
 err() { log "error" "$1"; exit 1; }
-cfg() {
-  local lib="${1:-}"
-  [[ -f "$1/config.local.json" ]] && echo "-j $lib/config.local.json" && return 0
-  [[ -f "$1/config.json" ]] && echo "-j $lib/config.json"
+cfg() { local lib="${1:-}"
+  [[ -f "$lib/config.local.json" ]] && echo "-j $lib/config.local.json" && return 0
+  [[ -f "$lib/config.json" ]]       && echo "-j $lib/config.json"
 }
 
 NAME="$(basename "$(pwd)${LIB:+/config/libs/$LIB}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"

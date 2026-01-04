@@ -3,13 +3,13 @@ set -eo pipefail
 
 log() { echo "[$1] $2"; };
 err() { log "error" "$1"; exit 1; }
-cfg() {
-  [[ -f "$1/config.local.json" ]] && echo "-j $1/config.local.json" && return 0
-  [[ -f "$1/config.json" ]] && echo "-j $1/config.json"
+cfg() { local lib="${1:-}"
+  [[ -f "$lib/config.local.json" ]] && echo "-j $lib/config.local.json" && return 0
+  [[ -f "$lib/config.json" ]]       && echo "-j $lib/config.json"
 }
 
-NAME="$(basename "$(pwd)${1:+/config/libs/$1}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
-LIB="${1:-config}"; LOCAL="./local"
+NAME="$(basename "$(pwd)${LIB:+/config/libs/$LIB}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
+LIB="${LIB:-config}"; LOCAL="./local"
 CONFIG=$(cfg "${LOCAL}" || cfg "./libs/${LIB:-config}" || true)
 LIBS="['/tmp/config','/tmp/config/libs']"
 
@@ -29,7 +29,7 @@ case "$(uname -m)" in
 esac
 export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/${TARGETARCH}}"
 
-log "" "container"
+log "container" ""
 
 if docker ps -a --format '{{.Names}}' | grep -q "^${DOCKER_CONTAINER}$"; then
     log "container" "clean"
@@ -48,11 +48,32 @@ fi
 log "container" "run"
 CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --add-host=host.docker.internal:host-gateway \
     $( [[ -d "${LOCAL}/share" ]] && echo "-v ${LOCAL}/share:/share:ro " ) \
-    $( [[ -n "$1" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
+    $( [[ "$LIB" != "config" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
     --name "$DOCKER_CONTAINER" --platform "linux/${TARGETARCH}" -w /tmp/config "$DOCKER_IMAGE" sleep infinity) || err "failed to start container"
 log "container" "${DOCKER_CONTAINER} [${CONTAINER_ID:0:6}]"
 
-log "" "configuration"
+log "configuration" ""
+
+arg() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help)
+        script_name="$(basename "$0")"
+        echo "$SCRIPT [OPTIONS] [lib]"
+        echo "e. g. $SCRIPT -s "prepare" -l error --restart\n"
+        echo "  -l, --log-level \tLEVEL\n  -s, --SUFFIXES \tLIST"
+        echo "  -d, --debug\n  -r, --reboot"; exit 0;;
+      -l|--log-level)
+        [[ $# -gt 1 ]] && LOG_LEVEL="$2" && shift;;
+      -s|--SUFFIXES)
+        [[ $# -gt 1 ]] && SUFFIXES="$2" && shift;;
+      -d|--debug)   LOG_LEVEL="debug";;
+      -r|--reboot)  REBOOT="true";;
+      -*) ;;
+      *) [[ -z "$LIB" || "$LIB" == "config" ]] && LIB="$1" ;;
+    esac; shift
+  done
+}
 
 sync() {
   docker exec "$CONTAINER_ID" bash -c "rm -rf /tmp/config/*" || err "cleanup error"
@@ -66,17 +87,29 @@ sync() {
 }
 
 configuration() {
+  local recipe="$LIB${1:+::$1}"
   log "configuration" "sync" && sync
-  log "configuration" "execute ($LIB$1)"
+  log "configuration" "execute $recipe (LIB=$LIB LOG_LEVEL=$LOG_LEVEL RESTART=$RESTART SUFFIXES=$SUFFIXES)"
   command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID,HOST \
-    cinc-client -l info --local-mode --config-option node_path=/tmp/nodes \
-      --config-option cookbook_path='"$LIBS"' '"$CONFIG"' -o '"$LIB$1"''
+    cinc-client -l '"$LOG_LEVEL"' --local-mode --config-option node_path=/tmp/nodes \
+      --config-option cookbook_path='"$LIBS"' '"$CONFIG"' -o '"$recipe"''
   docker exec "$CONTAINER_ID" bash -c "$command"  || err "execution error"
-  log "configuration" "executed ($LIB$1)"
+  log "configuration" "executed ($recipe)"
 }
 
-if [[ "${LIB}" != "config" ]]; then suffixes=("::default"); else suffixes=("::repo"); fi
-configuration ""; while true; do
-  log "configuration" "$LIB${suffixes[@]}"; read -r
-  for s in "${suffixes[@]}"; do configuration "$s"; done
+LIB="config"; LOG_LEVEL="info"; RESTART="false"; SCRIPT="$(basename "$0")"
+arg "$@"
+if [[ -z "${SUFFIXES+x}" ]]; then
+  if [[ "${LIB}" != "config" ]]; then SUFFIXES=("default"); else SUFFIXES=("repo"); fi
+fi
+
+configuration ""
+while true; do # reconfigure, by recipe suffix
+  log "configuration" "$LIB: '${SUFFIXES[@]}'"; read -r
+  for s in "${SUFFIXES[@]}"; do configuration "$s"; done
+
+  if [[ "${RESTART}" == "true" ]]; then
+    log "configuration" "restart [${CONTAINER_ID:0:6}]"
+    sleep "$DOCKER_WAIT" && docker restart $CONTAINER_ID
+  fi
 done

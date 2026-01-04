@@ -89,7 +89,7 @@ sync() {
 configuration() {
   local recipe="$LIB${1:+::$1}"
   log "configuration" "sync" && sync
-  log "configuration" "execute ($recipe)"
+  log "configuration" "execute $recipe (LIB=$LIB LOG_LEVEL=$LOG_LEVEL RESTART=$RESTART SUFFIXES=$SUFFIXES)"
   command='sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID,HOST \
     cinc-client -l '"$LOG_LEVEL"' --local-mode --config-option node_path=/tmp/nodes \
       --config-option cookbook_path='"$LIBS"' '"$CONFIG"' -o '"$recipe"''
@@ -102,9 +102,9 @@ arg "$@"
 if [[ -z "${SUFFIXES+x}" ]]; then
   if [[ "${LIB}" != "config" ]]; then SUFFIXES=("default"); else SUFFIXES=("repo"); fi
 fi
-log "configuration" "LIB=$LIB LOG_LEVEL=$LOG_LEVEL RESTART=$RESTART SUFFIXES=$SUFFIXES" && configuration ""
 
-while true; do # rerun
+configuration ""
+while true; do # reconfigure, by recipe suffix
   log "configuration" "$LIB: '${SUFFIXES[@]}'"; read -r
   for s in "${SUFFIXES[@]}"; do configuration "$s"; done
 

@@ -106,8 +106,8 @@ fi
 log "configuration" "LIB=$LIB LOG_LEVEL=$LOG_LEVEL RESTART=$RESTART SUFFIXES=$SUFFIXES" && configuration ""
 
 while true; do # rerun
-  log "configuration" "$LIB${SUFFIXES[@]}"; read -r
-  for s in "${SUFFIXES[@]}"; do configuration "::$s"; done
+  log "configuration" "$LIB: '${SUFFIXES[@]}'"; read -r
+  for s in "${SUFFIXES[@]}"; do configuration "$s"; done
 
   if [[ "${RESTART}" == "true" ]]; then
     log "configuration" "restart [${CONTAINER_ID:0:6}]"

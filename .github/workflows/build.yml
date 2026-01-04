@@ -60,8 +60,9 @@ jobs:
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
-          BASE_DIR: ${{ '/tmp/config' }}
-          BASE_SHARE: ${{ '/share' }}
+          DIR_SHARE: "{{ '/share' }}"
+          DIR_CERTS: "{{ '/share/.cert' }}"
+          DIR_KEYS:  "{{ '/share/.ssh' }}"
         run: |
           sudo apt update -y && sudo apt install -y systemd ansible python3 python3-pip curl wget
           ssh-keygen -t ed25519 -f "${ID}" -N ''
@@ -87,8 +88,6 @@ jobs:
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
-          BASE_DIR: ${{ '/tmp/config' }}
-          BASE_SHARE: ${{ '/share' }}
           PWD: ${{ github.workspace }}
         run: |
           sudo env IP="$IP" ID="$ID" PWD="$PWD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="." -j ./local/config.json -o config
@@ -98,8 +97,6 @@ jobs:
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
-          BASE_DIR: ${{ '/tmp/config' }}
-          BASE_SHARE: ${{ '/share' }}
           LOGIN: "test"
           PASSWORD: "test"
         run: |
@@ -146,8 +143,6 @@ jobs:
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
-          BASE_DIR: ${{ '/tmp/config' }}
-          BASE_SHARE: ${{ '/share' }}
           PWD: ${{ github.workspace }}
         run: |
           sudo env IP="$IP" ID="$ID" PWD="$PWD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="." -j ./local/config.json -o config

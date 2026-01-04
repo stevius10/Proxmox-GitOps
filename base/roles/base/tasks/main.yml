@@ -1,9 +1,13 @@
 - name: Base container configuration
   block:
+    - name: Set share directory
+      set_fact:
+        DIR_SHARE: "{{ DIR_SHARE | default(lookup('env', 'DIR_SHARE')) | default('/share') }}"
+
     - name: Set shared directories
       set_fact:
-        DIR_CERTS: "{{ DIR_SHARE }}/.certs"
-        DIR_KEYS: "{{ DIR_SHARE }}/.ssh"
+        DIR_CERTS: "{{ DIR_CERTS | default(DIR_SHARE ~ '/.certs') }}"
+        DIR_KEYS:  "{{ DIR_KEYS  | default(DIR_SHARE ~ '/.keys' ) }}"
 
     - name: Update system
       apt:

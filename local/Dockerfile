@@ -27,7 +27,7 @@ RUN ssh-keygen -t ed25519 -f "/share/.ssh/${ID}" -N ''
 
 COPY ../base/roles ${ANSIBLE_ROLES_PATH}
 RUN ansible localhost -m include_role -a name=base \
-    -e "ip=${IP}" -e "id=${ID}" -e "DIR_SHARE=/share" -e "SHARE=/share" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
+    -e "ip=${IP}" -e "id=${ID}" -e "SHARE=/share" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
     -e "private_key='$(cat /share/.ssh/${ID})\n'" -e "public_key='$(cat /share/.ssh/${ID}.pub)\n'"
 
 # Optional

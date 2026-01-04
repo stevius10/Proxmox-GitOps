@@ -3,14 +3,13 @@
   hosts: localhost
   gather_facts: no
   vars:
-    BASE_DIR:       "{{ lookup('env', 'BASE_DIR'     ) }}"
-    BASE_STORAGE:   "{{ lookup('env', 'BASE_STORAGE' ) }}"
-    BASE_TEMPLATE:  "{{ lookup('env', 'BASE_TEMPLATE') }}"
-    DIR_SHARE:      "{{ lookup('env', 'BASE_SHARE') }}"
-    DIR_CERTS:      "{{ lookup('env', 'BASE_SHARE') }}/.cert"
-    DIR_KEYS:       "{{ lookup('env', 'BASE_SHARE') }}/.ssh"
+    BASE_DIR:      "{{ lookup('env', 'BASE_DIR'     ) }}"
+    BASE_STORAGE:  "{{ lookup('env', 'BASE_STORAGE' ) }}"
+    BASE_TEMPLATE: "{{ lookup('env', 'BASE_TEMPLATE') }}"
+    DIR_SHARE:     "{{ lookup('env', 'BASE_SHARE') }}"
+    DIR_CERTS:     "{{ lookup('env', 'BASE_SHARE') }}/.cert"
+    DIR_KEYS:      "{{ lookup('env', 'BASE_SHARE') }}/.ssh"
   tasks:
-
     - name: Ensure directories
       file:
         path: "{{ DIR_KEYS }}"
@@ -31,6 +30,10 @@
   hosts: container
   gather_facts: yes
   become: true
+  vars:
+    DIR_SHARE: "{{ lookup('env', 'BASE_SHARE') }}"
+    DIR_CERTS: "{{ lookup('env', 'BASE_SHARE') }}/.cert"
+    DIR_KEYS:  "{{ lookup('env', 'BASE_SHARE') }}/.ssh"
   tasks:
     - name: Copy share if exists
       ansible.builtin.copy:
@@ -50,10 +53,10 @@
       ansible.builtin.include_role:
         name: mount
       vars:
-        host: "{{ lookup('env', 'HOST') }}"
-        login: "{{ lookup('env', 'LOGIN') }}"
+        host:     "{{ lookup('env', 'HOST') }}"
+        login:    "{{ lookup('env', 'LOGIN') }}"
         password: "{{ lookup('env', 'PASSWORD') }}"
-        mount: "{{ mount }}"
+        mount:    "{{ mount }}"
       when:
         - lookup('env','PROXMOX_PASSWORD') | default('', True) | length > 0
         - not (share | default(false) | bool)

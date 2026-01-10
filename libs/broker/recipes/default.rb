@@ -1,6 +1,6 @@
 Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
-Env.set(self, 'broker', "mqtt://#{node['ip']}:#{node['broker']['port']}")
+Env.set(self, 'LIBS_BROKER_ENDPOINT', "mqtt://#{node['ip']}:#{node['broker']['port']}")
 
 login = Env.get(self, 'login')
 password = Env.get(self, 'password')

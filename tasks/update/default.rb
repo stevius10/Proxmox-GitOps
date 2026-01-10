@@ -13,7 +13,7 @@ def update_container(id, ip)
   SHELL
 
   IO.popen([ "ssh", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no",
-    "-i", "/share/.ssh/#{id}", "config@#{ip}", "sudo sh" ], "w") { |pipe| pipe.puts script }
+    "-i", "/share/.keys/#{id}", "config@#{ip}", "sudo sh" ], "w") { |pipe| pipe.puts script }
 end
 
 Utils.proxmox(ctx, 'nodes/pve/lxc').each do |container| id = container['vmid']

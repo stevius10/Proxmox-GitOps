@@ -4,8 +4,8 @@ default['app']['user']          = Default.user(node)
 default['app']['group']         = Default.group(node)
 
 default['bridge']['port']       = 8080
-default['bridge']['adapter']    = Env.get(node, 'adapter') || 'zstack' # overwrite
-default['bridge']['serial']     = Env.get(node, 'serial')  || '/dev/serial/by-id/'
+default['bridge']['adapter']    = Env.get(node, 'LIBS_BRIDGE_ADAPTER')
+default['bridge']['serial']     = Env.get(node, 'LIBS_BRIDGE_SERIAL')
 
 default['bridge']['dir']        = '/app/bridge'
 default['bridge']['data']       = "#{node['bridge']['dir']}/data"

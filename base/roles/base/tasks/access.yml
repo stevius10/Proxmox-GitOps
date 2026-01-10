@@ -54,7 +54,7 @@
     - name: Save container keys
       copy:
         content: "{{ item.content }}"
-        dest: "{{ key_dir }}/{{ item.name }}"
+        dest: "{{ DIR_KEYS }}/{{ item.name }}"
         owner: app
         group: config
         mode: "{{ item.mode }}"
@@ -63,7 +63,7 @@
         - { name: "{{ id }}.pub", content: "{{ public_key }}",  mode: "0644" }
 
     - name: Verify container key
-      shell: "ssh-keygen -y -f {{ key_dir }}/{{ id }} | diff - {{ key_dir }}/{{ id }}.pub"
+      shell: "ssh-keygen -y -f {{ DIR_KEYS }}/{{ id }} | diff - {{ DIR_KEYS }}/{{ id }}.pub"
       register: verify
       changed_when: false
       failed_when: verify.rc != 0

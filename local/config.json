@@ -2,12 +2,12 @@
 
   "proxmox":
     {
-      "host": "",
-      "user": "",
+      "host": "192.168.178.",
+      "user": "root@pam",
       "password": ""
     },
 
-  "login": "",
-  "password": ""
+  "login":    "proxmox",
+  "password": "gitops"
 
 }

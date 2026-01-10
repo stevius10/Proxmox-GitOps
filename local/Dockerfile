@@ -22,13 +22,19 @@ RUN rm -rf /lib/systemd/system/multi-user.target.wants/* && \
 
 RUN ansible-galaxy collection install community.general --force
 
-RUN mkdir -p /app/.ssh /share/.certs /share/.ssh
-RUN ssh-keygen -t ed25519 -f "/share/.ssh/${ID}" -N ''
+RUN mkdir -p /app/.ssh /share/.certs /share/.keys
+RUN ssh-keygen -t ed25519 -f "/share/.keys/${ID}" -N ''
 
 COPY ../base/roles ${ANSIBLE_ROLES_PATH}
 RUN ansible localhost -m include_role -a name=base \
     -e "ip=${IP}" -e "id=${ID}" -e "SHARE=/share" -e "configure_ssh=0" -e "arch=${TARGETARCH}" \
-    -e "private_key='$(cat /share/.ssh/${ID})\n'" -e "public_key='$(cat /share/.ssh/${ID}.pub)\n'"
+    -e "private_key='$(cat /share/.keys/${ID})\n'" -e "public_key='$(cat /share/.keys/${ID}.pub)\n'"
+
+# Optional
+
+RUN (VERSION=$(curl -s https://api.github.com/repos/go-gitea/gitea/releases/latest | grep '"tag_name":' | cut -d '"' -f4) && \
+    curl -L --create-dirs "https://github.com/go-gitea/gitea/releases/download/${VERSION}/gitea-${VERSION#v}-linux-${TARGETARCH}" \
+      -o /app/git/gitea && echo "${VERSION#v}" > /app/git/.version) || true
 
 RUN chown -R app:config /app
 

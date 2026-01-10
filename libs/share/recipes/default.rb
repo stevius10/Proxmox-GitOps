@@ -23,7 +23,7 @@ Array(node.dig('share','mount')).each do |path|
   end
 
   execute "chown_#{login}_#{path}" do
-    command "sudo find #{path} -mindepth 1 -not -path '#{path}/.ssh*' -exec chown -R #{login}:#{login} {} +"
+    command "sudo find #{path} -mindepth 1 -not -path '#{path}/.keys*' -exec chown -R #{login}:#{login} {} +"
     action :run
   end
 end

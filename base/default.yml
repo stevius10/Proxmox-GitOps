@@ -34,13 +34,11 @@
   gather_facts: yes
   become: true
   vars:
-    DIR_SHARE: "{{ DIR_SHARE if (DIR_SHARE | default('') | trim | length > 0) else (lookup('env','BASE_SHARE') | default('/share', true)) }}"
+    BASE_DIR:  "{{ lookup('env', 'BASE_DIR')   | default('/tmp/config', true) }}"
+    DIR_SHARE: "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}"
+    DIR_CERTS: "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}/.certs"
+    DIR_KEYS:  "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}/.keys"
   tasks:
-    - name: Set shared directories
-      set_fact:
-        DIR_CERTS: "{{ DIR_CERTS | default(DIR_SHARE ~ '/.certs', true) }}"
-        DIR_KEYS:  "{{ DIR_KEYS  | default(DIR_SHARE ~ '/.keys',  true) }}"
-
     - name: Copy share if exists
       ansible.builtin.copy:
         src: /share/

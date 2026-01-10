@@ -6,8 +6,8 @@
 
     - name: Set shared directories
       set_fact:
-        DIR_CERTS: "{{ DIR_CERTS | default(DIR_SHARE ~ '/.certs', true) }}"
-        DIR_KEYS:  "{{ DIR_KEYS  | default(DIR_SHARE ~ '/.keys',  true) }}"
+        DIR_CERTS: "{{ DIR_CERTS if (DIR_CERTS | default('') | trim | length > 0) else DIR_SHARE ~ '/.certs' }}"
+        DIR_KEYS:  "{{ DIR_KEYS  if (DIR_KEYS  | default('') | trim | length > 0) else DIR_SHARE ~ '/.keys' }}"
 
     - name: Update system
       apt:

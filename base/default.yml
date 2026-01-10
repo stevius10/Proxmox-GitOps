@@ -35,8 +35,6 @@
   become: true
   vars:
     DIR_SHARE: "{{ DIR_SHARE if (DIR_SHARE | default('') | trim | length > 0) else (lookup('env','BASE_SHARE') | default('/share', true)) }}"
-    DIR_CERTS: "{{ DIR_SHARE ~ '/.certs' }}"
-    DIR_KEYS:  "{{ DIR_SHARE ~ '/.keys' }}"
   tasks:
     - name: Set shared directories
       set_fact:

@@ -7,8 +7,8 @@
     BASE_TEMPLATE: "{{ lookup('env', 'BASE_TEMPLATE') }}"
     BASE_DIR:  "{{ lookup('env', 'BASE_DIR')   | default('/tmp/config') }}"
     DIR_SHARE: "{{ lookup('env', 'BASE_SHARE') | default('/share') }}"
-    DIR_CERTS: "{{ lookup('env', 'BASE_SHARE') | default('/share') }}/.cert"
-    DIR_KEYS:  "{{ lookup('env', 'BASE_SHARE') | default('/share') }}/.ssh"
+    DIR_CERTS: "{{ lookup('env', 'BASE_SHARE') | default('/share') }}/.certs"
+    DIR_KEYS:  "{{ lookup('env', 'BASE_SHARE') | default('/share') }}/.keys"
   tasks:
     - name: Ensure directories
       file:

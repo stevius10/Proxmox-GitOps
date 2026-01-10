@@ -1,17 +1,25 @@
 #!/usr/bin/env bash
-set -eo pipefail
 
 log() { echo "[$1] $2"; };
 err() { log "error" "$1"; exit 1; }
+
 cfg() { local lib="${1:-}"
   [[ -f "$lib/config.local.json" ]] && echo "-j $lib/config.local.json" && return 0
   [[ -f "$lib/config.json" ]]       && echo "-j $lib/config.json"; }
+
+pre() { set -eo pipefail
+  command -v docker >/dev/null || err "missing docker"
+  command -v md5sum >/dev/null || function md5sum() { md5 -q "$1"; } || err "missing md5";
+  if [[ "$(basename "$(pwd)")" == "local" ]]; then cd ..; fi
+}; pre
+
 arg() { while [[ $# -gt 0 ]]; do case "$1" in
   -h|--help)
-    echo -e "./local/$SCRIPT [OPTIONS] [lib]"
+    echo -e "\n./$SCRIPT [OPTIONS] [lib] [-h|--help]"
     echo -e "  -l, --log-level <level>\n  -s, --suffixes <list>"
     echo -e "  -d, --debug\n  -r, --restart"
-    echo -e "\ne. g. ./local/$SCRIPT -s \"customize\" -l error --restart, ./local/$SCRIPT -d broker\n"
+    echo -e "\nExamples:"
+    echo -e "  ./$SCRIPT --debug --restart broker\n  ./$SCRIPT -s \"customize\" -l error\n"
     exit 0 ;;
   -l|--log-level)
     [[ $# -gt 1 ]] && LOG_LEVEL="$2" && shift ;;
@@ -23,6 +31,7 @@ arg() { while [[ $# -gt 0 ]]; do case "$1" in
   *) [[ -z "$LIB" || "$LIB" == "config" ]] && LIB="$1" ;;
   esac; shift; done
 }; LIB="config"; LOG_LEVEL="info"; RESTART="false"; SCRIPT="$(basename "$0")"; arg "$@"
+
 
 NAME="$(basename "$(pwd)${LIB:+/config/libs/$LIB}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
 LIB="${LIB:-config}"; LOCAL="./local"
@@ -44,6 +53,7 @@ case "$(uname -m)" in
   *) TARGETARCH="unknown" ;;
 esac
 export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/${TARGETARCH}}"
+
 
 log "container" ""
 

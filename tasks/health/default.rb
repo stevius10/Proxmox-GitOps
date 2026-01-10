@@ -5,7 +5,7 @@ ctx = { "host" => ENV["HOST"], "login" => ENV["LOGIN"], "password" => ENV["PASSW
 
 def check_service(name, id, ip)
   begin
-    result = `ssh -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=no -i "/share/.ssh/#{id}" "config@#{ip}" 'systemctl is-active --quiet #{name} && echo "healthy" || echo "unhealthy"'`
+    result = `ssh -o ConnectTimeout=10 -o BatchMode=yes -o StrictHostKeyChecking=no -i "/share/.keys/#{id}" "config@#{ip}" 'systemctl is-active --quiet #{name} && echo "healthy" || echo "unhealthy"'`
     result.strip == 'healthy' ? 'healthy' : 'unhealthy'
   rescue
     'unreachable'

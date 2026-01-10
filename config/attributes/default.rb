@@ -4,7 +4,7 @@ default['version']                    = "v1.3.1"
 
 default['id']                         = ENV['ID']
 default['host']                       = (default['ip'] = ENV['IP'].to_s.presence || "127.0.0.1")
-default['key']                        = ENV['KEY'].to_s.presence || "/share/.ssh/#{node['id']}"
+default['key']                        = ENV['KEY'].to_s.presence || "/share/.keys/#{node['id']}"
 default['mail']                       = "#{node['id']}@#{node['host']}"
 
 default['app']['user']                = Default.user(node, default: true)
@@ -13,7 +13,7 @@ default['app']['config']              = Default.config(node, default: true)
 
 default['git']['conf']['customize']   = true
 default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password' ]
-default['git']['conf']['environment'] = [ "./env.json", "./env.local.json" ] # order prioritize .*.local.*
+default['git']['conf']['environment'] = [ "./globals.json", "./globals.local.json" ] # order prioritize .*.local.*
 default['git']['conf']['repo']        = [ "./", "./base", "./config/libraries", "./libs" ]
 
 default['git']['dir']['app']          = '/app/git'

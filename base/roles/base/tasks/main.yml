@@ -2,7 +2,7 @@
   block:
     - name: Set share directory
       set_fact:
-        DIR_SHARE: "{{ DIR_SHARE | default(lookup('env', 'DIR_SHARE')) | default('/share') }}"
+        DIR_SHARE: "{{ DIR_SHARE if (DIR_SHARE | default('') | string | trim | length > 0) else (lookup('env', 'BASE_SHARE') | default('/share')) }}"
 
     - name: Set shared directories
       set_fact:

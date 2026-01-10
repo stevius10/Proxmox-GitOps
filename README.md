@@ -11,8 +11,10 @@
 - [Usage](#usage)
   - [Requirements](#requirements)
   - [Deployment](#deployment)
-  - [Lifecycle](#lifecycle)
   - [Files and Configuration](#files-and-configuration)
+  - [Lifecycle](#lifecycle)
+    - [Default Pipeline](#default-pipeline)
+    - [Self-Containment](#self-containment)
   - [Development and Extension](#development-and-extension)
     - [Getting Started](#getting-started)
     - [Environment](#environment)
@@ -70,9 +72,9 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 ### Trade-offs
 
-- **Complexity vs. Autonomy:** Recursive self-replication increases complexity drastically to achieve integrated deterministic bootstrap and reproducing behavior.
+- **Complexity vs. Autonomy:** Recursive self-replication increases complexity drastically to achieve integrated deterministic bootstrap and reproducible behavior.
 
-- **Git Convention vs. Infrastructure State:** Uses Git as a state engine rather than versioning in volatile, stateless contexts. Monorepository representation, however, encapsulates the entire infrastructure as a self-contained asset suited for version control.
+- **Git Convention vs. Infrastructure State:** Uses Git as a state engine rather than for versioning in volatile, stateless contexts. Monorepository representation, however, encapsulates the entire infrastructure as a self-contained asset suited for version control.
 
 - **API Token Restriction vs. Automation:** With Proxmox 9, stricter privilege separation prevents privileged containers from mounting shares via API token; automation capabilities, however, are mainly within the root user context. As a consequence, root user-based API access takes precedence over token-based authentication.
 
@@ -82,14 +84,20 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 - Docker
 - Proxmox VE 8.4-9.1
+  - Ensure [storage settings](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv).
 - See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
 ### Deployment
 
-- [Set](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) **Proxmox VE host** and **default account** credentials in [`local/config.json`](local/config.json).
-- Ensure **container configuration** in [`container.env`](container.env) and [verify storage](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#file-configenv).
+- Set **Proxmox VE host** and **default account** [credentials](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) in [`local/config.json`](local/config.json).
+
+- Adjust **environment configuration** in [`globals.json`](globals.json).
+
+- Ensure **container configuration** in [`container.env`](container.env). 
+
 - Run `./local/run.sh` for local Docker environment.
-- Accept the Pull Request at `localhost:8080/main/config` to deploy on Proxmox VE. 
+
+- Accept the Pull Request at `http://localhost:8080/main/config` to deploy on Proxmox VE. 
 
 <p align="center"><br>
   <a href="docs/img/nutshell.png" target="_blank" rel="noopener noreferrer">
@@ -97,34 +105,33 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
   </a>
 </p><br>
 
+### Files and Configuration
+
+- Global environment variables can be set in [`globals.json`](globals.json).
+
+- `container.stage.env` is sourced for forked-repository deployments.
+
+- `.local` files can be used to [structure versioning](.gitignore); e.g. `globals.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy)
+
 ### Lifecycle
+
+#### Default Pipeline
+  - run `release`: creates and configures a container. 
+  - run `main`: configures an existing container. 
+  - run `snapshot`: creates a snapshot leveraging [`Utils.snapshot`](https://github.com/stevius10/Proxmox-GitOps/blob/develop/config/libraries/utils.rb).
+  - run `rollback`: rolls back configuration changes.
 
 #### Self-Containment
 
-`git clone --recurse-submodules`, e.g. for **Version-Controlled Mirroring**
+`git clone --recurse-submodules`, e.g., for **Version-Controlled Mirroring**.
 
-- **Deployment**
-  - `release`: container deployment
-  - `main`: container configuration
+Note: `local/share/` can be used for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence).
 
-- **Backup**: See [Self-Containment](#self-containment)
-  - `snapshot`: [`Utils.snapshot`](https://github.com/stevius10/Proxmox-GitOps/blob/develop/config/libraries/utils.rb)
-  - use `local/share/` for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence) or self-reference network share. 
+#### Backup, Update and Rollback
 
-- **Update**: See [Self-Containment](#self-containment), and redeploy merged. 
-
-- **Rollback**: See [Self-Containment](#self-containment), or push `rollback` to `release` at runtime. 
+See [Self-Containment](#self-containment)
 
 *Appendix*: The self-referential language in this section is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
-
-### Files and Configuration
-
-- Global environment variables can be set in [`globals.json`](globals.json). 
-
-- `container.stage.env` is sourced for forked repository deployments. 
-
-- `.local.` files can be used to [structure versioning](.gitignore).
-  e. g. `globals.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy)
 
 ### Development and Extension
 
@@ -173,7 +180,7 @@ Common.application(self, 'apache2') # provided by convention
   </a>
 </p><br>
 
-- The container can be tested locally running `./local/run.sh [container]`:
+- The container can be tested locally by running `./local/run.sh [container]`:
 
   <details>
   <summary>Example: Apache</summary>

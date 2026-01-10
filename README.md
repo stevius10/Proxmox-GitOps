@@ -125,13 +125,11 @@ This system implements stateless infrastructure management on Proxmox VE, ensuri
 
 `git clone --recurse-submodules`, e.g., for **Version-Controlled Mirroring**.
 
-Note: `local/share/` can be used for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence).
+> `local/share/` can be used for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence).
 
 #### Backup, Update and Rollback
 
-See [Self-Containment](#self-containment)
-
-*Appendix*: The self-referential language in this section is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
+See [Self-Containment](#self-containment); self-referential language is intentional. It mirrors the system's recursive architecture, implying lifecycle operations emerge from the principle itself.
 
 ### Development and Extension
 

@@ -5,10 +5,10 @@
   vars:
     BASE_STORAGE:  "{{ lookup('env', 'BASE_STORAGE' ) }}"
     BASE_TEMPLATE: "{{ lookup('env', 'BASE_TEMPLATE') }}"
-    BASE_DIR:  "{{ lookup('env', 'BASE_DIR')   | default('/tmp/config') }}"
-    DIR_SHARE: "{{ lookup('env', 'BASE_SHARE') | default('/share') }}"
-    DIR_CERTS: "{{ lookup('env', 'BASE_SHARE') | default('/share') }}/.certs"
-    DIR_KEYS:  "{{ lookup('env', 'BASE_SHARE') | default('/share') }}/.keys"
+    BASE_DIR:       "{{ lookup('env', 'BASE_DIR')   | default('/tmp/config', true) }}"
+    DIR_SHARE:      "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}"
+    DIR_CERTS:      "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}/.certs"
+    DIR_KEYS:       "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}/.keys"
   tasks:
     - name: Ensure directories
       file:
@@ -31,9 +31,9 @@
   gather_facts: yes
   become: true
   vars:
-    DIR_SHARE:     "{{ lookup('env', 'BASE_SHARE') | default('/share') }}"
-    DIR_CERTS:     "{{ lookup('env', 'BASE_SHARE') | default('/share') }}/.cert"
-    DIR_KEYS:      "{{ lookup('env', 'BASE_SHARE') | default('/share') }}/.ssh"
+    DIR_SHARE: "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}"
+    DIR_CERTS: "{{ DIR_SHARE ~ '/.certs' }}"
+    DIR_KEYS:  "{{ DIR_SHARE ~ '/.keys' }}"
   tasks:
     - name: Copy share if exists
       ansible.builtin.copy:

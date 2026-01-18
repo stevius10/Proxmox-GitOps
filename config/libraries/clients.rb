@@ -10,16 +10,16 @@ module Clients
 
     def auto_pulls(owner=nil, repo=nil)
       get_repositories(owner, repo)
-        .reject { |r| [0, "0"].include?(r['open_pr_counter']) }
-        .each   { |r| get_repositories(owner, r['name'], target: "/pulls")
-          .each   { |sub_r| get_repositories(owner, r['name'], target: "/pulls/#{sub_r['number']}/merge", method: Net::HTTP::Post) }
+        .reject { |r|  [0, "0"].include?(r['open_pr_counter']) }
+        .each   { |r|  get_repositories(owner, r['name'], target: "/pulls")
+          .each { |rr| get_repositories(owner, r['name'], target: "/pulls/#{rr['number']}/merge", body: {"Do": "merge"}, method: Net::HTTP::Post) }
         }
     end
 
     private
 
-    def get_repositories(owner=nil, repo=nil, method: Net::HTTP::Get, target: nil)
-      repositories = JSON.parse(request(Constants::API_PATH_REPOSITORIES.call(@uri, owner, repo, target), method: method).body)
+    def get_repositories(owner=nil, repo=nil, body: nil, method: Net::HTTP::Get, target: nil)
+      repositories = JSON.parse(request(Constants::API_PATH_REPOSITORIES.call(@uri, owner, repo, target), body: body, method: method).body)
       repositories.is_a?(Array) ? repositories : [repositories]
     end
 

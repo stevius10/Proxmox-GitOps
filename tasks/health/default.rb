@@ -1,6 +1,8 @@
 # ! cron '0 */3 * * *'
 
-Dir[File.join(__dir__, 'libraries', '**', '*.rb')].sort.each { |f| require f }
+%w(. ../config ../../config).each do |dir| d = File.join(__dir__, dir, 'libraries')
+  Dir[File.join(d, '**', '*.rb')].sort.each { |f| require f } if Dir.exist?(d)
+end
 ctx = { "host" => ENV["HOST"], "login" => ENV["LOGIN"], "password" => ENV["PASSWORD"] }
 
 def check_service(name, id, ip)

@@ -47,12 +47,9 @@ end
 # Extension
 
 class Net::HTTPResponse
-  def json(symbolize_names: false, allow_blank: false, validate_content_type: false)
-    ct = self['content-type']
-    return nil if validate_content_type && !(ct && ct.downcase.include?('application/json'))
-    s = body.to_s
-    return nil if allow_blank && s.strip.empty?
-    JSON.parse(s, symbolize_names: symbolize_names)
+  def json(symbolize_names: false)
+    return nil if body.to_s.strip.empty?
+    JSON.parse(body.to_s, symbolize_names: symbolize_names)
   rescue
     self
   end

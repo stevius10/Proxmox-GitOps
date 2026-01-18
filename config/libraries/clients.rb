@@ -19,7 +19,7 @@ module Clients
     private
 
     def get_repositories(owner=nil, repo=nil, body: nil, method: Net::HTTP::Get, target: nil)
-      repositories = JSON.parse(request(Constants::API_PATH_REPOSITORIES.call(@uri, owner, repo, target), body: body, method: method).body)
+      repositories = request(Constants::API_PATH_REPOSITORIES.call(@uri, owner, repo, target), body: body, method: method).json
       repositories.is_a?(Array) ? repositories : [repositories]
     end
 

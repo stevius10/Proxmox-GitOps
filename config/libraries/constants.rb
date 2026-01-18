@@ -1,5 +1,8 @@
 module Constants
 
+  API_PATH_REPOSITORIES = ->(uri, owner, repo, target) {
+    "#{uri}/" + (repo.nil? ? (owner.nil? ? "pulls" : "orgs/#{owner}/repos") : "repos/#{owner}/#{repo}") + "#{target}" }
+
   HEADER_JSON = {
     'Content-Type' => 'application/json',
     'Accept'       => 'application/json'

@@ -174,7 +174,7 @@ module Utils
     end ) )
 
       release = request(Constants::URI_GITHUB_TAG.call(owner, repo, version),
-        headers: { 'Accept' => 'application/vnd.github+json' }, expect: true).try(:json) unless release
+        headers: { 'Accept' => 'application/vnd.github+json' }, expect: true).json unless release
       download_url, filename = (if (asset = release[:assets].find(&assets))
         [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
       else [release[:tarball_url], "#{repo}-#{version}.tar.gz"] end)

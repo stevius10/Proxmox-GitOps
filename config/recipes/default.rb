@@ -8,4 +8,4 @@ include_recipe 'config::org'
 include_recipe 'config::repo'
 include_recipe 'config::task'
 
-include_recipe 'config::deploy' if Env.get(self, node['git']['env']['deploy'])
+include_recipe 'config::deploy'

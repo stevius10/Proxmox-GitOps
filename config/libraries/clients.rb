@@ -17,7 +17,7 @@ module Clients
     end
 
     def run_task(repo, owner: "tasks", ref: "main")
-      get_repositories(owner, repo, target: "/actions/workflows").each { |w|
+      get_repositories(owner, repo, target: "/actions/workflows").flat_map { |w| w['workflows'] }.each { |w|
         get_repositories(owner, repo, target: "/actions/workflows/#{w['id']}/dispatches", body: { ref: ref }, method: Net::HTTP::Post) }
     end
 

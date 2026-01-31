@@ -106,7 +106,7 @@ configuration ""
 
 if [[ -z "${SUFFIXES+x}" ]]; then if [[ "${LIB}" != "config" ]]; then SUFFIXES=("default"); else SUFFIXES=("repo"); fi; fi
 while true; do
-  echo -n "[run] $LIB::"; read -e -i "${SUFFIXES[*]}" -r input; [[ -n "$input" ]] && SUFFIXES=($input)
+  echo -n "[run] $LIB::${SUFFIXES[*]} or $LIB::"; read -r input; [[ -n "$input" ]] && SUFFIXES=($input)
   for s in "${SUFFIXES[@]}"; do configuration "$s"; done
 
   if [[ "${RESTART}" == "true" ]]; then

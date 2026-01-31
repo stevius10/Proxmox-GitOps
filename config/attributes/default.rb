@@ -33,6 +33,8 @@ default['git']['org']['main']         = 'main'
 default['git']['org']['stage']        = 'stage'
 default['git']['org']['tasks']        = 'tasks'
 
+default['git']['env']['deploy']       = 'AUTO_DEPLOY'
+
 default['git']['branch']['rollback']  = 'rollback'
 
 # Runner

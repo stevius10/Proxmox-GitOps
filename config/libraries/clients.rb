@@ -8,12 +8,17 @@ module Clients
       @uri, @username, @password = uri, username, password
     end
 
-    def auto_pulls(owner=nil, repo=nil)
+    def auto_merge(owner=nil, repo=nil)
       get_repositories(owner, repo)
         .reject { |r|  [0, "0"].include?(r['open_pr_counter']) }
         .each   { |r|  get_repositories(owner, r['name'], target: "/pulls")
           .each { |rr| get_repositories(owner, r['name'], target: "/pulls/#{rr['number']}/merge", body: {"Do": "merge"}, method: Net::HTTP::Post) }
         }
+    end
+
+    def run_task(repo, owner: "tasks", ref: "main")
+      get_repositories(owner, repo, target: "/actions/workflows").flat_map { |w| w['workflows'] }.each { |w|
+        get_repositories(owner, repo, target: "/actions/workflows/#{w['id']}/dispatches", body: { ref: ref }, method: Net::HTTP::Post) }
     end
 
     private

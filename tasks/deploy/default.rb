@@ -2,4 +2,4 @@
   Dir[File.join(d, '**', '*.rb')].sort.each { |f| require f } if Dir.exist?(d)
 end
 
-Clients::Git.new(Env.endpoint({"host"=>ENV["HOST"]}), ENV["LOGIN"], ENV["PASSWORD"]).auto_pulls("main", "config")
+Clients::Git.new(Env.endpoint({"host"=>ENV["HOST"]}), ENV["LOGIN"], ENV["PASSWORD"]).auto_merge

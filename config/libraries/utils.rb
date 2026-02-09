@@ -70,7 +70,7 @@ module Utils
   def self.snapshot(ctx, data_dir, name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), snapshot_dir: Default.snapshot_dir(ctx), mode: 0o755)
 
     snapshot_dir = "#{snapshot_dir}/#{name}"
-    snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%H%M-%d%m%y')}.tar.gz")
+    snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%y_%m_%d-%H_%M')}.tar.gz")
 
     md5_dir = ->(path) {
       entries = Dir.glob("#{path}/**/*", File::FNM_DOTMATCH)
@@ -86,7 +86,7 @@ module Utils
       end; true }
 
     if restore
-      latest = Dir[File.join(snapshot_dir, "#{name}-*.tar.gz")].max_by { |f| [File.mtime(f), File.basename(f)] }
+      latest = Dir[File.join(snapshot_dir, "#{name}-*.tar.gz")].sort.reverse.first
       if latest && ::File.exist?(latest)
         FileUtils.rm_rf(data_dir)
         FileUtils.mkdir_p(data_dir)
@@ -208,7 +208,7 @@ module Utils
 
   end
 
-  def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0754', action: :create)
+  def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0755', action: :create)
     Common.directories(Ctx.dsl(ctx), File.dirname(path), owner: owner, group: group, mode: mode)
     Ctx.dsl(ctx).remote_file path do
       source url.respond_to?(:call)? lazy { url.call } : url

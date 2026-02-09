@@ -24,7 +24,7 @@ Array(node.dig('share', 'mount')).each do |path| next if path.nil?
   end
 
   execute "chown_#{login}_#{path}" do
-    command "sudo find #{path} -mindepth 1 -not -path '#{path}/.*' -exec chown -R #{login}:#{node['share']['group']} {} + || true"
+    command "sudo find #{path} -mindepth 1 -not -path '#{path}/.keys*' -exec chown -R #{login}:#{node['share']['group']} {} + || true"
     ignore_failure true
   end
 end

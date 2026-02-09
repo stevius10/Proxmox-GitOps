@@ -26,8 +26,6 @@ fruit:nfs_aces = no
   [<%= File.basename(path.to_s.chomp('/')) %>]
   path = <%= path %>
   valid users = <%= @login %>
-  force user = <%= @login %>
-  force group = <%= @login %>
   read only = no
   create mask = 0775
   directory mask = 2775

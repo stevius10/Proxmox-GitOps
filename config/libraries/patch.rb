@@ -12,6 +12,11 @@ class Object
     return nil unless method_name && respond_to?(method_name, true)
     public_send(method_name, *args)
   end
+  def condition; case self
+    when nil, false, 0, /\A(0|false|no|off)\z/i; false
+    when true, 1, /\A(1|true|yes|on)\z/i; true
+    else; !!self
+  end end
 end
 
 class NilClass

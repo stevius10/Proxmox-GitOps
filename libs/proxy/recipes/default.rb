@@ -2,8 +2,7 @@ require 'ipaddr'
 
 Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
-Common.directories(self, [ node['proxy']['dir']['app'],
-  node['proxy']['dir']['caddy'], node['proxy']['dir']['config'], node['proxy']['dir']['logs'] ] )
+Common.directories(self, [ node['proxy']['dir']['app'], node['proxy']['dir']['config'], node['proxy']['dir']['logs'] ] )
 
 package 'caddy'
 
@@ -23,10 +22,10 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
   owner node['app']['user']
   group node['app']['group']
   mode   '0644'
-  variables( hosts: lazy { node.run_state['proxy_hosts'] || [] }, config_dir: node['proxy']['dir']['config'],
-    caddy_dir: node['proxy']['dir']['caddy'], log_dir: node['proxy']['dir']['logs'], logs_roll_size: node['proxy']['logs']['roll_size'],
+  variables( hosts: lazy { node.run_state['proxy_hosts'] || [] },  app_dir: node['proxy']['dir']['app'],
+    config_dir: node['proxy']['dir']['config'], log_dir: node['proxy']['dir']['logs'], logs_roll_size: node['proxy']['logs']['roll_size'],
     logs_roll_keep: node['proxy']['logs']['roll_keep'], logs_roll_for: node['proxy']['logs']['roll_for'],
-    internal: lazy { IPAddr.new(Env.get(self, "BASE_GATEWAY").or("192.168.178.0")).mask(Env.get(self, "BASE_MASK").or("24")).to_s })
+    internal: node['proxy']['config']['internal'] )
 end
 
 remote_directory node['proxy']['dir']['config'] do
@@ -41,8 +40,8 @@ execute "#{self.cookbook_name}_initialize" do
   command "/bin/caddy trust --config #{node['proxy']['dir']['app']}/Caddyfile"
   user 'root'
   timeout 120
-  not_if { ::File.directory?("#{node['proxy']['dir']['caddy']}/certificates") ||
-    ::File.directory?("#{node['proxy']['dir']['caddy']}/pki") }
+  not_if { ::File.directory?("#{node['proxy']['dir']['app']}/certificates") ||
+    ::File.directory?("#{node['proxy']['dir']['app']}/pki") }
   subscribes :run, "template[#{node['proxy']['dir']['app']}/Caddyfile]", :immediately
   action :nothing
 end

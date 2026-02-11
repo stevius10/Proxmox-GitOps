@@ -20,26 +20,24 @@ module Utils
     return Kernel.sleep(cond) if cond.is_a?(Integer)
     return Timeout.timeout(timeout) { yield } if block_given?
     return Kernel.sleep(timeout) if cond.nil?
-    begin
-      Timeout.timeout(timeout) do
-        begin uri = URI.parse(Logs.return("[wait]", cond).to_s); rescue; end
+
+    begin Timeout.timeout(timeout) do
+        begin uri = URI.parse(Logs.return("[wait] ", cond).to_s); rescue; end
         loop do
           if uri.is_a?(URI::HTTP)
             http = Net::HTTP.new(uri.host, uri.port)
             http.use_ssl = (uri.scheme == 'https')
             http.verify_mode = OpenSSL::SSL::VERIFY_NONE if http.use_ssl?
-            begin res = http.get(uri.path.empty? ? '/' : uri.path)
-              break true if res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
+            begin break true if http.get(uri.path.empty? ? '/' : uri.path).code.to_i < 500
             rescue; end
           else
             host, port = cond.split(':', 2); port = (port || '80').to_i
-            begin Socket.tcp(host, port, connect_timeout: sleep_interval) { |sock| sock.close }
-              break true
+            begin Socket.tcp(host, port, connect_timeout: sleep_interval) { |sock| sock.close }; break true
             rescue; end
           end
           sleep sleep_interval
         end
-      end; rescue Timeout::Error, StandardError { Logs.info("XXX ERR"); return false }; end end
+    end; rescue Timeout::Error, StandardError { Logs.info("XXX ERR"); return false }; end end
 
   # System
 

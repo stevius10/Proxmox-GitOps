@@ -7,7 +7,7 @@ ruby_block 'runner' do block do
     url: -> { version = (Utils.request(runner_source).body[%r{/releases/tag/v?([0-9]+\.[0-9]+\.[0-9]+)}, 1].to_s)
       "#{runner_source}/download/v#{version}/act_runner-#{version}-linux-#{Utils.arch()}" } )
 
-  Utils.wait("http://localhost:#{node['git']['port']['http']}")
+  Utils.wait("#{node['git']['host']['local']}:#{node['git']['port']['http']}")
 
   Common.application(self, self.recipe_name, user: node['app']['user'] , actions: [:start, :enable], cwd: node['runner']['dir']['app'],
     exec: "#{node['runner']['dir']['app']}/#{self.recipe_name} daemon --config #{node['runner']['dir']['app']}/config.yaml",
@@ -16,7 +16,7 @@ ruby_block 'runner' do block do
   (token = Mixlib::ShellOut.new("#{node['git']['dir']['app']}/gitea actions --config #{node['git']['dir']['app']}/app.ini generate-runner-token",
     user: node['app']['user'])).run_command; token.error!
 
-  (register = Mixlib::ShellOut.new("#{node['runner']['dir']['app']}/#{self.recipe_name} register --instance http://localhost:#{node['git']['port']['http']} " \
+  (register = Mixlib::ShellOut.new("#{node['runner']['dir']['app']}/#{self.recipe_name} register --instance #{node['git']['host']['local']}:#{node['git']['port']['http']} " \
       "--token #{token.stdout.strip} --no-interactive --config #{node['runner']['dir']['app']}/config.yaml --labels #{node['runner']['conf']['label']} ",
     cwd: node['runner']['dir']['app'],
     user: node['app']['user']

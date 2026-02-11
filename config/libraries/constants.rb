@@ -1,6 +1,8 @@
 module Constants
 
-  API_PATH_REPOSITORIES = ->(uri, owner, repo, target) {
+  LOCALHOST = "127.0.0.1".freeze
+
+  API_PATH_REPOSITORIES = ->(uri, owner=nil, repo=nil, target="") {
     "#{uri}/" + (repo.nil? ? (owner.nil? ? "pulls" : "orgs/#{owner}/repos") : "repos/#{owner}/#{repo}") + "#{target}" }
 
   HEADER_JSON = {

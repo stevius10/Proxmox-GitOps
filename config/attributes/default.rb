@@ -3,7 +3,7 @@ default['online']                     = "https://github.com/stevius10/Proxmox-Gi
 default['version']                    = "v1.3.2"
 
 default['id']                         = ENV['ID']
-default['host']                       = (default['ip'] = ENV['IP'].to_s.presence || "127.0.0.1")
+default['host'] = (     default['ip'] = ENV['IP'].to_s.presence || Constants::LOCALHOST )
 default['key']                        = ENV['KEY'].to_s.presence || "/share/.keys/#{node['id']}"
 default['mail']                       = "#{node['id']}@#{node['host']}"
 
@@ -23,6 +23,7 @@ default['git']['dir']['workspace']    = "#{node['git']['dir']['home']}/workspace
 
 default['git']['port']['http']        = 8080
 default['git']['port']['ssh']         = 2222
+default['git']['host']['local']       = "http://#{Constants::LOCALHOST}"
 default['git']['host']['http']        = "http://#{node['host']}:#{node['git']['port']['http']}"
 default['git']['host']['ssh']         = "#{node['host']}:#{node['git']['port']['ssh']}"
 

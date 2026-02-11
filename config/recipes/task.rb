@@ -16,7 +16,7 @@ Common.directories(self, [destination, working], recreate: true)
   path_destination = File.expand_path(name_repo, destination)
 
   ruby_block "task_repo_exists_#{name_repo}" do
-    only_if { Logs.true("[tasks/#{name_repo}] exists?") }
+    only_if { Logs.true("[task: #{name_repo}] exist") }
     block do
       uri = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['tasks']}/#{name_repo}"
       node.run_state["#{name_repo}_repo_exists"] = Utils.request(uri, user: Env.get(self, 'login'), pass: Env.get(self, 'password')).code.to_i != 404
@@ -144,7 +144,6 @@ Common.directories(self, [destination, working], recreate: true)
     EOH
     cwd path_destination
     user node['app']['user']
-    not_if { ['127.0.0.1', 'localhost', '::1'].include?(Env.get(self, 'host')) }
   end
 
   directory path_destination do

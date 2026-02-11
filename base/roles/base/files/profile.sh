@@ -58,10 +58,6 @@ extract () {
    fi
 }
 
-exe() {
-  docker exec -it "$(docker ps -qf name=$1)" /bin/bash
-}
-
 c() {
   [ -z "$1" ] && { cd; return; }
   [ -d "$1" ] && { cd "$1"; return; } ||
@@ -71,6 +67,10 @@ c() {
 
 d() {
   mkdir -pv "$1" && cd "$1";
+}
+
+e() {
+  docker exec -it "$(docker ps -qf "name=^$1$")" /bin/bash
 }
 
 f() {

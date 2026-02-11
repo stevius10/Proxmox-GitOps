@@ -42,7 +42,7 @@ module Env
   def self.request(ctx, key, body: nil, repo: nil, owner: nil, expect: false, raise: false)
     user, pass = creds(ctx)
     uri = URI("#{endpoint(ctx)}/#{repo.to_s.strip.size > 0 ? "repos/#{owner}/#{repo.to_s}" : "orgs/#{owner}"}/actions/variables/#{key}")
-    response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, expect: (body.present? or expect), raise: raise, sensitive: true)
+    response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, log: !(body.present?), expect: (body.present? or expect), raise: raise, sensitive: true)
     if body.present?
       method = (response ? Net::HTTP::Put : Net::HTTP::Post)
       response = Utils.request(uri, user: user, pass: pass, headers: Constants::HEADER_JSON, method: method, body: body, expect: expect, raise: raise, sensitive: true)

@@ -9,6 +9,10 @@ usershare allow guests = no
 
 socket options = TCP_NODELAY SO_RCVBUF=524288 SO_SNDBUF=524288
 
+max log size = 5120
+log level = 1
+enable core files = no
+
 aio read size = 1
 aio write size = 1
 
@@ -26,8 +30,6 @@ fruit:nfs_aces = no
   [<%= File.basename(path.to_s.chomp('/')) %>]
   path = <%= path %>
   valid users = <%= @login %>
-  force user = <%= @login %>
-  force group = <%= @login %>
   read only = no
   create mask = 0775
   directory mask = 2775

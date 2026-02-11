@@ -1,8 +1,11 @@
 include_attribute 'config::default'
 
-default['share']['mount'] = [
-  '/share'
-]
+default['share']['user'] =
+  100000    # (/etc/fstab) uid=..
 
-default['share']['user']['uid'] = 100000
-default['share']['user']['gid'] = 100000
+default['share']['group'] =
+  'root'    # (/etc/fstab) gid=..
+
+default['share']['mount'] = [
+  '/share'  # (container.local.env) MOUNT="/mnt/..:/share/.."
+]

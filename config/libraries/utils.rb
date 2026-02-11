@@ -16,43 +16,28 @@ module Utils
 
   # General
 
-  def self.wait(condition = nil, timeout: 20, sleep_interval: 5, &block)
-    return Kernel.sleep(condition) if condition.is_a?(Integer)
-    return Timeout.timeout(timeout) { block.call } if block_given?
-    return Kernel.sleep(timeout) if condition.nil?
-    Timeout.timeout(timeout) do
-      loop do
-        ok = false
-        if condition =~ %r{^https?://}
-          uri = URI(condition)
-          http = Net::HTTP.new(uri.host, uri.port)
-          http.use_ssl = (uri.scheme == 'https')
-          http.verify_mode = OpenSSL::SSL::VERIFY_NONE if uri.scheme == 'https'
-          begin
-            res = http.get(uri.path.empty? ? '/' : uri.path)
-            ok = res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
-          rescue
-            ok = false
+  def self.wait(cond = nil, timeout: 30, sleep_interval: 3)
+    return Kernel.sleep(cond) if cond.is_a?(Integer)
+    return Timeout.timeout(timeout) { yield } if block_given?
+    return Kernel.sleep(timeout) if cond.nil?
+
+    begin Timeout.timeout(timeout) do
+        begin uri = URI.parse(cond.to_s); rescue; end
+        loop do Logs.info("[wait] #{cond}")
+          if uri.is_a?(URI::HTTP)
+            http = Net::HTTP.new(uri.host, uri.port)
+            http.use_ssl = (uri.scheme == 'https')
+            http.verify_mode = OpenSSL::SSL::VERIFY_NONE if http.use_ssl?
+            begin break true if http.get(uri.path.empty? ? '/' : uri.path).code.to_i < 500
+            rescue; end
+          else
+            host, port = cond.split(':', 2); port = (port || '80').to_i
+            begin Socket.tcp(host, port, connect_timeout: sleep_interval) { |sock| sock.close }; break true
+            rescue; end
           end
-        else
-          host_port = condition.include?('@') ? condition.split('@', 2).last : condition
-          host, port = host_port.split(':', 2)
-          port = (port || '80').to_i
-          begin
-            TCPSocket.new(host, port).close
-            ok = true
-          rescue
-            ok = false
-          end
+          sleep sleep_interval
         end
-        break if ok
-        sleep sleep_interval
-      end
-    end
-    true
-  rescue Timeout::Error, StandardError
-    false
-  end
+    end; rescue Timeout::Error; return false; end end
 
   # System
 
@@ -70,7 +55,7 @@ module Utils
   def self.snapshot(ctx, data_dir, name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), snapshot_dir: Default.snapshot_dir(ctx), mode: 0o755)
 
     snapshot_dir = "#{snapshot_dir}/#{name}"
-    snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%H%M-%d%m%y')}.tar.gz")
+    snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%y_%m_%d-%H_%M')}.tar.gz")
 
     md5_dir = ->(path) {
       entries = Dir.glob("#{path}/**/*", File::FNM_DOTMATCH)
@@ -86,7 +71,7 @@ module Utils
       end; true }
 
     if restore
-      latest = Dir[File.join(snapshot_dir, "#{name}-*.tar.gz")].max_by { |f| [File.mtime(f), File.basename(f)] }
+      latest = Dir[File.join(snapshot_dir, "#{name}-*.tar.gz")].sort.reverse.first
       if latest && ::File.exist?(latest)
         FileUtils.rm_rf(data_dir)
         FileUtils.mkdir_p(data_dir)
@@ -125,8 +110,8 @@ module Utils
         user: user, pass: pass, headers: headers, method: method, body: body, expect: expect, log: log)
     end
 
-    Logs.info(message = "#{log + ' ' if log}[#{uri}] #{response&.code} #{response&.message} #{'(' + (sensitive ? body.try(:mask) : body) + ')' if body}")
-    Logs.debug((sensitive ? response&.body.try(:mask) : response&.body), level: :debug)
+    Logs.info(message = "[#{uri}] #{response&.code} #{response&.message} #{'(' + (sensitive ? body.try(:mask) : body) + ')' if body}") if log
+    Logs.debug((sensitive ? response&.body.try(:mask) : response&.body), level: :debug) if log
     if expect
       result = (expect == true ? response.is_a?(Net::HTTPSuccess) : expect.include?(response.code.to_i))
       (raise and not result) ? raise(message) : result
@@ -174,7 +159,7 @@ module Utils
     end ) )
 
       release = request(Constants::URI_GITHUB_TAG.call(owner, repo, version),
-        headers: { 'Accept' => 'application/vnd.github+json' }, expect: true).try(:json) unless release
+        headers: { 'Accept' => 'application/vnd.github+json' }, expect: true).json unless release
       download_url, filename = (if (asset = release[:assets].find(&assets))
         [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
       else [release[:tarball_url], "#{repo}-#{version}.tar.gz"] end)
@@ -208,7 +193,7 @@ module Utils
 
   end
 
-  def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0754', action: :create)
+  def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0755', action: :create)
     Common.directories(Ctx.dsl(ctx), File.dirname(path), owner: owner, group: group, mode: mode)
     Ctx.dsl(ctx).remote_file path do
       source url.respond_to?(:call)? lazy { url.call } : url

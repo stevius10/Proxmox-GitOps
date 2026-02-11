@@ -16,43 +16,28 @@ module Utils
 
   # General
 
-  def self.wait(condition = nil, timeout: 20, sleep_interval: 5, &block)
-    return Kernel.sleep(condition) if condition.is_a?(Integer)
-    return Timeout.timeout(timeout) { block.call } if block_given?
-    return Kernel.sleep(timeout) if condition.nil?
-    Timeout.timeout(timeout) do
-      loop do
-        ok = false
-        if condition =~ %r{^https?://}
-          uri = URI(condition)
-          http = Net::HTTP.new(uri.host, uri.port)
-          http.use_ssl = (uri.scheme == 'https')
-          http.verify_mode = OpenSSL::SSL::VERIFY_NONE if uri.scheme == 'https'
-          begin
-            res = http.get(uri.path.empty? ? '/' : uri.path)
-            ok = res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
-          rescue
-            ok = false
+  def self.wait(cond = nil, timeout: 30, sleep_interval: 3)
+    return Kernel.sleep(cond) if cond.is_a?(Integer)
+    return Timeout.timeout(timeout) { yield } if block_given?
+    return Kernel.sleep(timeout) if cond.nil?
+
+    begin Timeout.timeout(timeout) do
+        begin uri = URI.parse(Logs.return("[wait] ", cond).to_s); rescue; end
+        loop do
+          if uri.is_a?(URI::HTTP)
+            http = Net::HTTP.new(uri.host, uri.port)
+            http.use_ssl = (uri.scheme == 'https')
+            http.verify_mode = OpenSSL::SSL::VERIFY_NONE if http.use_ssl?
+            begin break true if http.get(uri.path.empty? ? '/' : uri.path).code.to_i < 500
+            rescue; end
+          else
+            host, port = cond.split(':', 2); port = (port || '80').to_i
+            begin Socket.tcp(host, port, connect_timeout: sleep_interval) { |sock| sock.close }; break true
+            rescue; end
           end
-        else
-          host_port = condition.include?('@') ? condition.split('@', 2).last : condition
-          host, port = host_port.split(':', 2)
-          port = (port || '80').to_i
-          begin
-            TCPSocket.new(host, port).close
-            ok = true
-          rescue
-            ok = false
-          end
+          sleep sleep_interval
         end
-        break if ok
-        sleep sleep_interval
-      end
-    end
-    true
-  rescue Timeout::Error, StandardError
-    false
-  end
+    end; rescue Timeout::Error, StandardError { Logs.info("XXX ERR"); return false }; end end
 
   # System
 

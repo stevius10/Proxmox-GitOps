@@ -1,8 +1,6 @@
 login    = node.run_state['login']
 password = node.run_state['password']
 
-Utils.wait("127.0.0.1:#{node['git']['port']['http']}", timeout: 15, sleep_interval: 1)
-
 # User configuration
 
 execute 'config_set_user' do
@@ -35,6 +33,9 @@ ruby_block 'config_set_key' do
   only_if { ::File.exist?("#{node['key']}.pub") }
   not_if do
     next false unless ::File.exist?("#{node['key']}.pub")
+    Utils.wait("#{node['git']['host']['local']}:#{node['git']['port']['http']}")
+
+
     begin
       response = Utils.request("#{node['git']['api']['endpoint']}/user/keys", user: login, pass: password)
       response.json.any? { |k| k['key'] && k['key'].strip == ::File.read("#{node['key']}.pub").strip }

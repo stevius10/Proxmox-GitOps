@@ -22,8 +22,8 @@ module Utils
     return Kernel.sleep(timeout) if cond.nil?
 
     begin Timeout.timeout(timeout) do
-        begin uri = URI.parse(Logs.return("[wait] ", cond).to_s); rescue; end
-        loop do
+        begin uri = URI.parse(cond.to_s); rescue; end
+        loop do Logs.info("[wait] #{cond}")
           if uri.is_a?(URI::HTTP)
             http = Net::HTTP.new(uri.host, uri.port)
             http.use_ssl = (uri.scheme == 'https')
@@ -37,7 +37,7 @@ module Utils
           end
           sleep sleep_interval
         end
-    end; rescue Timeout::Error, StandardError { Logs.info("XXX ERR"); return false }; end end
+    end; rescue Timeout::Error; return false; end end
 
   # System
 
@@ -110,8 +110,8 @@ module Utils
         user: user, pass: pass, headers: headers, method: method, body: body, expect: expect, log: log)
     end
 
-    Logs.info(message = "#{log + ' ' if log}[#{uri}] #{response&.code} #{response&.message} #{'(' + (sensitive ? body.try(:mask) : body) + ')' if body}")
-    Logs.debug((sensitive ? response&.body.try(:mask) : response&.body), level: :debug)
+    Logs.info(message = "[#{uri}] #{response&.code} #{response&.message} #{'(' + (sensitive ? body.try(:mask) : body) + ')' if body}") if log
+    Logs.debug((sensitive ? response&.body.try(:mask) : response&.body), level: :debug) if log
     if expect
       result = (expect == true ? response.is_a?(Net::HTTPSuccess) : expect.include?(response.code.to_i))
       (raise and not result) ? raise(message) : result

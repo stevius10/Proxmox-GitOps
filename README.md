@@ -68,7 +68,7 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 
 - **Complexity vs. Autonomy:** Self-containment increases complexity to achieve automated bootstrap and reproducible behavior.
 
-- **Git as State Engine** Uses Git as a state engine rather than for versioning in volatile, stateless contexts. Monorepository representation, however, encapsulates the entire infrastructure as a self-contained asset suited for version control.
+- **Git as State Engine:** Uses Git as a state engine rather than for versioning in volatile, stateless contexts. Monorepository representation, however, encapsulates the entire infrastructure as a self-contained asset suited for version control.
 
 - **API Token Restriction vs. Automation:** With Proxmox 9, stricter privilege separation prevents privileged containers from mounting shares via API token; automation capabilities, however, are mainly within the root user context. As a consequence, root user-based API access takes precedence over token-based authentication.
 

@@ -36,16 +36,16 @@ Common.directories(self, [destination, working], recreate: true)
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
-  ruby_block "task_repo_reset_#{name_repo}" do
-    block do
+  ruby_block "task_repo_reset_#{name_repo}" do block do
       Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['tasks']}/#{name_repo}",
-        log: "Delete #{name_repo}", method: Net::HTTP::Delete, expect: [204, 404], user: Env.get(self, 'login'), pass: Env.get(self, 'password'))
+        log: "Delete #{name_repo}", method: Net::HTTP::Delete, expect: [204, 404],
+        user: Env.get(self, 'login'), pass: Env.get(self, 'password'))
     end
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
 
   ruby_block "task_repo_create_#{name_repo}" do
-    only_if { Logs.true("[tasks/#{name_repo}] create repo") }
+    only_if { Logs.true("[task: #{name_repo}] create repo") }
     block do
       Utils.request("#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['tasks']}/repos",
         method: Net::HTTP::Post, user: Env.get(self, 'login'), pass: Env.get(self, 'password'), headers: Constants::HEADER_JSON,
@@ -107,20 +107,21 @@ Common.directories(self, [destination, working], recreate: true)
   ruby_block "task_script_directive_#{name_repo}" do
     block do
       p = File.join(path_destination, node.run_state["#{name_repo}_script"])
-      c = File.read(p).dup
-      c.force_encoding('UTF-8')
+      c = File.read(p).dup.force_encoding('UTF-8')
       m = c.lines.map { |ln| ln[/^\s*#\s*!+\s*cron\s+["']([^"']+)["']/i, 1] }.compact.first
       node.run_state["#{name_repo}_cron"] = (m || '').strip
     end
   end
 
-  template "#{path_destination}/.gitea/workflows/ruby.yml" do
-    source 'task_pipeline_ruby.yml.erb'
+  template "#{path_destination}/.gitea/workflows/task.yml" do
+    source 'task_pipeline.yml.erb'
     owner node['app']['user']
     group node['app']['group']
     mode '0644'
-    variables lazy { { org: node['git']['org']['tasks'], repo: name_repo,
-      script: node.run_state["#{name_repo}_script"], cron: node.run_state["#{name_repo}_cron"] } }
+    variables lazy { {
+      org: node['git']['org']['tasks'], repo: name_repo,
+      script: node.run_state["#{name_repo}_script"],
+      cron: node.run_state["#{name_repo}_cron"] } }
   end
 
   execute "task_repo_base_commit_#{name_repo}" do
@@ -135,15 +136,17 @@ Common.directories(self, [destination, working], recreate: true)
 
   execute "task_repo_touch_workflow_#{name_repo}" do
     command <<-EOH
-      WORKFLOW_FILE="#{path_destination}/.gitea/workflows/ruby.yml"
+      WORKFLOW_FILE="#{path_destination}/.gitea/workflows/task.yml"
       if [ -f "$WORKFLOW_FILE" ]; then
         touch "$WORKFLOW_FILE" && git add "$WORKFLOW_FILE"
-        git commit --allow-empty -m "initialize workflow [skip ci]"
+        git commit --allow-empty -m "scheduled workflow"
         git push origin main || true
       fi
     EOH
-    cwd path_destination
+    cwd  path_destination
     user node['app']['user']
+    only_if { node.run_state["#{name_repo}_cron"].present? }
+    not_if  { ['127.0.0.1', 'localhost', '::1'].include?(Env.get(self, 'host')) }
   end
 
   directory path_destination do

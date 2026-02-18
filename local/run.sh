@@ -16,13 +16,15 @@ pre() { set -eo pipefail
 arg() { while [[ $# -gt 0 ]]; do case "$1" in
   -h|--help)
     echo -e "\n./$SCRIPT [OPTIONS] [lib] [-h|--help]"
-    echo -e "  -l, --log-level <level>\n  -s, --suffixes <list>"
+    echo -e "  -l, --log-level <level>\n  -p, --port <port>\n  -s, --suffixes <list>"
     echo -e "  -d, --debug\n  -r, --restart"
     echo -e "\nExamples:"
     echo -e "  ./$SCRIPT --debug --restart broker\n  ./$SCRIPT -s \"customize\" -l error\n"
     exit 0 ;;
   -l|--log-level)
     [[ $# -gt 1 ]] && LOG_LEVEL="$2" && shift ;;
+  -p|--port)
+    [[ $# -gt 1 ]] && PORT="$2" && shift ;;
   -s|--suffixes)
     [[ $# -gt 1 ]] && SUFFIXES="$2" && shift ;;
   -d|--debug)   LOG_LEVEL="debug" ;;
@@ -30,7 +32,7 @@ arg() { while [[ $# -gt 0 ]]; do case "$1" in
   -*) ;;
   *) [[ -z "$LIB" || "$LIB" == "config" ]] && LIB="$1" ;;
   esac; shift; done
-}; LIB="config"; LOG_LEVEL="info"; RESTART="false"; SCRIPT="$(basename "$0")"; arg "$@"
+}; LIB="config"; LOG_LEVEL="info"; PORT=""; RESTART="false"; SCRIPT="$(basename "$0")"; arg "$@"
 
 
 NAME="$(basename "$(pwd)${LIB:+/config/libs/$LIB}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
@@ -74,7 +76,7 @@ fi
 log "container" "run"
 CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys/fs/cgroup:rw --add-host=host.docker.internal:host-gateway \
     $( [[ -d "${LOCAL}/share" ]] && echo "-v ${LOCAL}/share:/share:ro " ) \
-    $( [[ "$LIB" != "config" ]] && echo "-p 80:80 -e HOST=host.docker.internal" || echo "-p 8080:8080 -p 2222:2222" ) \
+    $( [[ "$LIB" != "config" ]] && echo "-p ${PORT:-80}:${PORT:-80} -e HOST=host.docker.internal" || echo "-p ${PORT:-8080}:8080 -p 2222:2222" ) \
     --name "$DOCKER_CONTAINER" --platform "linux/${TARGETARCH}" -w /tmp/config "$DOCKER_IMAGE" sleep infinity) || err "failed to start container"
 log "container" "${DOCKER_CONTAINER} [${CONTAINER_ID:0:6}]"
 

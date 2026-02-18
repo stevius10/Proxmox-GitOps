@@ -180,3 +180,7 @@ Common.application(self, 'apache2') # provided by convention
     </a>
   </p> <br>
   </details>
+
+#### Environment
+
+- Optionally, use [`Env.get()` and `Env.set()`](config/libraries/env.rb) to access environment variables, initially set by [globals](globals.json).

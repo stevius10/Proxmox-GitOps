@@ -1,7 +1,7 @@
 Common.packages(self, %w[samba samba-common smbclient])
 
-login     = Env.get(self, 'login')
-password  = Env.get(self, 'password')
+login     = (node.run_state['login']    ||= Env.get(self, 'login'))
+password  = (node.run_state['password'] ||= Env.get(self, 'password'))
 
 user login do
   uid node['share']['user']
@@ -32,6 +32,24 @@ end
 template '/etc/samba/smb.conf' do
   source 'smb.conf.erb'
   variables( login: login, shares: Array(node['share']['mount']) )
+end
+
+ruby_block 'share_workspace' do
+  block do node.dig('git', 'org').values.compact.each do |org|
+
+    Common.directories(self, "#{node['share']['workspace']}/#{org}", recreate: true, mode: '2775')
+
+    Clients::Git.new(Env.endpoint(self), node.run_state['login'], node.run_state['password'])
+      .get_repositories(org).each do |repo|
+      Log.info(repo)
+
+        remote = "#{repo['clone_url'].sub(/(https?:\/\/)/, "\\1#{login}:#{password}@")}"
+        target = File.join(node['share']['workspace'], org, repo['name'])
+
+        Mixlib::ShellOut.new("git clone #{remote} #{target}", user: login, group: node['share']['group']).run_command.error!
+
+    end end
+  end
 end
 
 Common.application(self, 'smbd', actions: [:enable, :start],

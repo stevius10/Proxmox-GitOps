@@ -1,5 +1,5 @@
-login    = node.run_state['login']
-password = node.run_state['password']
+login     = (node.run_state['login']    ||= Env.get(self, 'login'))
+password  = (node.run_state['password'] ||= Env.get(self, 'password'))
 
 [node['git']['org']['main'], node['git']['org']['stage'], node['git']['org']['tasks']].each do |org|
 
@@ -7,9 +7,9 @@ password = node.run_state['password']
     action :nothing
     block do
       try { Env.dump(self, *node['git']['conf']['defaults'], owner: org) }
-      try { Env.dump(self, *(node['git']['conf']['environment']
-        .map { |file| Utils.mapping(file) }.reduce({}, :merge!)
-      ).each { |k, v| node.default[k] = v }.keys, owner: org) }
+      try { Env.dump(self, *((node['git']['conf']['environment']
+          .map { |file| Utils.mapping(file) }.reduce({}, :merge!)
+      ).compact.each { |k, v| node.default[k] = v }.keys), owner: org) }
     end
   end
 

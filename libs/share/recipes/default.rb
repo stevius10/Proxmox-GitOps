@@ -34,5 +34,21 @@ template '/etc/samba/smb.conf' do
   variables( login: login, shares: Array(node['share']['mount']) )
 end
 
+
+ruby_block 'share_workspace' do
+  block do node.dig('git', 'org').values.compact.each do |org|
+    Common.directories(self, "#{node['share']['workspace']}/#{org}", recreate: true, mode: '2775')
+
+    Clients::Git.new(Env.endpoint(self), node.run_state['login'], node.run_state['password'])
+      .get_repositories(org).each do |repo|
+
+      remote = "#{repo['clone_url'].sub(/(https?:\/\/)/, "\\1#{login}:#{password}@")}"
+      target = File.join(node['share']['workspace'], org, repo['name'])
+
+      Mixlib::ShellOut.new("git clone #{remote} #{target}",  user: node['app']['user']).run_command.error!
+    end end
+  end
+end
+
 Common.application(self, 'smbd', actions: [:enable, :start],
   subscribe: "template[/etc/samba/smb.conf]", verify: false)

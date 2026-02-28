@@ -1,7 +1,7 @@
 Common.packages(self, %w[samba samba-common smbclient])
 
-login     = Env.get(self, 'login')
-password  = Env.get(self, 'password')
+login     = (node.run_state['login']    ||= Env.get(self, 'login'))
+password  = (node.run_state['password'] ||= Env.get(self, 'password'))
 
 user login do
   uid node['share']['user']

@@ -1,6 +1,6 @@
 {
 
-  "AUTO_DEPLOY": "true",
+  "AUTO_DEPLOY": "false",
 
   "BASE_STORAGE": "local:vztmpl",
   "BASE_TEMPLATE": "debian-13-standard_13.1-2",

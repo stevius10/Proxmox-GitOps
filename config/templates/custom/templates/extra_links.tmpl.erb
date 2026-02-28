@@ -1,22 +1,20 @@
-{{if .IsSigned}}
 <div class="ui dropdown jump item">{{svg "octicon-chevron-down" 14}}
   <div class="transition menu user-menu">
     <% (node['git']['org'] || {}).values.compact.each do |org| %>
       <div class="item">
         <a class="" href="{{AppSubUrl}}/<%= org %>"> <%= org %> </a>
+        {{if .IsSigned}}
         <div class="right floated muted-links">
           <a role="menuitem" href="{{AppSubUrl}}/org/<%= org %>/settings">{{svg "octicon-sliders"}}</a>
         </div>
+        {{end}}
       </div>
       <div class="divider"></div>
     <% end %>
   </div>
 </div>
-{{end}}
 
 <a class="item" id="navbar-home" href="{{AppSubUrl}}/main" aria-label="home"></a>
 
-{{if .IsSigned}}
 <a class="item" href="{{AppSubUrl}}/-/admin/actions/runners/1">{{svg "octicon-three-bars"}}</a>
 <a class="item" href="{{AppSubUrl}}/main/config">{{svg "octicon-package"}}</a>
-{{end}}

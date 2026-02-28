@@ -1,11 +1,9 @@
-Common.directories(self, node['runner']['dir']['app'])
-
-runner_source = node['runner']['source']
 ruby_block 'runner' do block do
+  Common.directories(self, node['runner']['dir']['app'])
 
   Utils.download(node, "#{node['runner']['dir']['app']}/#{self.recipe_name}",
-    url: -> { version = (Utils.request(runner_source).body[%r{/releases/tag/v?([0-9]+\.[0-9]+\.[0-9]+)}, 1].to_s)
-      "#{runner_source}/download/v#{version}/act_runner-#{version}-linux-#{Utils.arch()}" } )
+    url: -> { version = (Utils.request(node['runner']['source']).body[%r{/releases/tag/v?([0-9]+\.[0-9]+\.[0-9]+)}, 1].to_s)
+      "#{node['runner']['source']}/download/v#{version}/act_runner-#{version}-linux-#{Utils.arch()}" } )
 
   Utils.wait("#{node['git']['host']['local']}:#{node['git']['port']['http']}")
 
@@ -23,8 +21,7 @@ ruby_block 'runner' do block do
   )).run_command; register.error!
 
   Common.application(node, self.recipe_name)
-  end
-  action :nothing
+  end; action :nothing
 end
 
 template "#{node['runner']['dir']['app']}/config.yaml" do

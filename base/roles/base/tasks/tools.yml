@@ -17,11 +17,11 @@
         url: "https://downloads.cinc.sh/files/stable/cinc/{{ item }}/debian/13/cinc_{{ item }}-1_{{ arch | default('amd64') }}.deb"
         dest: /tmp/cinc.deb
       register: download_result
-      until: download_result is succeeded
       ignore_errors: true
       loop: "{{ versions }}"
       loop_control:
         loop_var: item
+      when: download_result is not defined or (download_result is failed)
 
     - name: Install configuration management
       ansible.builtin.apt:

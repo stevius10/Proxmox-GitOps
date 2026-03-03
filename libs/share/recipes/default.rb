@@ -6,7 +6,7 @@ Common.packages(self, %w[samba samba-common smbclient])
 
 user login do
   uid node['share']['user']
-  gid node['share']['user']
+  gid node['share']['group']
   shell '/bin/false'
   manage_home false
 end

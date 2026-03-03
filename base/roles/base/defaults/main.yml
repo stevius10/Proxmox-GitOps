@@ -1,0 +1,4 @@
+ansible.builtin:
+  validate_certs: no
+  retries: 3
+  delay: 3

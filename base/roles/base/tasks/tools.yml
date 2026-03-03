@@ -1,28 +1,27 @@
 - name: Install configuration management
   block:
-    - name: Get latest Cinc version
+    - name: Get configuration management versions
       ansible.builtin.uri:
         url: https://downloads.cinc.sh/files/stable/cinc/
         return_content: yes
       register: download_configuration_management_version
-      retries: 5
-      delay: 3
       until: download_configuration_management_version.status == 200
       changed_when: false
 
-    - name: Get configuration management version
+    - name: Sort configuration management versions
       ansible.builtin.set_fact:
-        cinc_version: "{{ download_configuration_management_version.content | regex_findall('href=\"(\\d+\\.\\d+\\.\\d+)/\"') | sort | last }}"
+        versions: "{{ (download_configuration_management_version.content | regex_findall('href=\"(\\d+\\.\\d+\\.\\d+)/\"') | sort | reverse)[:3] }}"
 
-    - name: Download configuration management
+    - name: Download latest configuration management
       ansible.builtin.get_url:
-        url: "https://downloads.cinc.sh/files/stable/cinc/{{ cinc_version }}/debian/13/cinc_{{ cinc_version }}-1_{{ arch | default('amd64') }}.deb"
+        url: "https://downloads.cinc.sh/files/stable/cinc/{{ item }}/debian/13/cinc_{{ item }}-1_{{ arch | default('amd64') }}.deb"
         dest: /tmp/cinc.deb
-        validate_certs: no
-      register: download_configuration_management_result
-      retries: 5
-      delay: 3
-      until: download_configuration_management_result is succeeded
+      register: download_result
+      until: download_result is succeeded
+      ignore_errors: true
+      loop: "{{ versions }}"
+      loop_control:
+        loop_var: item
 
     - name: Install configuration management
       ansible.builtin.apt:

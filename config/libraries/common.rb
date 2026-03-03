@@ -122,14 +122,14 @@ module Common
   end
 
   def self.create_dir(ctx, dir, owner, group, mode, recursive)
-    ctx.directory dir do owner owner; group group; mode mode; recursive recursive end
+    Ctx.dsl(ctx).directory dir do owner owner; group group; mode mode; recursive recursive end
   rescue => e
     Logs.warn("Skip create #{dir}: #{e}")
   end
 
   def self.delete_dir(ctx, dir)
     Logs.try!("delete dir #{dir}") do
-      ctx.directory dir do action :delete; recursive true; only_if { ::Dir.exist?(dir) } end
+      Ctx.dsl(ctx).directory dir do action :delete; recursive true; only_if { ::Dir.exist?(dir) } end
     end
   end
 

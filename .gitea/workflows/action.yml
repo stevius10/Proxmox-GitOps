@@ -19,30 +19,34 @@ runs:
 
     - name: Configure container
       id: init
+      shell: bash
       run: |
-        repository="${{ inputs.repo }}" && echo "repo=${repository##*/}" >> "$GITEA_ENV" && echo "stage=${repository%/*}" >> "$GITEA_ENV"
+        repository="${{ inputs.repo }}"
+        repo="${repository##*/}" && echo "repo=$repo" >> "$GITEA_ENV"
+        stage="${repository%/*}" && echo "stage=$stage" >> "$GITEA_ENV"
         
-        cd repo && for env in container{".env",".local.env",".${repository%/*}.env"}; do
+        cd repo && for env in container{".env",".local.env",".${stage}.env"}; do
           [[ -f "${env}" ]] && source "${env}" || true
         done
-
-        echo "ip=$IP" >> $GITEA_ENV
-        echo "id=$ID" >> $GITEA_ENV
-        echo "cores=$CORES" >> $GITEA_ENV
-        echo "memory=$MEMORY" >> $GITEA_ENV
-        echo "swap=$SWAP" >> $GITEA_ENV
-        echo "disk=$DISK" >> $GITEA_ENV
-        echo "boot=$BOOT" >> $GITEA_ENV
-        echo "mount=$MOUNT" >> $GITEA_ENV
-
-      shell: bash
+        
+        [[ "$stage" == "main" ]] && hostname="$repo" || hostname="${stage}-${repo}"
+        echo "hostname=$hostname" >> "$GITEA_ENV"
+        
+        echo "ip=$IP" >> "$GITEA_ENV"
+        echo "id=$ID" >> "$GITEA_ENV"
+        echo "cores=$CORES" >> "$GITEA_ENV"
+        echo "memory=$MEMORY" >> "$GITEA_ENV"
+        echo "swap=$SWAP" >> "$GITEA_ENV"
+        echo "disk=$DISK" >> "$GITEA_ENV"
+        echo "boot=$BOOT" >> "$GITEA_ENV"
+        echo "mount=$MOUNT" >> "$GITEA_ENV"
 
     - name: Base configuration
       uses: main/base/.gitea/workflows@main
       with:
         ip: ${{ env.ip }}
         id: ${{ env.id }}
-        hostname: ${{ env.stage }}-${{ env.repo }}
+        hostname: ${{ env.hostname }}
         cores: ${{ env.cores }}
         memory: ${{ env.memory }}
         swap: ${{ env.swap }}

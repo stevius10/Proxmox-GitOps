@@ -159,24 +159,28 @@ Common.application(self, 'apache2') # provided by convention
 
 - Add to Monorepository and redeploy.
 
-#### Environment
-
-- Optionally, use [`Env.get()` and `Env.set()`](config/libraries/env.rb) to access Gitea environment variables.
-
-<p align="center"><br>
-  <a href="docs/img/environment.png" target="_blank" rel="noopener noreferrer">
-    <img src="docs/img/environment.png" alt="Global Environment" width="600px" />
-  </a>
-</p><br>
-
-- The container can be tested locally by running `./local/run.sh [container]`:
-
   <details>
-  <summary>Example: Apache</summary>
+  <summary>Getting Started: ./run.sh apache</summary>
   <br>
   <p align="center">
     <a href="docs/img/development.png">
-      <img src="docs/img/development.png" alt="Local Development" width="600">
+      <img src="docs/img/development.png" alt="Local Apache" width="600">
+    </a>
+  </p> <br>
+  </details><br>
+
+- Container [`libs`](libs/) can be tested locally by running `./local/run.sh [container]`:
+
+  <details>
+  <summary>Example: ./run.sh assistant -p 8123</summary>
+  <br>
+  <p align="center">
+    <a href="docs/img/local.png">
+      <img src="docs/img/local.png" alt="Local Home Assistant" width="600">
     </a>
   </p> <br>
   </details>
+
+#### Environment
+
+- Optionally, use [`Env.get()` and `Env.set()`](config/libraries/env.rb) to access environment variables, initially set by [globals](globals.json).

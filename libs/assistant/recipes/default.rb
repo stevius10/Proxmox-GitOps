@@ -2,7 +2,7 @@ Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
 Common.directories(self, [node['assistant']['dir']['data']])
 
-Common.packages(self, %w[build-essential bluez dbus-broker mc pkg-config libmariadb-dev-compat python3-pip python3-venv])
+Common.packages(self, %w[build-essential bluez dbus-broker git mc pkg-config libmariadb-dev-compat python3-pip python3-venv])
 
 link '/config' do
   to node['assistant']['dir']['data']

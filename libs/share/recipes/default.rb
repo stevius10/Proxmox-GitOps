@@ -7,8 +7,10 @@ Common.packages(self, %w[samba samba-common smbclient])
 Common.directories(self, dirs, owner: login, group: node['share']['group'], mode: '2775')
 
 user login do
-  uid node['share']['user']; gid node['share']['group']
-  shell '/bin/false'; manage_home false
+  uid node['share']['user']['uid']
+  gid node['share']['user']['gid']
+  shell '/bin/false'
+  manage_home false
 end
 
 execute "create_samba_#{login}" do

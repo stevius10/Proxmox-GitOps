@@ -52,28 +52,6 @@ jobs:
           share: true
         if: ${{ gitea.ref == 'refs/heads/release' }}
 
-  share:
-    runs-on: [ "shell" ]
-    needs: [ init, base ]
-    steps:
-      - name: Checkout repository
-        uses: tasks/checkout@v4
-        with:
-          path: 'config'
-          submodules: true
-      - name: Configure container
-        env:
-          ip: ${{ needs.init.outputs.ip }}
-          id: ${{ needs.init.outputs.id }}
-          mount: ${{ needs.init.outputs.mount }}
-          login: ${{ vars.LOGIN }}
-          password: ${{ vars.PASSWORD }}
-        run: |
-          tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.keys/${id}" "config@${ip}" 'sudo tar xz -C /tmp
-            sudo -E IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
-              cinc-client --local-mode --config-option cookbook_path="[\"/tmp/config\", \"/tmp/config/libs\"]" -o share'
-    if: ${{ gitea.ref == 'refs/heads/release' }}
-
   config:
     runs-on: [ "shell" ]
     needs: [ init, base ]
@@ -95,3 +73,25 @@ jobs:
             CONFIG_FILE="-j /tmp/config/local/config.json"; [ -f /tmp/config/local/config.local.json ] && CONFIG_FILE="-j /tmp/config/local/config.local.json"
             sudo -E IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" PWD=/tmp/config \
               cinc-client --local-mode $CONFIG_FILE --config-option cookbook_path="/tmp/config" -o config'
+
+  share:
+    runs-on: [ "shell" ]
+    needs: [ init, base ]
+    steps:
+      - name: Checkout repository
+        uses: tasks/checkout@v4
+        with:
+          path: 'config'
+          submodules: true
+      - name: Configure container
+        env:
+          ip: ${{ needs.init.outputs.ip }}
+          id: ${{ needs.init.outputs.id }}
+          mount: ${{ needs.init.outputs.mount }}
+          login: ${{ vars.LOGIN }}
+          password: ${{ vars.PASSWORD }}
+        run: |
+          tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.keys/${id}" "config@${ip}" 'sudo tar xz -C /tmp
+            sudo -E IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
+              cinc-client --local-mode --config-option cookbook_path="[\"/tmp/config\", \"/tmp/config/libs\"]" -o share'
+    if: ${{ gitea.ref == 'refs/heads/release' }}

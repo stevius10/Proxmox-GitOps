@@ -1,5 +1,5 @@
-@login    = (login    = node.run_state['login'].presence    or Env.get(self, 'login'))
-@password = (password = node.run_state['password'].presence or Env.get(self, 'password'))
+@login    = (login    =  Env.get(self, 'login'))
+@password = (password =  Env.get(self, 'password'))
 dirs      = (Array(node.dig('share', 'mount')) + Array(node.dig('git', 'org')))
 
 Common.packages(self, %w[samba samba-common smbclient])

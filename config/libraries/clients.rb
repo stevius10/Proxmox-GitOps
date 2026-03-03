@@ -1,3 +1,4 @@
+require_relative 'constants'
 require_relative 'utils'
 
 module Clients
@@ -6,6 +7,11 @@ module Clients
 
     def initialize(uri, username, password)
       @uri, @username, @password = uri, username, password
+    end
+
+    def get_repositories(owner=nil, repo=nil, body: nil, method: Net::HTTP::Get, target: nil)
+      repositories = request(Constants::API_PATH_REPOSITORIES.call(@uri, owner, repo, target), body: body, method: method).json
+      repositories.is_a?(Array) ? repositories : [repositories]
     end
 
     def auto_merge(owner=nil, repo=nil)
@@ -22,11 +28,6 @@ module Clients
     end
 
     private
-
-    def get_repositories(owner=nil, repo=nil, body: nil, method: Net::HTTP::Get, target: nil)
-      repositories = request(Constants::API_PATH_REPOSITORIES.call(@uri, owner, repo, target), body: body, method: method).json
-      repositories.is_a?(Array) ? repositories : [repositories]
-    end
 
     def request(uri, method: Net::HTTP::Get, body: nil)
       Utils.request(uri, method: method, body: body, headers: Constants::HEADER_JSON,

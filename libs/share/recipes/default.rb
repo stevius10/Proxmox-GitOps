@@ -1,12 +1,14 @@
-Common.packages(self, %w[samba samba-common smbclient])
+@login    = (login    =  Env.get(self, 'login'))
+@password = (password =  Env.get(self, 'password'))
+dirs      = (Array(node.dig('share', 'mount')) + Array(node.dig('git', 'org')))
 
-login     = (node.run_state['login']    ||= Env.get(self, 'login'))
-password  = (node.run_state['password'] ||= Env.get(self, 'password'))
+Common.packages(self, %w[samba samba-common smbclient])
 
 user login do
   uid node['share']['user']
   gid node['share']['group']
-  shell '/bin/false'; manage_home false
+  shell '/bin/false'
+  manage_home false
 end
 
 execute "create_samba_#{login}" do
@@ -14,18 +16,16 @@ execute "create_samba_#{login}" do
   not_if "pdbedit -L | grep -w #{login}"
 end
 
-Array(node.dig('share', 'mount')).each do |path| next if path.nil?
-  directory path do
-    owner login
-    group node['share']['group']
-    mode  '2775'
-    recursive true
-    ignore_failure true
-  end
+ruby_block "share_workspace_directories_with_login" do block do
+  Common.directories(self, dirs, owner: login, group: node['share']['group'], mode: '2775')
+end end
 
+include 'workspace.rb'
+
+dirs.each do |path| next if path.nil?
   execute "chown_#{login}_#{path}" do
     command "sudo find #{path} -mindepth 1 -not -path '#{path}/.keys*' -exec chown -R #{login}:#{node['share']['group']} {} + || true"
-    ignore_failure true
+    ignore_failure true # depends on filesystem
   end
 end
 

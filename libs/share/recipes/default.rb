@@ -4,8 +4,6 @@ dirs      = (Array(node.dig('share', 'mount')) + Array(node.dig('git', 'org')))
 
 Common.packages(self, %w[samba samba-common smbclient])
 
-Common.directories(self, dirs, owner: login, group: node['share']['group'], mode: '2775')
-
 user login do
   uid node['share']['user']
   gid node['share']['user']
@@ -17,6 +15,10 @@ execute "create_samba_#{login}" do
   command "printf '#{password}\\n#{password}\\n' | smbpasswd -a -s #{login}"
   not_if "pdbedit -L | grep -w #{login}"
 end
+
+ruby_block "share_workspace_directories_with_login" do block do
+  Common.directories(self, dirs, owner: login, group: node['share']['group'], mode: '2775')
+end end
 
 include 'workspace.rb'
 

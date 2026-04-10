@@ -63,9 +63,9 @@ end
 # Reference
 
 def include(rel)
-  caller_location = caller_locations(1,1)&.first
-  instance_eval(::File.read(path = ::File.expand_path(::File.join(caller_location&.path ?
-    ::File.dirname(::File.expand_path(caller_location.path)) : ::Dir.pwd, rel))), path)
+  c = caller_locations(1, 1).first&.path
+  p = File.expand_path(rel, c ? File.dirname(File.expand_path(c)) : Dir.pwd)
+  File.exist?(p) ? instance_eval(File.read(p), p) : (Chef::Log.error("include not found: #{p}") && nil)
 end
 
 # Compatibility

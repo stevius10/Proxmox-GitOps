@@ -1,36 +1,26 @@
 module Logs
+  F = "\e[1m[%s] %s (%s:%d)\e[0m"; NF = "%s (%s:%d)"
 
-  FORMAT="\e[1m[%s] %s (%s:%d)\e[0m"; NO_FORMAT="%s (%s:%d)"
-
-  def self.log(msg=nil, verbose: true, level: :info)
-    (c = (s = caller_locations(2, 60)).find { |l| [__FILE__, %r{libraries}].none? { |ig| ig.is_a?(Regexp) ? l.path =~ ig : l.path == ig } } || s.first); f = File.basename(c.path); l = c.lineno
-    m = ((label = (c.respond_to?(:label) ? c.label : c.to_s).sub(/block.*in /, '')).eql?('from_file') ? nil : label)
-    verbose ? Chef::Log.send(level, m ? FORMAT % [m, msg, f, l] : NO_FORMAT % [msg, f, l]) : (m ? "[#{m}]#{f}:#{l}" : "#{f}:#{l}")
+  def self.log(msg=nil, v: true, l: :info)
+    c = (s = caller_locations(2, 60)).find { |i| [__FILE__, %r{libraries}].none? { |ig| ig.is_a?(Regexp) ? i.path =~ ig : i.path == ig } } || s.first
+    m = (lb = (c.label || c.to_s).sub(/block.*in /, '')).eql?('from_file') ? nil : lb
+    v ? Chef::Log.send(l, m ? F % [m, msg, File.basename(c.path), c.lineno] : NF % [msg, File.basename(c.path), c.lineno]) : (m ? "[#{m}]#{File.basename(c.path)}:#{c.lineno}" : "#{File.basename(c.path)}:#{c.lineno}")
   end
 
-  def self.info(msg); log(msg) end; def self.warn(msg); log(msg, level: :warn) end
-  def self.error(msg, raise: false); log(msg, level: :error); raise msg if raise end
+  def self.info(m); log(m) end; def self.warn(m); log(m, l: :warn) end
+  def self.error(m, r: false); log(m, l: :error); raise m if r end
+  def self.debug(*a, l: :debug); log("[(debug) #{a.reject(&:blank?).join(', ')}]", l: l) end
+  def self.return(m, r, *a, l: :debug); debug("(return) #{m}: #{r}", *a, l: l); r end
 
-  def self.debug(*args, level: :debug)
-    message = args.reject(&:blank?).join(", ")
-    log("[(debug) #{message}]", level: level)
-  end
-
-  def self.return(msg, result, *args, level: :debug)
-    debug("(return) #{msg}: #{result}", *args, level: level); return result
-  end
-
-  def self.try!(msg, *args, raise: false)
-    Logs.return("(try) #{msg}", yield, args, level: :debug)
+  def self.try!(m, *a, r: false)
+    return(m, yield, a)
   rescue Exception => e
-    raise ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(tried) #{msg}: #{e.message}", *args)
+    r ? raise("[#{log(v: false)}] #{m}: #{e.message}") : debug("(tried) #{m}: #{e.message}", *a)
   end
 
-  def self.blank!(msg, value); error(msg, raise: true) if value.nil? || (value.respond_to?(:empty?) && value.empty?); value; end
+  def self.blank!(m, v); (v.nil? || (v.respond_to?(:empty?) && v.empty?)) ? error(m, r: true) : v end
 
   class << self
-    { true: true, false: false, nil: nil }.each do |name, value|
-      define_method(name) do |msg| info(msg); value end
-    end
+    { true: true, false: false, nil: nil }.each { |n, v| define_method(n) { |m| info(m); v } }
   end
 end

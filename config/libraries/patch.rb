@@ -63,12 +63,23 @@ def include(rel)
   File.exist?(p) ? instance_eval(File.read(p), p) : (Chef::Log.error("include not found: #{p}") && nil)
 end
 
-module Chef
-  module Log
-    class << self
-      [:info, :warn, :error, :debug, :fatal].each { |m| define_method(m) { |_| nil } }
-      def method_missing(*); nil end
-      def respond_to_missing?(*); true end
+# Compatibility
+
+unless defined?(Chef)
+  module Chef; end
+end
+unless defined?(Chef::Log)
+  module Chef
+    module Log
+      class << self
+        def info(m)  $stdout.puts m end
+        def warn(m)  $stderr.puts m end
+        def error(m) $stderr.puts m end
+        def debug(m) $stdout.puts m end
+        def method_missing(k, *a) respond_to?(k) ? send(k, *a) : $stdout.puts(a.first) end
+        def respond_to_missing?(*); true end
+      end
     end
   end
 end
+

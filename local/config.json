@@ -3,6 +3,7 @@
   "proxmox":
     {
       "host": "192.168.178.",
+      "node": "node_name",
       "user": "root@pam",
       "password": ""
     },

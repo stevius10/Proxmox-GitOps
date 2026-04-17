@@ -9,6 +9,8 @@
   "BASE_MASK": "24",
   "BASE_INTERFACE": "eth0",
   "BASE_BRIDGE": "vmbr0",
+  "PROXMOX_NODE": "node_name",
+
 
   "LIBS_BROKER_ENDPOINT"  : "mqtt://192.168.178.109:1883",
 

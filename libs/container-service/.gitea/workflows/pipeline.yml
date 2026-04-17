@@ -1,0 +1,107 @@
+on:
+  workflow_dispatch:
+  push:
+    branches: [ release, main ]
+
+jobs:
+  preflight:
+    runs-on: [ "shell" ]
+    steps:
+      - name: Checkout repository
+        uses: tasks/checkout@v4
+
+      - name: Validate container environment
+        shell: bash
+        run: |
+          for env in container{.env,.local.env}; do
+            if [[ -f "$env" ]]; then
+              source "$env"
+            fi
+          done
+
+          required=(IP ID CORES MEMORY SWAP DISK BOOT)
+          for key in "${required[@]}"; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "Missing required container variable '$key'. Check container.env/container.local.env." >&2
+              exit 1
+            fi
+          done
+
+  init:
+    runs-on: [ "shell" ]
+    needs: preflight
+    outputs:
+      ip: ${{ steps.config.outputs.ip }}
+      id: ${{ steps.config.outputs.id }}
+      hostname: ${{ steps.config.outputs.hostname }}
+      cores: ${{ steps.config.outputs.cores }}
+      memory: ${{ steps.config.outputs.memory }}
+      swap: ${{ steps.config.outputs.swap }}
+      disk: ${{ steps.config.outputs.disk }}
+      boot: ${{ steps.config.outputs.boot }}
+      mount: ${{ steps.config.outputs.mount }}
+    steps:
+      - name: Checkout repository
+        uses: tasks/checkout@v4
+
+      - name: Set configuration
+        id: config
+        shell: bash
+        run: |
+          for env in container{.env,.local.env}; do
+            if [[ -f "$env" ]]; then
+              source "$env"
+            fi
+          done
+
+          : "${MOUNT:=}"
+          echo "hostname=container-service" >> $GITEA_OUTPUT
+          echo "ip=$IP" >> $GITEA_OUTPUT
+          echo "id=$ID" >> $GITEA_OUTPUT
+          echo "cores=$CORES" >> $GITEA_OUTPUT
+          echo "memory=$MEMORY" >> $GITEA_OUTPUT
+          echo "swap=$SWAP" >> $GITEA_OUTPUT
+          echo "disk=$DISK" >> $GITEA_OUTPUT
+          echo "boot=$BOOT" >> $GITEA_OUTPUT
+          echo "mount=$MOUNT" >> $GITEA_OUTPUT
+
+  base:
+    runs-on: [ "shell" ]
+    needs: init
+    if: ${{ gitea.ref == 'refs/heads/release' }}
+    steps:
+      - id: init
+        uses: main/base/.gitea/workflows@main
+        with:
+          ip: ${{ needs.init.outputs.ip }}
+          id: ${{ needs.init.outputs.id }}
+          hostname: ${{ needs.init.outputs.hostname }}
+          cores: ${{ needs.init.outputs.cores }}
+          memory: ${{ needs.init.outputs.memory }}
+          swap: ${{ needs.init.outputs.swap }}
+          disk: ${{ needs.init.outputs.disk }}
+          boot: ${{ needs.init.outputs.boot }}
+          mount: ${{ needs.init.outputs.mount }}
+
+  configure:
+    runs-on: [ "shell" ]
+    needs: [ init, base ]
+    if: ${{ gitea.ref == 'refs/heads/release' }}
+    steps:
+      - name: Checkout repository
+        uses: tasks/checkout@v4
+        with:
+          path: container_service
+
+      - name: Configure container service
+        env:
+          ip: ${{ needs.init.outputs.ip }}
+          id: ${{ needs.init.outputs.id }}
+          host: ${{ vars.HOST }}
+          login: ${{ vars.LOGIN }}
+          password: ${{ vars.PASSWORD }}
+        shell: bash
+        run: |
+          tar -c container_service -cz | ssh -o StrictHostKeyChecking=no -i "/share/.keys/${id}" "config@${ip}" 'sudo tar xz -C /tmp
+            sudo -E IP="'"${ip}"'" ID="'"${id}"'" HOST="'"${host}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" PWD=/tmp/container_service \
+              cinc-client --local-mode --config-option cookbook_path="/tmp/container_service" -o container_service'

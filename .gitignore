@@ -14,3 +14,6 @@ local/*
 
 .idea
 .DS_Store
+globals.json
+container.env
+local/config.json

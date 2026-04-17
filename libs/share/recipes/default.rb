@@ -1,6 +1,8 @@
 @login    = (login    =  Env.get(self, 'login'))
 @password = (password =  Env.get(self, 'password'))
 dirs      = (Array(node.dig('share', 'mount')) + Array(node.dig('git', 'org')))
+share_root = node['share']['path']
+share_dirs = Array(dirs).compact.reject { |d| d.to_s == share_root.to_s }
 
 Common.packages(self, %w[samba samba-common smbclient])
 
@@ -17,7 +19,8 @@ execute "create_samba_#{login}" do
 end
 
 ruby_block "share_workspace_directories_with_login" do block do
-  Common.directories(self, dirs, owner: login, group: node['share']['group'], mode: '2775')
+  Common.directories(self, [share_root], owner: 'root', group: 'root', mode: '0775', recursive: false, ignore_failure: true)
+  Common.directories(self, share_dirs, owner: login, group: node['share']['group'], mode: '2775', ignore_failure: true)
 end end
 
 include 'workspace.rb'

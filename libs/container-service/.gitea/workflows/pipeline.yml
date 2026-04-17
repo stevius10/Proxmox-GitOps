@@ -13,7 +13,7 @@ jobs:
       - name: Validate container environment
         shell: bash
         run: |
-          for env in container{.env,.local.env}; do
+          for env in container{.env,.local.env,.stage.env}; do
             if [[ -f "$env" ]]; then
               source "$env"
             fi
@@ -48,14 +48,15 @@ jobs:
         id: config
         shell: bash
         run: |
-          for env in container{.env,.local.env}; do
+          for env in container{.env,.local.env,.stage.env}; do
             if [[ -f "$env" ]]; then
               source "$env"
             fi
           done
 
+          : "${HOSTNAME:=container-service}"
           : "${MOUNT:=}"
-          echo "hostname=container-service" >> $GITEA_OUTPUT
+          echo "hostname=$HOSTNAME" >> $GITEA_OUTPUT
           echo "ip=$IP" >> $GITEA_OUTPUT
           echo "id=$ID" >> $GITEA_OUTPUT
           echo "cores=$CORES" >> $GITEA_OUTPUT

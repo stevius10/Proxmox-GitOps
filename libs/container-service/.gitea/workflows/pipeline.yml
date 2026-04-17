@@ -104,4 +104,4 @@ jobs:
         run: |
           tar -c container_service -cz | ssh -o StrictHostKeyChecking=no -i "/share/.keys/${id}" "config@${ip}" 'sudo tar xz -C /tmp
             sudo -E IP="'"${ip}"'" ID="'"${id}"'" HOST="'"${host}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" PWD=/tmp/container_service \
-              cinc-client --local-mode --config-option cookbook_path="/tmp/container_service" -o container_service'
+              cinc-client --local-mode --config-option cookbook_path="/tmp" -o container_service'

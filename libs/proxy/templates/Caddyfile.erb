@@ -23,17 +23,18 @@
       roll_keep     <%= @logs_roll_keep %>
       roll_keep_for <%= @logs_roll_for %>
     }
-  format filter {
-    wrap console
-    fields {
-      request>duration delete
-      request>headers delete
-      request>size delete
-      request>tls delete
-      request>remote_port delete
-      resp_headers delete
-      bytes_read delete
-      user_id delete
+    format filter {
+      wrap console
+      fields {
+        request>duration delete
+        request>headers delete
+        request>size delete
+        request>tls delete
+        request>remote_port delete
+        resp_headers delete
+        bytes_read delete
+        user_id delete
+      }
     }
   }
 }
@@ -42,10 +43,10 @@
 
   vars upstream {args.1}
   reverse_proxy {args.1} {
-    header_up Host {args.0}
-    header_up X-Forwarded-For {remote_ip}
-    header_up X-Real-IP {client_ip}
-    header_up X-Container-IP {args.1}
+header_up Host {args.0}
+header_up X-Real-IP {http.request.remote.host}
+header_up X-Forwarded-For {http.request.remote.host}
+header_up X-Container-IP {args.1}
   }
 }
 

@@ -2,12 +2,6 @@
   storage file_system <%= @app_dir %>
 }
 
-(internal) {
-  @internal remote_ip <%= @internal %>
-  @external not remote_ip <%= @internal %>
-  respond @external "Forbidden" 403
-}
-
 (header) {
   header {
     Strict-Transport-Security "max-age=31536000;"
@@ -15,7 +9,7 @@
     X-Content-Type-Options "nosniff"
   }
 }
-(common) {
+(default) {
   import header
   log {
     output file <%= @log_dir %>/{args.0}.log {
@@ -37,34 +31,29 @@
       }
     }
   }
-}
-(default) {
-  import common {args.0}
-
   vars upstream {args.1}
+
   reverse_proxy {args.1} {
-header_up Host {args.0}
-header_up X-Real-IP {http.request.remote.host}
-header_up X-Forwarded-For {http.request.remote.host}
-header_up X-Container-IP {args.1}
+    header_up Host {args.0}
+    header_up X-Real-IP {http.request.remote.host}
+    header_up X-Forwarded-For {http.request.remote.host}
+    header_up X-Container-IP {args.1}
   }
 }
 
-<% @hosts.each do |entry| -%> <% domain, upstream, hostname = entry.split(' ') -%>
-  <%= domain %> {
-    import internal
-    import default <%= hostname %> <%= upstream %>
+(internal) {
+  @internal remote_ip <%= @internal %>
+  @external not remote_ip <%= @internal %>
+  abort @external
+}
 
-    tls internal
+<% @hosts.each do |entry| -%> <% domain, upstream, hostname = entry.split(' ') -%><%= domain %> {
+  import internal
+  import <%= @config_dir %>/*<%= hostname %>.caddy
 
-    import <%= @config_dir %>/*<%= hostname %>.caddy
-
-    route {
-      reverse_proxy @internal <%= upstream %> {
-        trusted_proxies <%= @internal %>
-      }
-    }
-  }
+  tls internal
+  import default <%= hostname %> <%= upstream %>
+}
 <% end -%>
 
 import <%= @config_dir %>/*.local.caddy

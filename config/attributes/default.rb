@@ -34,16 +34,16 @@ default['git']['org']['main']         = 'main'
 default['git']['org']['stage']        = 'stage'
 default['git']['org']['tasks']        = 'tasks'
 
-default['git']['env']['deploy']       = 'AUTO_DEPLOY'
-
 default['git']['branch']['rollback']  = 'rollback'
 
-# Runner
+default['git']['env']['deploy']       = 'AUTO_DEPLOY'
 
 default['runner']['dir']['app']       = '/app/runner'
 default['runner']['dir']['cache']     = '/tmp'
 
 default['runner']['conf']['label']    = 'shell'
 
-default['runner']['source']           = 'https://gitea.com/gitea/act_runner/releases'
 default['runner']['dependencies']     = [ 'https://gitea.com/actions/checkout' ]
+
+default['mirror']['gitea']            = 'https://dl.gitea.com/gitea/'
+default['mirror']['runner']           = 'https://dl.gitea.com/act_runner/'

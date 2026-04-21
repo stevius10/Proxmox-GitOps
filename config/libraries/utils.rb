@@ -55,7 +55,7 @@ module Utils
   def self.snapshot(ctx, data_dir, name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), snapshot_dir: Default.snapshot_dir(ctx), mode: 0o755)
 
     snapshot_dir = "#{snapshot_dir}/#{name}"
-    snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%y_%m_%d-%H_%M')}.tar.gz")
+    snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%y%m%d-%H%M')}.tar.gz")
 
     md5_dir = ->(path) {
       entries = Dir.glob("#{path}/**/*", File::FNM_DOTMATCH)
@@ -177,7 +177,6 @@ module Utils
       end
 
     end
-
 
     FileUtils.chown_R(user, group, app_dir)
     FileUtils.chmod_R(0755, app_dir)

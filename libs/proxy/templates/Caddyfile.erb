@@ -2,62 +2,58 @@
   storage file_system <%= @app_dir %>
 }
 
-(internal) {
-  @internal remote_ip <%= @internal %>
-  @external not remote_ip <%= @internal %>
-  respond @external "Forbidden" 403
-}
-
 (header) {
   header {
     Strict-Transport-Security "max-age=31536000;"
     X-Frame-Options "DENY"
     X-Content-Type-Options "nosniff"
-    Permissions-Policy "interest-cohort=()"
-    -Server
   }
 }
-
-(common) {
+(default) {
   import header
-
   log {
     output file <%= @log_dir %>/{args.0}.log {
       roll_size     <%= @logs_roll_size %>
       roll_keep     <%= @logs_roll_keep %>
       roll_keep_for <%= @logs_roll_for %>
     }
+    format filter {
+      wrap console
+      fields {
+        request>duration delete
+        request>headers delete
+        request>size delete
+        request>tls delete
+        request>remote_port delete
+        resp_headers delete
+        bytes_read delete
+        user_id delete
+      }
+    }
   }
-}
-
-(default) {
-  import common {args.0}
-
   vars upstream {args.1}
 
   reverse_proxy {args.1} {
     header_up Host {args.0}
-    header_up X-Real-IP {remote_ip}
-    header_up X-Forwarded-For {remote_ip}
+    header_up X-Real-IP {http.request.remote.host}
+    header_up X-Forwarded-For {http.request.remote.host}
     header_up X-Container-IP {args.1}
   }
 }
 
-<% @hosts.each do |entry| -%> <% domain, upstream, hostname = entry.split(' ') -%>
-  <%= domain %> {
-    import default <%= hostname %> <%= upstream %>
-    import internal
+(internal) {
+  @internal remote_ip <%= @internal %>
+  @external not remote_ip <%= @internal %>
+  abort @external
+}
 
-    tls internal
+<% @hosts.each do |entry| -%> <% domain, upstream, hostname = entry.split(' ') -%><%= domain %> {
+  import internal
+  import <%= @config_dir %>/*<%= hostname %>.caddy
 
-    import <%= @config_dir %>/*<%= hostname %>.caddy
-
-    route {
-      reverse_proxy @internal <%= upstream %> {
-        trusted_proxies <%= @internal %>
-      }
-    }
-  }
+  tls internal
+  import default <%= hostname %> <%= upstream %>
+}
 <% end -%>
 
 import <%= @config_dir %>/*.local.caddy

@@ -123,13 +123,7 @@ module Common
   end
 
   def self.create_dir(ctx, dir, owner, group, mode, recursive, ignore_failure = false)
-    Ctx.dsl(ctx).directory dir do
-      owner owner
-      group group
-      mode mode
-      recursive recursive
-      ignore_failure ignore_failure
-    end
+    Ctx.dsl(ctx).directory dir do owner owner; group group; mode mode; recursive recursive; ignore_failure ignore_failure; end
   rescue => e
     Logs.warn("Skip create #{dir}: #{e}")
   end

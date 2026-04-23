@@ -5,12 +5,11 @@
   "BASE_STORAGE": "local:vztmpl",
   "BASE_TEMPLATE": "debian-13-standard_13.1-2",
 
+  "BASE_NODE": "pve",
   "BASE_GATEWAY": "192.168.178.1",
   "BASE_MASK": "24",
   "BASE_INTERFACE": "eth0",
   "BASE_BRIDGE": "vmbr0",
-  "PROXMOX_NODE": "node_name",
-
 
   "LIBS_BROKER_ENDPOINT"  : "mqtt://192.168.178.109:1883",
 

@@ -12,30 +12,16 @@
       ansible.builtin.set_fact:
         versions: "{{ (download_configuration_management_version.content | regex_findall('href=\"(\\d+\\.\\d+\\.\\d+)/\"') | sort | reverse)[:3] }}"
 
-    - name: Check package availability
-      ansible.builtin.uri:
+    - name: Download latest configuration management
+      ansible.builtin.get_url:
         url: "https://downloads.cinc.sh/files/stable/cinc/{{ item }}/debian/13/cinc_{{ item }}-1_{{ arch | default('amd64') }}.deb"
-        method: HEAD
-        status_code: [200, 404]
-      register: package_checks
+        dest: /tmp/cinc.deb
+      register: download_result
+      ignore_errors: true
       loop: "{{ versions }}"
       loop_control:
         loop_var: item
-
-    - name: Select first available configuration management version
-      ansible.builtin.set_fact:
-        version: "{{ (package_checks.results | selectattr('status', 'equalto', 200) | map(attribute='item') | list | first) | default(omit) }}"
-
-    - name: Ensure configuration management package exists
-      ansible.builtin.assert:
-        that:
-          - version is defined
-        fail_msg: "No downloadable Cinc package found for Debian 13 and arch {{ arch | default('amd64') }} from candidates: {{ versions | join(', ') }}"
-
-    - name: Download latest configuration management
-      ansible.builtin.get_url:
-        url: "https://downloads.cinc.sh/files/stable/cinc/{{ version }}/debian/13/cinc_{{ version }}-1_{{ arch | default('amd64') }}.deb"
-        dest: /tmp/cinc.deb
+      when: download_result is not defined or (download_result is failed)
 
     - name: Install configuration management
       ansible.builtin.apt:

@@ -20,7 +20,7 @@ arg() { while [[ $# -gt 0 ]]; do case "$1" in
   -s|--suffixes)    [[ $# -gt 1 ]] && SUFFIXES="$2" && shift ;;
   -h|--help)        echo -e "\n./$SCRIPT [OPTIONS] [<lib>] [-h|--help]"; echo -e "  -l, --log-level <level>\n  -p, --port <port>\n  -s, --suffixes <list>\n  -d, --debug\n  -r, --restart"
                     echo -e "\nUsage:\n  ./$SCRIPT --debug --restart broker\n  ./$SCRIPT -s \"customize\" -l error\n  ./$SCRIPT sync\n"; exit 0 ;;
-  sync)
+  sync)  # req. preassigned keys (/local/share/.keys/{ID})
     source ./container.env || source ../container.env || true ;;
 
   -*) ;; *) [[ -z "$LIB" || "$LIB" == "config" ]] && LIB="$1" ;; esac; shift; done
@@ -32,6 +32,9 @@ LIB="${LIB:-config}"; LOCAL="./local"
 CONFIG=$(cfg "${LOCAL}" || cfg "./libs/${LIB:-config}" || true)
 LIBS="['/tmp/config','/tmp/config/libs']"
 
+
+# Container
+
 DOCKER_IMAGE="$(basename "$(pwd)" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]//g')"
 DOCKER_FILE="${LOCAL}/Dockerfile"; DOCKER_WAIT="${DOCKER_WAIT:-3}"
 DOCKER_CONTAINER="${LIB:-"$NAME"}"
@@ -41,7 +44,6 @@ HASH_SUM=$(echo "$(md5sum "$DOCKER_FILE" | awk '{print $1}')${HASH_BASE}" | md5s
 HASH_FILE="${LOCAL}/.local.hash"
 HASH_STORED=$(cat "$HASH_FILE" 2>/dev/null || true)
 
-# Local Container
 case "$(uname -m)" in aarch64|arm64) TARGETARCH="arm64" ;; x86_64) TARGETARCH="amd64" ;; *) TARGETARCH="amd64" ;; esac;
 export DOCKER_DEFAULT_PLATFORM="${DOCKER_DEFAULT_PLATFORM:-linux/$TARGETARCH}"
 
@@ -65,7 +67,8 @@ CONTAINER_ID=$(docker run -d --privileged --cgroupns=host -v /sys/fs/cgroup:/sys
     $( [[ "$LIB" != "config" ]] && echo "-p ${PORT:-80}:${PORT:-80} -e HOST=host.docker.internal" || echo "-p ${PORT:-8080}:8080 -p 2222:2222" ) \
     --name "$DOCKER_CONTAINER" --platform "linux/${TARGETARCH}" -w /tmp/config "$DOCKER_IMAGE" sleep infinity) || err "container: startup"
 
-# Main Application
+
+# Main
 
 files() { log "${DOCKER_CONTAINER} [${CONTAINER_ID:0:6}]" "files"
   docker exec "$CONTAINER_ID" bash -c "rm -rf /tmp/config/*" || err "files: cleanup"
@@ -77,22 +80,21 @@ files() { log "${DOCKER_CONTAINER} [${CONTAINER_ID:0:6}]" "files"
   fi
 }; files
 
-if [[ -n "${IP}" && -n "${ID}" ]]; then
+if [[ -n "${IP}" && -n "${ID}" ]]; then # (sync) . container.env
 
   # Synchronize Remote
   docker exec "$CONTAINER_ID" bash -c "tar -cz -C /tmp config | ssh -o StrictHostKeyChecking=no -i \"/share/.keys/${ID}\" \"config@${IP}\" '\
     sudo rm -rf /tmp/config && sudo tar -xz -C /tmp; sudo -E IP=\"${IP}\" ID=\"${ID}\" PWD=/tmp/config \
       cinc-client -j \"/tmp/config/local/config\$( [ -f /tmp/config/local/config.local.json ] && echo \".local\" ).json\" --local-mode --config-option cookbook_path=\"/tmp/config\" -o \"config::repo\" '" || err "sync"; exit 0
-
 else
 
-  # Local Configuration
+  # Configure Local
   configuration() { local recipe="${1:-default}"; log "${DOCKER_CONTAINER} [${CONTAINER_ID:0:6}]" "$LIB::$recipe"
     docker exec "$CONTAINER_ID" bash -c 'sudo $(sudo -u config env) PWD=/tmp/config --preserve-env=ID,HOST \
       cinc-client -l '"$LOG_LEVEL"' --local-mode --config-option node_path=/tmp/nodes --config-option cookbook_path='"$LIBS"' '"$CONFIG"' -o '"$LIB::$recipe"''  || err "configuration: execution"
   }; configuration
 
-  # Local Development: Re-Configuration Loop
+  # Local Development and Reconfiguration
   if [[ -z "${SUFFIXES+x}" ]]; then if [[ "${LIB}" != "config" ]]; then SUFFIXES=("default"); else SUFFIXES=("repo"); fi; fi
 
   while true; do echo -n "$LIB::${SUFFIXES[*]} or $LIB::"; read -r input; [[ -n "$input" ]] && SUFFIXES=($input)

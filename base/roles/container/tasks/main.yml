@@ -3,7 +3,7 @@
 
 - name: Get architecture
   uri:
-    url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ PROXMOX_NODE }}/status"
+    url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ BASE_NODE }}/status"
     method: GET
     headers: "{{ proxmox_auth }}"
     return_content: yes

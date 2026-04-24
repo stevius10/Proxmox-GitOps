@@ -14,7 +14,7 @@ proxmox_cred:
   api_token_id: "{{ PROXMOX_TOKEN if (PROXMOX_PASSWORD | default('') | trim) == '' else omit }}"
   api_token_secret: "{{ PROXMOX_SECRET if (PROXMOX_PASSWORD | default('') | trim) == '' else omit }}"
   api_port: 8006
-  node: "{{ PROXMOX_NODE }}"
+  node: "{{ BASE_NODE }}"
 
 check_delay: 4
 check_retries: 15

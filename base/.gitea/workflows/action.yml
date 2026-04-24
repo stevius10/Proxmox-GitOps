@@ -61,7 +61,8 @@ runs:
         PROXMOX_PASSWORD: ${{ vars.PROXMOX_PASSWORD }}
         PROXMOX_TOKEN: ${{ vars.PROXMOX_TOKEN }}
         PROXMOX_SECRET: ${{ vars.PROXMOX_SECRET }}
-
+        
+        BASE_NODE: ${{ vars.BASE_NODE || 'pve' }}
         BASE_DIR: ${{ vars.BASE_DIR || '/tmp/config' }}
         BASE_SHARE: ${{ vars.BASE_SHARE || '/share' }}
         BASE_STORAGE: ${{ vars.BASE_STORAGE || 'local:vztmpl' }}

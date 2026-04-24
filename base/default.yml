@@ -3,6 +3,7 @@
   hosts: localhost
   gather_facts: no
   vars:
+    BASE_NODE:     "{{ lookup('env', 'BASE_NODE' ) }}"
     BASE_STORAGE:  "{{ lookup('env', 'BASE_STORAGE' ) }}"
     BASE_TEMPLATE: "{{ lookup('env', 'BASE_TEMPLATE') }}"
     BASE_DIR:      "{{ lookup('env', 'BASE_DIR')   | default('/tmp/config', true) }}"

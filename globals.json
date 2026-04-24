@@ -5,6 +5,7 @@
   "BASE_STORAGE": "local:vztmpl",
   "BASE_TEMPLATE": "debian-13-standard_13.1-2",
 
+  "BASE_NODE": "pve",
   "BASE_GATEWAY": "192.168.178.1",
   "BASE_MASK": "24",
   "BASE_INTERFACE": "eth0",

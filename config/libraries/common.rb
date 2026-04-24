@@ -18,12 +18,13 @@ module Common
     group     = opts[:group]      || Default.group(ctx)
     mode      = opts[:mode]       || '0755'
     recursive = opts[:recursive]  || true
+    ignore_failure = !!opts[:ignore_failure]
     recreate  = !!opts[:recreate] || false
 
     if recreate
       sort_dir(dirs).each { |dir| delete_dir(ctx, dir) }
     end
-    dirs.each { |dir| create_dir(ctx, dir, owner, group, mode, recursive) }
+    dirs.each { |dir| create_dir(ctx, dir, owner, group, mode, recursive, ignore_failure) }
   end
 
   # System
@@ -121,8 +122,8 @@ module Common
     end
   end
 
-  def self.create_dir(ctx, dir, owner, group, mode, recursive)
-    Ctx.dsl(ctx).directory dir do owner owner; group group; mode mode; recursive recursive end
+  def self.create_dir(ctx, dir, owner, group, mode, recursive, ignore_failure = false)
+    Ctx.dsl(ctx).directory dir do owner owner; group group; mode mode; recursive recursive; ignore_failure ignore_failure; end
   rescue => e
     Logs.warn("Skip create #{dir}: #{e}")
   end

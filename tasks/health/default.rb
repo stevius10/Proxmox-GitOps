@@ -14,9 +14,9 @@ def check_service(name, id, ip)
   end
 end
 
-Utils.proxmox(ctx, 'nodes/pve/lxc').each do |container| id = container['vmid']
-  config = Utils.proxmox(ctx, "nodes/pve/lxc/#{id}/config")
-  current = Utils.proxmox(ctx, "nodes/pve/lxc/#{id}/status/current")
+Utils.proxmox(ctx, 'lxc').each do |container| id = container['vmid']
+  config = Utils.proxmox(ctx, "lxc/#{id}/config")
+  current = Utils.proxmox(ctx, "lxc/#{id}/status/current")
 
   Env.set(ctx, (hostname = config['hostname'] || id.to_s), (state=({
     'ip '=> (ip=(config['net0'] && config['net0'][/ip=(\d+\.\d+\.\d+\.\d+)/, 1])),

@@ -124,6 +124,7 @@ module Utils
     pass    ||= Env.get_variable(ctx, 'proxmox_password', owner: Default.stage)
     token   ||= Env.get_variable(ctx, 'proxmox_token', owner: Default.stage)
     secret  ||= Env.get_variable(ctx, 'proxmox_secret', owner: Default.stage)
+    node    ||= Env.get_variable(ctx, 'base_node', owner: Default.stage)
 
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", log: "Proxmox: Ticket", method: Net::HTTP::Post,
@@ -132,7 +133,7 @@ module Utils
     else
       headers = { 'Authorization' => "PVEAPIToken=#{user}!#{token}=#{secret}" }
     end
-    request("https://#{host}:8006/api2/json/#{path}", headers: headers).json['data']
+    request("https://#{host}:8006/api2/json/nodes/#{node}/#{path}", headers: headers).json['data']
   end
 
   def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', user: Default.user(ctx), group: Default.group(ctx), extract: true)

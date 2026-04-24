@@ -8,8 +8,8 @@ package 'caddy'
 
 ruby_block 'proxmox_containers' do
   block do
-    node.run_state['proxy_hosts'] = Utils.proxmox(node, 'nodes/pve/lxc').map do |state|
-      config = Utils.proxmox(node, "nodes/pve/lxc/#{state['vmid']}/config")
+    node.run_state['proxy_hosts'] = Utils.proxmox(node, 'lxc').map do |state|
+      config = Utils.proxmox(node, "lxc/#{state['vmid']}/config")
       ip = config['net0'] ? config['net0'].match(/ip=([\d\.]+)/)&.[](1) : "404"
       "#{state['name']}.#{node['proxy']['config']['domain']} #{ip} #{state['name']}"
     end

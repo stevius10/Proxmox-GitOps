@@ -100,11 +100,15 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 
 ### Files and Configuration
 
+The configuration logic uses cascading overrides to separate infrastructure defaults. 
+
 - Global environment variables can be set in [`globals.json`](globals.json).
 
 - `container.stage.env` is sourced for forked-repository deployments.
 
 - `.local` files can be used to [structure versioning](.gitignore); e.g. `globals.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy)
+
+- See **[Configuration Reference](docs/reference/configuration.md)**.
 
 ### Lifecycle
 

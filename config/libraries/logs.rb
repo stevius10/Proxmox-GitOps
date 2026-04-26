@@ -2,7 +2,7 @@ module Logs
 
   FORMAT="\e[1m[%s] %s (%s:%d)\e[0m"; NO_FORMAT="%s (%s:%d)"
 
-  def self.log(msg=nil, verbose: false, level: :info)
+  def self.log(msg=nil, verbose: true, level: :info)
     (c = (s = caller_locations(2, 60)).find { |l| [__FILE__, %r{libraries}].none? { |ig| ig.is_a?(Regexp) ? l.path =~ ig : l.path == ig } } || s.first); f = File.basename(c.path); l = c.lineno
     m = ((label = (c.respond_to?(:label) ? c.label : c.to_s).sub(/block.*in /, '')).eql?('from_file') ? nil : label)
     verbose ? Chef::Log.send(level, m ? FORMAT % [m, msg, f, l] : NO_FORMAT % [msg, f, l]) : (m ? "[#{m}]#{f}:#{l}" : "#{f}:#{l}")
@@ -21,7 +21,7 @@ module Logs
   end
 
   def self.try!(msg, *args, raise: false)
-    Logs.return("(try) #{msg}", yield, args, level: :debug)
+    Logs.return("(try) #{msg}", yield, args, level: :info)
   rescue Exception => e
     raise ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(tried) #{msg}: #{e.message}", *args)
   end

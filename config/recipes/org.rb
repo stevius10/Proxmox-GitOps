@@ -6,10 +6,9 @@ password  = (node.run_state['password'] ||= Env.get(self, 'password'))
   ruby_block "config_#{org}_variables" do
     action :nothing
     block do
-      try { Env.dump(self, *node['git']['conf']['defaults'], owner: org) }
-      try { Env.dump(self, *((node['git']['conf']['environment']
-          .map { |file| Utils.mapping(file) }.reduce({}, :merge!)
-      ).compact.each { |k, v| node.default[k] = v }.keys), owner: org) }
+      Env.dump(self, *(node['git']['conf']['defaults']), owner: org, secret: true)
+      Env.dump(self, *((node['git']['conf']['environment'].map { |file| Utils.mapping(file) }.reduce({}, :merge!))
+          .compact.each { |k, v| node.default[k] = v }.keys), owner: org)
     end
   end
 
@@ -29,7 +28,7 @@ ruby_block "config_#{node['git']['org']['tasks']}_dependencies" do
       Utils.request("#{node['git']['api']['endpoint']}/repos/migrate",
         log: "import '#{addr}'", method: Net::HTTP::Post, user: login, pass: password,
         body: { repo_owner: "#{node['git']['org']['tasks']}", repo_name: addr.split('/').last, clone_addr: "#{addr}.git",
-          private: false, mirror: true, issues: false, labels: false, pull_requests: false, releases: false, service: 'gitea' } )
+          private: false, mirror: true, issues: false, labels: false, pull_requests: false, releases: false } )
     end
   end
 end

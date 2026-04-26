@@ -1,9 +1,17 @@
 ## Configuration Reference
+* [Credentials](#credentials-localconfigjson-or-localconfiglocaljson)
+* [Global Environment](#global-environment-globalsjson-or-globalslocaljson)
+* [Container Resources](#container-resources-containerenv-or-containerlocalenv)
+* [Advanced Configuration](#advanced-configuration)
+    * [State & Persistence](#state--persistence)
+    * [Reverse Proxy](#reverse-proxy)
 
-The configuration is split into credential configuration, global environment variables, and container-specific overrides. `.local` file suffixes can be used for configuration files to prevent data from being committed.
+The configuration for `Proxmox-GitOps` and the container libraries is split into several files.
 
-### Proxmox VE and Container Credentials
-Credentials for Proxmox VE, the `Proxmox-GitOps` control plane, and its containers (`./local/config.json` or `./local/config.local.json`).
+### Credentials
+Contains credentials for Proxmox VE, the `Proxmox-GitOps` control plane, and container libraries.
+
+- `./local/config.json` or `./local/config.local.json`
 
 ```json
 {
@@ -18,49 +26,53 @@ Credentials for Proxmox VE, the `Proxmox-GitOps` control plane, and its containe
 ```
 
 ### Global Environment
-Global environment settings and centralized configuration (`./globals.json` or `./globals.local.json`).
+
+`Proxmox-GitOps` centralizes configuration via Git. It leverages [`Env.get()` and `Env.set()`](config/libraries/env.rb) to access environment variables, which are initially populated from the [globals](globals.json) file.
+
+- `./globals.json` or `./globals.local.json`
 
 ### Container Resources
-Resource allocation for the control plane (`./container.env` or `./container.local.env`) and container libraries (`./libs/{lib}/container[.local|.stage].env`).
+
+Defines resource allocation for the `Proxmox-GitOps` control plane and container libraries.
+
+- `./container.env` or `./container.local.env`
+- `./libs/{lib}/container[.local|.stage].env`
 
 ```dotenv
 IP="192.168.178.***"
 ID="***"
 ...
-MOUNT="***"
+MOUNT="..."
 ```
 
-### Advanced
+* Host-level resources can be passed to containers via `MOUNT`, e.g., `MOUNT="/mnt/..:/share/.."`.
 
-#### State & Persistence
-* **`config` /share:** The control plane initializes and persists the (_network_) share.
-* **Application Snapshots:** The `snapshot` pipeline exports artifacts to `config`'s `/share/snapshots/{lib}/`.
-* **Mounts and Passthrough** Host-level resources can be passed to containers via `MOUNT` in the container-specific `container.env` file (e.g., `MOUNT="/mnt/..:/share/.."`).
+### Advanced Configuration
+
+#### State and Persistence
+The control plane `config` manages the (network) `/share`.
+
+* Create `./local/share/` to override the `Proxmox-GitOps` default share (e.g., to fix keys or set specific snapshot paths).
+* Snapshots are automatically restored via `Utils.snapshot` and written to `/share/snapshots/{lib}/` by the `snapshot` pipeline.
 
 #### Reverse Proxy
-The Caddy-based reverse proxy dynamically includes configuration files via `./libs/proxy/templates/Caddyfile`: 
+The Caddy-based reverse proxy dynamically includes configuration files via `./libs/proxy/templates/Caddyfile`:
 
   ```erb
-  <% @hosts.each do |entry| -%> 
-  <% domain, upstream, hostname = entry.split(' ') -%>
   <%= domain %> {
-      import internal
       import <%= @config_dir %>/*<%= hostname %>.caddy
-      tls internal
-      import default <%= hostname %> <%= upstream %>
-  }
-  <% end -%>
+     ...
+  } <% end -%>
   import <%= @config_dir %>/*.local.caddy
   ```
 
-You can inject custom logic via `.caddy` and `.local.caddy` files: 
+You can inject custom logic via `.caddy` and `.local.caddy` files, for example in `./libs/proxy/files/default/config/10-assistant.local.caddy`:
 
-  - **Example:** `./libs/proxy/files/default/config/10-assistant.local.caddy`
-    ```caddy
-    proxmox.gitops.pm {
-        @denied not remote_ip 192.168.178.0/24
-        abort @denied
-        tls /share/.certs/cert.crt /share/.certs/cert.key
-        import default assistant 192.168.178.110:8123
-    }
-    ```
+```caddy
+proxmox.gitops.pm {
+    @denied not remote_ip 192.168.178.0/24
+    abort @denied
+    tls /share/.certs/cert.crt /share/.certs/cert.key
+    import default assistant 192.168.178.110:8123
+}
+```

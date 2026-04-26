@@ -94,7 +94,7 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 
   - Accept the Pull Request at `http://localhost:8080/main/config` to deploy `Proxmox-GitOps` on Proxmox VE. 
 
-  - If `AUTO_DEPLOY` is set to `true` in `globals.json`, `./local/run.sh` will deploy `Proxmox-GitOps` to PVE as `config` container, and subsequently deploy the container libraries (`/libs`) from within the `config` container itself.
+  - If `AUTO_DEPLOY` is set to `true` in `globals.json`, `./local/run.sh` will automatically deploy `Proxmox-GitOps` and container libraries (`/libs`) to PVE. 
 
 <p align="center"><br>
   <a href="docs/img/nutshell.png" target="_blank" rel="noopener noreferrer">

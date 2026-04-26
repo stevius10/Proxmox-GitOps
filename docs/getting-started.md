@@ -21,11 +21,11 @@ Edit the configuration according to [Proxmox-GitOps#deployment](../README.md#dep
 #### Configure Credentials
 ```bash
 jq '
-  .proxmox.host = "192.168.178.x" |
+  .proxmox.host = "192.168.178.100" |
   .proxmox.user = "root@pam" |
-  .proxmox.password = "" |
-  .login = "proxmox" |
-  .password = "gitops"
+  .proxmox.password = "GITOPS.PM" |
+  .login = "steven" |
+  .password = "gitops.pm"
 ' local/config.json > local/config.local.json
 ```
 

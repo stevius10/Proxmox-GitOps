@@ -53,7 +53,27 @@ MOUNT="..."
 The control plane `config` manages the (network) `/share`.
 
 * Create `./local/share/` to override the `Proxmox-GitOps` default share (e.g., to fix keys or set specific snapshot paths).
+```
+tree -a ./local/share
+./local/share
+├── .certs
+│   ├── .lego
+│   │   ├── accounts
+│   │   └── certificates
+├── .keys
+│   ├── 100
+│   ├── 100.pub
+│   ├── 101
+│   ├── ...
+└── snapshots
+    ├── assistant
+    │   ├── assistant-260420.tar.gz
+    └── bridge
+        ├── bridge-260420.tar.gz
+```
+
 * Snapshots are automatically restored via `Utils.snapshot` and written to `/share/snapshots/{lib}/` by the `snapshot` pipeline.
+
 
 #### Reverse Proxy
 The Caddy-based reverse proxy dynamically includes configuration files via `./libs/proxy/templates/Caddyfile`:

@@ -47,7 +47,7 @@ Ensure the global environment configuration (`globals.json`) is set up to centra
 }
 ```
 
-#### Optional: Preconfigure [`/share`](reference/configuration.md#state--persistence)
+#### Optional: [`config` Share](reference/configuration.md#state--persistence)
 
 ### Deployment
 

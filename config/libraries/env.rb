@@ -27,10 +27,14 @@ module Env
     end
   end
 
-  def self.set_variable(ctx, key, val, repo: nil, owner: Default.stage(ctx), upcase: true)
+  def self.set_variable(ctx, key, val, repo: nil, owner: Default.stage(ctx), upcase: true, secret: false)
     key = (upcase ? key.to_s.upcase : key.to_s).gsub('-', '_').gsub(/[^\w]/, '')
-    Logs.try!("set variable '#{key}' to #{val.try(:mask) || val}", [repo, owner], raise: true) do
-      request(Ctx.node(ctx), key, body: ({ name: key, value: (val.respond_to?(:json) ? val.json : val).to_s }.json), repo: repo, owner: owner, expect: true)
+    val = (val.respond_to?(:json) ? val.json : val).to_s
+    body = { name: key, (secret ? :data : :value) => val }.json
+
+    Logs.try!("set #{secret ? 'secret' : 'variable'} '#{key}' to #{secret ? "****" : (val.try(:mask) || val)}
+", [repo, owner, body, secret], raise: true) do
+      request(Ctx.node(ctx), key, body: body, repo: repo, owner: owner, expect: true, type: (secret ? :secret : :variable))
     end
   end; class << self; alias_method :set, :set_variable; end
 
@@ -39,22 +43,29 @@ module Env
     "http://#{get(node, "host")}:#{node.dig('git','port','http') || 8080}/api/#{node.dig('git','api','version') || 'v1'}"
   end
 
-  def self.request(ctx, key, body: nil, repo: nil, owner: nil, expect: false, raise: false)
+  def self.request(ctx, key, body: nil, repo: nil, owner: nil, expect: false, raise: false, type: nil)
     user, pass = creds(ctx)
-    uri = URI("#{endpoint(ctx)}/#{repo.to_s.strip.size > 0 ? "repos/#{owner}/#{repo.to_s}" : "orgs/#{owner}"}/actions/variables/#{key}")
-    response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, log: !(body.present?), expect: (body.present? or expect), raise: raise, sensitive: true)
-    if body.present?
-      method = (response ? Net::HTTP::Put : Net::HTTP::Post)
-      response = Utils.request(uri, user: user, pass: pass, headers: Constants::HEADER_JSON, method: method, body: body, expect: expect, raise: raise, sensitive: true)
+    path = ((type || :variables) == :secret ? 'secrets' : 'variables')
+    uri = URI("#{endpoint(ctx)}/#{repo.to_s.strip.size > 0 ? "repos/#{owner}/#{repo.to_s}" : "orgs/#{owner}"}/actions/#{path}/#{key}")
+
+    response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, log: !(body.present?), expect: (body.present? or expect), raise: (type ? raise : false), sensitive: true)
+    if !(response) && !body.present?
+      response = request(ctx, key, body: body, repo: repo, owner: owner, expect: expect, raise: raise, type: :secrets)
     end
+
+    if body.present?
+      method = (type == :secret) ? Net::HTTP::Put : (response ? Net::HTTP::Put : Net::HTTP::Post)
+      response = Utils.request(uri, user: user, pass: pass, headers: Constants::HEADER_JSON, method: method, body: body, expect: expect, raise: raise, sensitive: true).logged
+    end
+
     return response
   end
 
-  def self.dump(ctx, *args, repo: nil, owner: nil)
-    Logs.try!("dump", [args, repo, owner], raise: true) do
+  def self.dump(ctx, *args, repo: nil, owner: nil, secret: false)
+    Logs.try!("dump", [args, repo, owner, secret], raise: true) do
       node = Ctx.node(ctx); rec = nil; result = true
       get = ->(key) { try { k = key.is_a?(String) ? key : key.to_s; return (node[key] || node[k] || node[k.to_sym]) } }
-      set = ->(key, value) { return value if value.blank?; try { Env.set_variable(node, key, value, repo: repo, owner: owner); true } }
+      set = ->(key, value) { return value if value.blank?; try { Env.set_variable(node, key, value, repo: repo, owner: owner, secret: secret); true } }
       req = ->(key, value) { try { v = value; v = v.call(node) if v.respond_to?(:call); v = node.dig(*v) if v.is_a?(Array); set.(key, v); true } }
       prc = ->(arg) do; try do
         case arg

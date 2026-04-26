@@ -54,13 +54,13 @@ runs:
 
       env:
         HOST: ${{ vars.HOST }}
-        LOGIN: ${{ vars.LOGIN }}
-        PASSWORD: ${{ vars.PASSWORD }}
-        PROXMOX_HOST: ${{ vars.PROXMOX_HOST }}
-        PROXMOX_USER: ${{ vars.PROXMOX_USER }}
-        PROXMOX_PASSWORD: ${{ vars.PROXMOX_PASSWORD }}
-        PROXMOX_TOKEN: ${{ vars.PROXMOX_TOKEN }}
-        PROXMOX_SECRET: ${{ vars.PROXMOX_SECRET }}
+        LOGIN: ${{ secrets.LOGIN }}
+        PASSWORD: ${{ secrets.PASSWORD }}
+        PROXMOX_HOST: ${{ secrets.PROXMOX_HOST }}
+        PROXMOX_USER: ${{ secrets.PROXMOX_USER }}
+        PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
+        PROXMOX_TOKEN: ${{ secrets.PROXMOX_TOKEN }}
+        PROXMOX_SECRET: ${{ secrets.PROXMOX_SECRET }}
         
         BASE_NODE: ${{ vars.BASE_NODE || 'pve' }}
         BASE_DIR: ${{ vars.BASE_DIR || '/tmp/config' }}

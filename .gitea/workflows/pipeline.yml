@@ -65,8 +65,8 @@ jobs:
         env:
           ip: ${{ needs.init.outputs.ip }}
           id: ${{ needs.init.outputs.id }}
-          login: ${{ vars.LOGIN }}
-          password: ${{ vars.PASSWORD }}
+          login: ${{ secrets.LOGIN }}
+          password: ${{ secrets.PASSWORD }}
         run: |
           git -C config submodule update --remote --recursive
           tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.keys/${id}" "config@${ip}" 'sudo tar xz -C /tmp
@@ -88,8 +88,8 @@ jobs:
           ip: ${{ needs.init.outputs.ip }}
           id: ${{ needs.init.outputs.id }}
           mount: ${{ needs.init.outputs.mount }}
-          login: ${{ vars.LOGIN }}
-          password: ${{ vars.PASSWORD }}
+          login: ${{ secrets.LOGIN }}
+          password: ${{ secrets.PASSWORD }}
         run: |
           tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.keys/${id}" "config@${ip}" 'sudo tar xz -C /tmp
             sudo -E IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \

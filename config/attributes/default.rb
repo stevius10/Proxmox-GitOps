@@ -11,6 +11,11 @@ default['app']['user']                = Default.user
 default['app']['group']               = Default.group
 default['app']['config']              = Default.config
 
+default['app']['gitea']['mirror']     = 'https://dl.gitea.com/gitea/'
+default['app']['gitea']['version']    = '1.26.1' # latest: Utils.request(node['app']['gitea']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
+default['app']['runner']['mirror']    = 'https://dl.gitea.com/act_runner/'
+default['app']['runner']['version']   = '0.4.1'  # latest: Utils.request(node['app']['runner']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
+
 default['git']['conf']['customize']   = true
 default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password' ]
 default['git']['conf']['environment'] = [ "./globals.json", "./globals.local.json" ] # order prioritize .*.local.*
@@ -43,6 +48,3 @@ default['runner']['dir']['app']       = '/app/runner'
 default['runner']['conf']['label']    = 'shell'
 
 default['runner']['dependencies']     = [ 'https://gitea.com/actions/checkout' ] # 'https://github.com/actions/checkout'
-
-default['mirror']['gitea']            = 'https://dl.gitea.com/gitea/'
-default['mirror']['runner']           = 'https://dl.gitea.com/act_runner/'

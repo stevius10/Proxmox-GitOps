@@ -167,7 +167,7 @@ module Utils
 
       Dir.mktmpdir do |tmpdir|
         path = File.join(tmpdir, filename)
-        Utils.download(ctx, path, url: download_url)
+        Utils.download(ctx, path, download_url)
 
         if extract && path.end_with?('.tar.gz', '.tgz', '.zip')
           (system("tar -xzf #{Shellwords.escape(path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or
@@ -192,7 +192,7 @@ module Utils
 
   end
 
-  def self.download(ctx, path, url:, owner: Default.user, group: Default.group, mode: '0755', action: :create)
+  def self.download(ctx, path, url, owner: Default.user, group: Default.group, mode: '0755', action: :create)
     Common.directories(Ctx.dsl(ctx), File.dirname(path), owner: owner, group: group, mode: mode)
     Ctx.dsl(ctx).remote_file path do
       source url.respond_to?(:call)? lazy { url.call } : url

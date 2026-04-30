@@ -1,31 +1,27 @@
 module Default
 
-  def self.user(ctx, default: nil)
-    node = Ctx.node(ctx)
-    @user ||= default.presence ? 'app' : Env.get(node, "app_user").or(user(node, default: true)).to_s
+  def self.user(ctx: nil, default: 'app')
+    @user ||= !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_user").or(default)
   end
 
-  def self.group(ctx, default: nil)
-    node = Ctx.node(ctx)
-    @group ||= default.presence ? 'config' : Env.get(node, "app_group").or(group(node, default: true)).to_s
+  def self.group(ctx: nil, default: 'config')
+    @group ||= !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_group").or(default)
   end
 
-  def self.config(ctx, default: nil)
-    node = Ctx.node(ctx)
-    @config ||= default.presence ? 'config' : Env.get(node, "app_config").or(config(node, default: true)).to_s
+  def self.config(ctx: nil, default: 'config')
+    @config ||= !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_config").or(default)
   end
 
-  def self.snapshot_dir(ctx, default: nil)
-    node = Ctx.node(ctx)
-    @snapshot_dir ||= default.presence ? '/share/snapshots' : Env.get(node, "app_snapshot_dir").or(snapshot_dir(node, default: true)).to_s
+  def self.snapshot_dir(ctx: nil, default: '/share/snapshots')
+    @snapshot_dir ||= !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_snapshot_dir").or(default)
   end
 
   def self.name(ctx=nil, default: "config")
-    ctx.nil? ? default : runtime(hostname(ctx))[:name].or(default)
+    !ctx.present? ? default : runtime(hostname(ctx))[:name].or(default)
   end
 
   def self.stage(ctx=nil, default: "main")
-    ctx.nil? ? default : runtime(hostname(ctx))[:stage].or(default)
+    !ctx.present? ? default : runtime(hostname(ctx))[:stage].or(default)
   end
 
   def self.hostname(ctx); Ctx.node(ctx).dig('hostname'); end

@@ -52,10 +52,10 @@ module Utils
     Logs.return("#{file}: #{e.message}", {}, level: :warn )
   end
 
-  def self.snapshot(ctx, data_dir, name: ctx.cookbook_name, restore: false, user: Default.user(ctx), group: Default.group(ctx), snapshot_dir: Default.snapshot_dir(ctx), mode: 0o755)
+  def self.snapshot(ctx, data_dir, name: ctx.cookbook_name, restore: false, user: Default.user, group: Default.group, snapshot_dir: Default.snapshot_dir, mode: 0o755)
 
     snapshot_dir = "#{snapshot_dir}/#{name}"
-    snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%y_%m_%d-%H_%M')}.tar.gz")
+    snapshot = File.join(snapshot_dir, "#{name}-#{Time.now.strftime('%y%m%d-%H%M')}.tar.gz")
 
     md5_dir = ->(path) {
       entries = Dir.glob("#{path}/**/*", File::FNM_DOTMATCH)
@@ -124,6 +124,7 @@ module Utils
     pass    ||= Env.get_variable(ctx, 'proxmox_password', owner: Default.stage)
     token   ||= Env.get_variable(ctx, 'proxmox_token', owner: Default.stage)
     secret  ||= Env.get_variable(ctx, 'proxmox_secret', owner: Default.stage)
+    node    ||= Env.get_variable(ctx, 'base_node', owner: Default.stage)
 
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", log: "Proxmox: Ticket", method: Net::HTTP::Post,
@@ -132,10 +133,10 @@ module Utils
     else
       headers = { 'Authorization' => "PVEAPIToken=#{user}!#{token}=#{secret}" }
     end
-    request("https://#{host}:8006/api2/json/#{path}", headers: headers).json['data']
+    request("https://#{host}:8006/api2/json/nodes/#{node}/#{path}", headers: headers).json['data']
   end
 
-  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', user: Default.user(ctx), group: Default.group(ctx), extract: true)
+  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', user: Default.user, group: Default.group, extract: true)
     version_file = File.join(app_dir, '.version')
     version_installed = ::File.exist?(version_file) ? ::File.read(version_file).strip : nil
     release = nil
@@ -166,7 +167,7 @@ module Utils
 
       Dir.mktmpdir do |tmpdir|
         path = File.join(tmpdir, filename)
-        Utils.download(Ctx.dsl(ctx), path, url: download_url)
+        Utils.download(ctx, path, download_url)
 
         if extract && path.end_with?('.tar.gz', '.tgz', '.zip')
           (system("tar -xzf #{Shellwords.escape(path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or
@@ -175,17 +176,15 @@ module Utils
           FileUtils.mv(path, File.join(app_dir, name || repo))
         end
       end
-
     end
-
 
     FileUtils.chown_R(user, group, app_dir)
     FileUtils.chmod_R(0755, app_dir)
 
     Ctx.dsl(ctx).file version_file do
       content version.to_s
-      owner Default.user(ctx)
-      group Default.group(ctx)
+      owner Default.user
+      group Default.group
       mode '0755'
       action :create
     end
@@ -193,7 +192,7 @@ module Utils
 
   end
 
-  def self.download(ctx, path, url:, owner: Default.user(ctx), group: Default.group(ctx), mode: '0755', action: :create)
+  def self.download(ctx, path, url, owner: Default.user, group: Default.group, mode: '0755', action: :create)
     Common.directories(Ctx.dsl(ctx), File.dirname(path), owner: owner, group: group, mode: mode)
     Ctx.dsl(ctx).remote_file path do
       source url.respond_to?(:call)? lazy { url.call } : url

@@ -1,15 +1,20 @@
 default['title']                      = "Proxmox-GitOps"
 default['online']                     = "https://github.com/stevius10/Proxmox-GitOps"
-default['version']                    = "v1.3.3"
+default['version']                    = "v1.3.4"
 
 default['id']                         = ENV['ID']
-default['host'] = (     default['ip'] = ENV['IP'].to_s.presence || Constants::LOCALHOST )
+default['host'] = ( default['ip']     = ENV['IP'].to_s.presence  || Constants::LOCALHOST )
 default['key']                        = ENV['KEY'].to_s.presence || "/share/.keys/#{node['id']}"
 default['mail']                       = "#{node['id']}@#{node['host']}"
 
-default['app']['user']                = Default.user(node, default: true)
-default['app']['group']               = Default.group(node, default: true)
-default['app']['config']              = Default.config(node, default: true)
+default['app']['user']                = Default.user
+default['app']['group']               = Default.group
+default['app']['config']              = Default.config
+
+default['app']['gitea']['mirror']     = 'https://dl.gitea.com/gitea/'
+default['app']['gitea']['version']    = '1.26.1' # latest: Utils.request(node['app']['gitea']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
+default['app']['runner']['mirror']    = 'https://dl.gitea.com/act_runner/'
+default['app']['runner']['version']   = '0.4.1'  # latest: Utils.request(node['app']['runner']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
 
 default['git']['conf']['customize']   = true
 default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password' ]
@@ -34,16 +39,12 @@ default['git']['org']['main']         = 'main'
 default['git']['org']['stage']        = 'stage'
 default['git']['org']['tasks']        = 'tasks'
 
-default['git']['env']['deploy']       = 'AUTO_DEPLOY'
-
 default['git']['branch']['rollback']  = 'rollback'
 
-# Runner
+default['git']['env']['deploy']       = 'AUTO_DEPLOY'
 
 default['runner']['dir']['app']       = '/app/runner'
-default['runner']['dir']['cache']     = '/tmp'
 
 default['runner']['conf']['label']    = 'shell'
 
-default['runner']['source']           = 'https://gitea.com/gitea/act_runner/releases'
-default['runner']['dependencies']     = [ 'https://gitea.com/actions/checkout' ]
+default['runner']['dependencies']     = [ 'https://gitea.com/actions/checkout' ] # 'https://github.com/actions/checkout'

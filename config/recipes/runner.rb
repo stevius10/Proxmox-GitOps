@@ -2,13 +2,13 @@ ruby_block 'runner' do block do
   Common.directories(self, node['runner']['dir']['app'])
 
   Utils.download(node, "#{node['runner']['dir']['app']}/#{self.recipe_name}",
-    url: -> { version = (Utils.request(node['runner']['source']).body[%r{/releases/tag/v?([0-9]+\.[0-9]+\.[0-9]+)}, 1].to_s)
-      "#{node['runner']['source']}/download/v#{version}/act_runner-#{version}-linux-#{Utils.arch()}" } )
+    "#{node['app']['runner']['mirror']}#{node['app']['runner']['version']}/act_runner-#{node['app']['runner']['version']}-linux-#{Utils.arch()}")
 
   Utils.wait("#{node['git']['host']['local']}:#{node['git']['port']['http']}")
 
   Common.application(self, self.recipe_name, user: node['app']['user'] , actions: [:start, :enable], cwd: node['runner']['dir']['app'],
     exec: "#{node['runner']['dir']['app']}/#{self.recipe_name} daemon --config #{node['runner']['dir']['app']}/config.yaml",
+    unit: { 'Service' => { 'Environment' => [ "HOME=#{node['runner']['dir']['app']}" ].join(' ') } },
     subscribe: ["template[#{node['runner']['dir']['app']}/config.yaml]", "remote_file[#{node['runner']['dir']['app']}/#{self.recipe_name}]"] )
 
   (token = Mixlib::ShellOut.new("#{node['git']['dir']['app']}/gitea actions --config #{node['git']['dir']['app']}/app.ini generate-runner-token",

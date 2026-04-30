@@ -14,16 +14,17 @@ module Common
 
   def self.directories(ctx, dirs, opts = {})
     dirs = Array(dirs).compact.uniq
-    owner     = opts[:owner]      || Default.user(ctx)
-    group     = opts[:group]      || Default.group(ctx)
+    owner     = opts[:owner]      || Default.user
+    group     = opts[:group]      || Default.group
     mode      = opts[:mode]       || '0755'
     recursive = opts[:recursive]  || true
+    ignore_failure = !!opts[:ignore_failure]
     recreate  = !!opts[:recreate] || false
 
     if recreate
       sort_dir(dirs).each { |dir| delete_dir(ctx, dir) }
     end
-    dirs.each { |dir| create_dir(ctx, dir, owner, group, mode, recursive) }
+    dirs.each { |dir| create_dir(ctx, dir, owner, group, mode, recursive, ignore_failure) }
   end
 
   # System
@@ -35,7 +36,7 @@ module Common
     end
   end
 
-  def self.application(ctx, name, user: Default.user(ctx).to_s, group: Default.group(ctx).to_s,
+  def self.application(ctx, name, user: Default.user, group: Default.group,
       exec: nil, cwd: nil, unit: {}, actions: [:enable, :start], subscribe: nil, reload: 'systemd_reload',
       restart: 'on-failure', restart_delay: 10, restart_limit: 10, restart_max: 600,
       verify: true, verify_timeout: 60, verify_interval: 5, verify_cmd: "systemctl is-active --quiet #{name}")
@@ -121,8 +122,8 @@ module Common
     end
   end
 
-  def self.create_dir(ctx, dir, owner, group, mode, recursive)
-    Ctx.dsl(ctx).directory dir do owner owner; group group; mode mode; recursive recursive end
+  def self.create_dir(ctx, dir, owner, group, mode, recursive, ignore_failure = false)
+    Ctx.dsl(ctx).directory dir do owner owner; group group; mode mode; recursive recursive; ignore_failure ignore_failure; end
   rescue => e
     Logs.warn("Skip create #{dir}: #{e}")
   end

@@ -82,15 +82,19 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 
 ### Deployment
 
-- Set **Proxmox VE host** and **default account** [credentials](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) in [`local/config.json`](local/config.json).
+- Set basic configuration (see also [Getting Started](docs/getting-started.md))
 
-- Adjust **environment configuration** in [`globals.json`](globals.json).
+  - Set **Proxmox VE** and **default account** [credentials](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) in [`local/config.json`](local/config.json).
 
-- Ensure **container configuration** in [`container.env`](container.env). 
+  - Ensure **environment configuration** in [`globals.json`](globals.json).
+
+  - Adjust **container configuration** in [`container.env`](container.env).
 
 - Run `./local/run.sh` for local Docker environment.
 
-- Accept the Pull Request at `http://localhost:8080/main/config` to deploy on Proxmox VE. 
+  - Accept the Pull Request at `http://localhost:8080/main/config` to deploy `Proxmox-GitOps` on Proxmox VE. 
+
+  - If `AUTO_DEPLOY` is set to `true` in `globals.json`, `./local/run.sh` will automatically deploy `Proxmox-GitOps` and container libraries (`/libs`) to PVE. 
 
 <p align="center"><br>
   <a href="docs/img/nutshell.png" target="_blank" rel="noopener noreferrer">
@@ -100,11 +104,13 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 
 ### Files and Configuration
 
+For configuration, cascading overrides are used to separate infrastructure defaults (see [Configuration Reference](docs/reference/configuration.md) for details): 
+
 - Global environment variables can be set in [`globals.json`](globals.json).
 
 - `container.stage.env` is sourced for forked-repository deployments.
 
-- `.local` files can be used to [structure versioning](.gitignore); e.g. `globals.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy)
+- `.local` files can be used to [structure versioning](.gitignore); e.g. `globals.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy).
 
 ### Lifecycle
 

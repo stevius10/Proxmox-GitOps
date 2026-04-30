@@ -18,7 +18,7 @@ def update_container(id, ip)
     "-i", "/share/.keys/#{id}", "config@#{ip}", "sudo sh" ], "w") { |pipe| pipe.puts script }
 end
 
-Utils.proxmox(ctx, 'nodes/pve/lxc').each do |container| id = container['vmid']
-  config = Utils.proxmox(ctx, "nodes/pve/lxc/#{id}/config")
+Utils.proxmox(ctx, 'lxc').each do |container| id = container['vmid']
+  config = Utils.proxmox(ctx, "lxc/#{id}/config")
   update_container(id, (config['net0'] && config['net0'][/ip=(\d+\.\d+\.\d+\.\d+)/, 1]))
 end

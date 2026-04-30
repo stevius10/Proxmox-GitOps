@@ -8,11 +8,9 @@ runner:
   file: .runner
   capacity: 1
   timeout: 1h
-  labels: ["<%= node['runner']['conf']['label'] %>"]
+  labels: [ "<%= node['runner']['conf']['label'] %>" ]
+  envs:
+    ACT_DISABLE_CACHE: "true"
 
 cache:
   enabled: false
-  dir: "<%= node['runner']['dir']['cache'] %>"
-
-host:
-  workdir_parent: "<%= node['runner']['dir']['cache'] %>"

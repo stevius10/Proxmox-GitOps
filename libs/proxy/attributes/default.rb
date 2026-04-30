@@ -1,7 +1,7 @@
 default['ip']                          = ENV['IP']
 
-default['app']['user']                 = Default.user(node)
-default['app']['group']                = Default.group(node)
+default['app']['user']                 = Default.user
+default['app']['group']                = Default.group
 
 default['proxy']['dir']['app']         = '/app/proxy'
 default['proxy']['dir']['config']      = "#{node['proxy']['dir']['app']}/conf.d"

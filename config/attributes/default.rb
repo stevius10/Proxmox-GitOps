@@ -3,13 +3,13 @@ default['online']                     = "https://github.com/stevius10/Proxmox-Gi
 default['version']                    = "v1.3.3"
 
 default['id']                         = ENV['ID']
-default['host'] = (     default['ip'] = ENV['IP'].to_s.presence || Constants::LOCALHOST )
+default['host'] = ( default['ip']     = ENV['IP'].to_s.presence  || Constants::LOCALHOST )
 default['key']                        = ENV['KEY'].to_s.presence || "/share/.keys/#{node['id']}"
 default['mail']                       = "#{node['id']}@#{node['host']}"
 
-default['app']['user']                = Default.user(node, default: true)
-default['app']['group']               = Default.group(node, default: true)
-default['app']['config']              = Default.config(node, default: true)
+default['app']['user']                = Default.user
+default['app']['group']               = Default.group
+default['app']['config']              = Default.config
 
 default['git']['conf']['customize']   = true
 default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password' ]
@@ -42,7 +42,7 @@ default['runner']['dir']['app']       = '/app/runner'
 
 default['runner']['conf']['label']    = 'shell'
 
-default['runner']['dependencies']     = [ 'https://gitea.com/actions/checkout' ]
+default['runner']['dependencies']     = [ 'https://gitea.com/actions/checkout' ] # 'https://github.com/actions/checkout'
 
 default['mirror']['gitea']            = 'https://dl.gitea.com/gitea/'
 default['mirror']['runner']           = 'https://dl.gitea.com/act_runner/'

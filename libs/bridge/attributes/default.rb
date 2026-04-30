@@ -1,7 +1,7 @@
 default['ip']                   = "#{ENV['IP']}"
 
-default['app']['user']          = Default.user(node)
-default['app']['group']         = Default.group(node)
+default['app']['user']          = Default.user
+default['app']['group']         = Default.group
 
 default['bridge']['port']       = 8080
 default['bridge']['adapter']    = Env.get(node, 'LIBS_BRIDGE_ADAPTER')

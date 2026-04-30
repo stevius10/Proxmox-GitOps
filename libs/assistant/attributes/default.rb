@@ -1,7 +1,7 @@
 default['ip']                         = "#{ENV['IP']}"
 
-default['app']['user']                = Default.user(node)
-default['app']['group']               = Default.group(node)
+default['app']['user']                = Default.user
+default['app']['group']               = Default.group
 
 default['assistant']['dir']['env']    = '/app/venv'
 default['assistant']['dir']['data']   = '/app/assistant'

@@ -167,7 +167,7 @@ module Utils
 
       Dir.mktmpdir do |tmpdir|
         path = File.join(tmpdir, filename)
-        Utils.download(ctx, path, url: download_url)
+        Utils.download(ctx, path, download_url)
 
         if extract && path.end_with?('.tar.gz', '.tgz', '.zip')
           (system("tar -xzf #{Shellwords.escape(path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or

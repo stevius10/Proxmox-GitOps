@@ -9,6 +9,7 @@ ruby_block 'runner' do block do
 
   Common.application(self, self.recipe_name, user: node['app']['user'] , actions: [:start, :enable], cwd: node['runner']['dir']['app'],
     exec: "#{node['runner']['dir']['app']}/#{self.recipe_name} daemon --config #{node['runner']['dir']['app']}/config.yaml",
+    unit: { 'Service' => { 'Environment' => [ "HOME=#{node['runner']['dir']['app']}" ].join(' ') } },
     subscribe: ["template[#{node['runner']['dir']['app']}/config.yaml]", "remote_file[#{node['runner']['dir']['app']}/#{self.recipe_name}]"] )
 
   (token = Mixlib::ShellOut.new("#{node['git']['dir']['app']}/gitea actions --config #{node['git']['dir']['app']}/app.ini generate-runner-token",

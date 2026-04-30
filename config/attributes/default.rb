@@ -39,7 +39,6 @@ default['git']['branch']['rollback']  = 'rollback'
 default['git']['env']['deploy']       = 'AUTO_DEPLOY'
 
 default['runner']['dir']['app']       = '/app/runner'
-default['runner']['dir']['cache']     = '/tmp'
 
 default['runner']['conf']['label']    = 'shell'
 

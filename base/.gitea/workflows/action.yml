@@ -42,7 +42,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: tasks/checkout@v4
+    - uses: tasks/checkout@v6
       with:
         repository: main/base
         ref: 'main'

@@ -192,7 +192,7 @@ module Utils
 
   end
 
-  def self.download(ctx, path, url:, owner: Default.user, group: Default.group, mode: '0755', action: :create)
+  def self.download(ctx, path, url, owner: Default.user, group: Default.group, mode: '0755', action: :create)
     Common.directories(Ctx.dsl(ctx), File.dirname(path), owner: owner, group: group, mode: mode)
     Ctx.dsl(ctx).remote_file path do
       source url.respond_to?(:call)? lazy { url.call } : url

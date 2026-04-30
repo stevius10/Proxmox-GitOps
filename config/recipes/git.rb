@@ -1,9 +1,8 @@
-ruby_block "#{self.recipe_name}_install" do block do
-  begin Utils.download(node, "#{node['git']['dir']['app']}/gitea", url: -> {
-    (version = Utils.request(node['mirror']['gitea']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) } )
-    "#{node['mirror']['gitea']}#{version}/gitea-#{version}-linux-#{Utils.arch()}" } )
-  rescue
-    Utils.install(self, owner: "go-gitea", repo: "gitea", app_dir: node['git']['dir']['app'], name: "gitea"); end
+ruby_block "#{self.recipe_name}_install" do block do begin
+  Utils.download(node, "#{node['git']['dir']['app']}/gitea",
+    "#{node['app']['gitea']['mirror']}#{node['app']['gitea']['version']}/gitea-#{node['app']['gitea']['version']}-linux-#{Utils.arch()}")
+rescue
+  Utils.install(self, owner: "go-gitea", repo: "gitea", app_dir: node['git']['dir']['app'], name: "gitea"); end
 end end
 
 template "#{node['git']['dir']['app']}/app.ini" do

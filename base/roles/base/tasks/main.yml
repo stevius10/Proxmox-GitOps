@@ -11,11 +11,11 @@
 
     - name: Update system
       apt:
+        update_cache: true
         upgrade: full
         autoclean: true
         autoremove: true
-      environment:
-        DEBIAN_FRONTEND: noninteractive
+      when: (update_system | default(true) | bool)
 
     - name: Install default applications
       apt:

@@ -13,9 +13,9 @@
       apt:
         update_cache: true
         upgrade: full
-        cache_valid_time: 3600
         autoclean: true
         autoremove: true
+      when: (update_system | default(true) | bool)
 
     - name: Install default applications
       apt:

@@ -2,7 +2,7 @@
   block:
     - name: Set share directory
       set_fact:
-        DIR_SHARE: "{{ DIR_SHARE if (DIR_SHARE | default('') | trim | length > 0) else (lookup('env','BASE_SHARE') | default('/share', true)) }}"
+        DIR_SHARE: "{{ DIR_SHARE if (DIR_SHARE | default('') | trim | length > 0) else (lookup('env','PROXMOX_SHARE') | default('/share', true)) }}"
 
     - name: Set shared directories
       set_fact:

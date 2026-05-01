@@ -73,7 +73,7 @@ jobs:
                 ansible.builtin.include_role:
                   name: base
           EOF
-          sudo env BASE_SHARE=/share ANSIBLE_ROLES_PATH="$(pwd)/base/roles" ansible-playbook -i localhost, -c local --become -e "ip=${IP} id=${ID}" -e "arch=$(arch="$(uname -m)"; case "$arch" in aarch64|arm64) echo arm64 ;; x86_64) echo amd64 ;; *) echo amd64 ;; esac)" -e "configure_ssh=0" -e "private_key='$(cat ./${ID})\n'" -e "public_key='$(cat ./${ID}.pub)\n'" base.yml
+          sudo env PROXMOX_SHARE=/share ANSIBLE_ROLES_PATH="$(pwd)/base/roles" ansible-playbook -i localhost, -c local --become -e "ip=${IP} id=${ID}" -e "arch=$(arch="$(uname -m)"; case "$arch" in aarch64|arm64) echo arm64 ;; x86_64) echo amd64 ;; *) echo amd64 ;; esac)" -e "configure_ssh=0" -e "private_key='$(cat ./${ID})\n'" -e "public_key='$(cat ./${ID}.pub)\n'" base.yml
 
       - name: Mock config.json
         run: |

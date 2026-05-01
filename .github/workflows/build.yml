@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   init:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     outputs:
       ip: ${{ steps.config.outputs.ip }}
       id: ${{ steps.config.outputs.id }}
@@ -39,7 +39,7 @@ jobs:
           echo "mount=$MOUNT" >> $GITHUB_OUTPUT
 
   build:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     needs: [init]
     steps:
       - name: Checkout repository
@@ -50,7 +50,7 @@ jobs:
           docker run -d --name proxmox-container -v ${{ github.workspace }}:/workspace -w /workspace proxmox-gitops
 
   deploy:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     needs: [init]
     steps:
       - name: Checkout repository
@@ -90,6 +90,7 @@ jobs:
           sudo env IP="$IP" ID="$ID" PWD="$PWD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="." -j ./local/config.json -o config
 
       - name: Install libs
+        # if: github.ref == 'refs/heads/main'
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
@@ -135,6 +136,7 @@ jobs:
           done
 
       - name: Idempotency
+        # if: github.ref == 'refs/heads/main'
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}

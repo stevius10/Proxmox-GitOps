@@ -93,8 +93,8 @@ jobs:
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
-          LOGIN: "test"
-          PASSWORD: "test"
+          LOGIN: "proxmox"
+          PASSWORD: "gitops"
         run: |
           for lib in $(ls libs); do
             if [ -f "libs/$lib/container.env" ]; then

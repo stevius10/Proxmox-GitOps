@@ -82,11 +82,11 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 
 ### Deployment
 
-- Set basic configuration (see also [Getting Started](docs/getting-started.md))
+- Set basic configuration (see also [Getting Started](docs/GETTING_STARTED.md))
 
-  - Set **Proxmox VE** and **default account** [credentials](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) in [`local/config.json`](local/config.json).
+  - Set **Proxmox VE** [credentials and configuration](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) in [`local/config.json`](local/config.json) or `./local/config.local.json`.
 
-  - Ensure **environment configuration** in [`globals.json`](globals.json).
+  - Ensure global **environment configuration** in [`globals.json`](globals.json).
 
   - Adjust **container configuration** in [`container.env`](container.env).
 
@@ -104,13 +104,15 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 
 ### Files and Configuration
 
-For configuration, cascading overrides are used to separate infrastructure defaults (see [Configuration Reference](docs/reference/configuration.md) for details): 
+For configuration, cascading overrides are used to separate infrastructure defaults: 
 
 - Global environment variables can be set in [`globals.json`](globals.json).
 
 - `container.stage.env` is sourced for forked-repository deployments.
 
 - `.local` files can be used to [structure versioning](.gitignore); e.g. `globals.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy).
+
+- See [Configuration Reference](docs/reference/CONFIGURATION.md) for details. 
 
 ### Lifecycle
 

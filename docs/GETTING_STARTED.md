@@ -1,6 +1,6 @@
 ## Getting Started
 - [Configuration](#configuration)
-    - [Configure Credentials](#configure-credentials)
+    - [Proxmox VE host configuration and credentials](#proxmox-ve-host-configuration-and-credentials)
     - [Environment Configuration](#environment-configuration)
 - [Deployment and Automation](#deployment-and-automation)
 
@@ -9,7 +9,7 @@
 ### Configuration
 Edit the configuration according to [Proxmox-GitOps#deployment](../README.md#deployment).
 
-#### Configure Credentials
+#### Proxmox VE host configuration and credentials
 ```bash
 jq '
   .proxmox.host = "192.168.178.100" |
@@ -21,7 +21,7 @@ jq '
 ```
 
 #### Environment Configuration
-Ensure the global environment configuration (`globals.json`) is set up to centralize configuration in Git :
+Ensure the global environment configuration (`globals.json`) which centralizes the configuration:
 ```json
 {
   "AUTO_DEPLOY": "false",

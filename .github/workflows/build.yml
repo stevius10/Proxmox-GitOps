@@ -77,8 +77,8 @@ jobs:
 
       - name: Mock config.json
         run: |
-          cat < ./local/config.json
-            {"proxmox":{"host":"localhost","user":"root@pam","password":"gitops.pm","node":"pve","gateway":"192.168.178.1","mask":"24","interface":"eth0","bridge":"vmbr0","storage":"local:vztmpl","template":"debian-13-standard_13.1-2"},"login":"proxmox","password":"gitops"}
+          cat <<EOF > ./local/config.json
+          {"proxmox":{"host":"localhost","user":"root@pam","password":"gitops.pm","node":"pve","gateway":"192.168.178.1","mask":"24","interface":"eth0","bridge":"vmbr0","storage":"local:vztmpl","template":"debian-13-standard_13.1-2"},"login":"proxmox","password":"gitops"}
           EOF
 
       - name: System installation

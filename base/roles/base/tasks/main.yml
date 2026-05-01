@@ -11,11 +11,11 @@
 
     - name: Update system
       apt:
-        update_cache: true
         upgrade: full
-        cache_valid_time: 3600
         autoclean: true
         autoremove: true
+      environment:
+        DEBIAN_FRONTEND: noninteractive
 
     - name: Install default applications
       apt:

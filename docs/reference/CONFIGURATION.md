@@ -26,8 +26,8 @@ General **Proxmox VE configuration** and **credentials** (`./local/config.json` 
     "bridge":     "(adjust)"
   },
 
-  "login":          "(set)",
-  "password":       "(set)"
+  "login":        "(set)",
+  "password":     "(set)"
 
 }
 

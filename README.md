@@ -108,7 +108,7 @@ For configuration, cascading overrides are used to separate infrastructure defau
 
 - `container.stage.env` is sourced for forked-repository deployments.
 
-- `.local` files can be used to [structure versioning](.gitignore); e.g. `globals.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy).
+- `.local` files can be used to [structure versioning](.gitignore) (e.g., `globals.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy)).
 
 See [Configuration Reference](docs/reference/CONFIGURATION.md) for details. 
 

@@ -21,7 +21,7 @@ jq '
 ```
 
 #### Environment Configuration
-Ensure the global environment configuration (`globals.json`) is set up to centralize configuration in Git :
+Ensure the centralized environment configuration (`globals.json`):
 ```json
 {
   "AUTO_DEPLOY": "false",

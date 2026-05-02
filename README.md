@@ -78,23 +78,21 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 
 - Docker
 - Proxmox VE 8.4-9.1
-- See [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
+- See [Getting Started](docs/GETTING_STARTED.md) and [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
 ### Deployment
 
-- Set basic configuration (see also [Getting Started](docs/GETTING_STARTED.md))
+- Set **Proxmox VE** configuration and authorization in [`./local/config.json`](local/config.json). 
 
-  - Set **Proxmox VE** [credentials and configuration](https://github.com/stevius10/Proxmox-GitOps/wiki/Example-Configuration#configuration-file) in [`local/config.json`](local/config.json) or `./local/config.local.json`.
+- Ensure centralized **environment configuration** in [`globals.json`](globals.json).
 
-  - Ensure global **environment configuration** in [`globals.json`](globals.json).
+- Adjust **container resource allocation** in [`container.env`](container.env).
 
-  - Adjust **container configuration** in [`container.env`](container.env).
+- Run `./local/run.sh` to spin up the local Docker environment.
 
-- Run `./local/run.sh` for local Docker environment.
+  - Accept the Pull Request at `http://localhost:8080/main/config` to deploy `Proxmox-GitOps` on Proxmox VE, from which the deployment of the respective container library can then be triggered in the same way.
 
-  - Accept the Pull Request at `http://localhost:8080/main/config` to deploy `Proxmox-GitOps` on Proxmox VE. 
-
-  - If `AUTO_DEPLOY` is set to `true` in `globals.json`, `./local/run.sh` will automatically deploy `Proxmox-GitOps` and container libraries (`/libs`) to PVE. 
+  - If `AUTO_DEPLOY` is set to `true` in `globals.json`, it will automatically deploy `Proxmox-GitOps` and container libraries (`/libs`) to PVE. 
 
 <p align="center"><br>
   <a href="docs/img/nutshell.png" target="_blank" rel="noopener noreferrer">
@@ -110,9 +108,9 @@ For configuration, cascading overrides are used to separate infrastructure defau
 
 - `container.stage.env` is sourced for forked-repository deployments.
 
-- `.local` files can be used to [structure versioning](.gitignore); e.g. `globals.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy).
+- `.local` files can be used to [structure versioning](.gitignore) (e.g., `globals.local.json`, `container.local.env` or [`10-assistant.local.caddy`](libs/proxy/files/default/config/10-assistant.caddy)).
 
-- See [Configuration Reference](docs/reference/CONFIGURATION.md) for details. 
+See [Configuration Reference](docs/reference/CONFIGURATION.md) for details. 
 
 ### Lifecycle
 
@@ -126,7 +124,7 @@ For configuration, cascading overrides are used to separate infrastructure defau
 
 `git clone --recurse-submodules`, e.g., for **Version-Controlled Mirroring**.
 
-- `local/share/` can be used for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence).
+- `./local/share/` can be used for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence).
 
 - Backup, Update and Rollback: See [Self-Containment](#self-containment), which mirrors the system's architecture, implying lifecycle operations emerge from the principle itself.
 
@@ -158,8 +156,8 @@ package 'apache2'
 file '/var/www/html/index.html' do
   content "<h1>Hello from #{Env.get(node, 'login')}</h1>"
   mode '0644'
-  owner Default.user(self)  # see base/roles/base/tasks/main.yml
-  group Default.group(self) # each container is configured identically 
+  owner Default.user   # see base/roles/base/tasks/main.yml
+  group Default.group  # each container is configured identically 
 end
 
 Common.application(self, 'apache2') # provided by convention

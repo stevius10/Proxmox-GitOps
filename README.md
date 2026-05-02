@@ -82,7 +82,7 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 
 ### Deployment
 
-- Set **Proxmox VE** configuration and authorization in [`local/config.json`](local/config.json). 
+- Set **Proxmox VE** configuration and authorization in [`./local/config.json`](local/config.json). 
 
 - Ensure centralized **environment configuration** in [`globals.json`](globals.json).
 
@@ -124,7 +124,7 @@ See [Configuration Reference](docs/reference/CONFIGURATION.md) for details.
 
 `git clone --recurse-submodules`, e.g., for **Version-Controlled Mirroring**.
 
-- `local/share/` can be used for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence).
+- `./local/share/` can be used for [persistence](https://github.com/stevius10/Proxmox-GitOps/wiki/State-and-Persistence).
 
 - Backup, Update and Rollback: See [Self-Containment](#self-containment), which mirrors the system's architecture, implying lifecycle operations emerge from the principle itself.
 

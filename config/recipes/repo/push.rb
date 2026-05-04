@@ -4,7 +4,9 @@ execute "repo_#{name_repo}_push" do
   cwd path_destination
   user node['app']['user']
   command <<-EOH
-  git add --all && (git add --force '*.local.*' || true) && (git add --force '**/*.local.*' || true) 
+  git add --all && (git add --force '*.local.*' '**/*.local.*' ':!*config*' || true)
+  [ "#{is_bootstrap}" = "true" ] && { git add --force local/config*; }
+
   if ! git diff --quiet || ! git diff --cached --quiet; then
     git commit --allow-empty -m "initial commit [skip ci]"
     git push -f origin HEAD:main

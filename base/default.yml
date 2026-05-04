@@ -3,13 +3,13 @@
   hosts: localhost
   gather_facts: no
   vars:
-    BASE_NODE:     "{{ lookup('env', 'BASE_NODE' ) }}"
-    BASE_STORAGE:  "{{ lookup('env', 'BASE_STORAGE' ) }}"
-    BASE_TEMPLATE: "{{ lookup('env', 'BASE_TEMPLATE') }}"
-    BASE_DIR:      "{{ lookup('env', 'BASE_DIR')   | default('/tmp/config', true) }}"
-    DIR_SHARE:     "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}"
-    DIR_CERTS:     "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}/.certs"
-    DIR_KEYS:      "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}/.keys"
+    PROXMOX_NODE:     "{{ lookup('env', 'PROXMOX_NODE' ) }}"
+    PROXMOX_STORAGE:  "{{ lookup('env', 'PROXMOX_STORAGE' ) }}"
+    PROXMOX_TEMPLATE: "{{ lookup('env', 'PROXMOX_TEMPLATE') }}"
+    PROXMOX_DIR:      "{{ lookup('env', 'PROXMOX_DIR')   | default('/tmp/config', true) }}"
+    DIR_SHARE:        "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}"
+    DIR_CERTS:        "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}/.certs"
+    DIR_KEYS:         "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}/.keys"
   tasks:
     - name: Ensure directories
       file:
@@ -35,10 +35,10 @@
   gather_facts: yes
   become: true
   vars:
-    BASE_DIR:  "{{ lookup('env', 'BASE_DIR')   | default('/tmp/config', true) }}"
-    DIR_SHARE: "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}"
-    DIR_CERTS: "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}/.certs"
-    DIR_KEYS:  "{{ lookup('env', 'BASE_SHARE') | default('/share', true) }}/.keys"
+    PROXMOX_DIR:  "{{ lookup('env', 'PROXMOX_DIR')   | default('/tmp/config', true) }}"
+    DIR_SHARE:    "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}"
+    DIR_CERTS:    "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}/.certs"
+    DIR_KEYS:     "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}/.keys"
   tasks:
     - name: Copy share if exists
       ansible.builtin.copy:

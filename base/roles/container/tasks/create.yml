@@ -50,7 +50,7 @@
       swap: "{{ swap }}"
       disk: "{{ disk }}"
       netif:
-        net0: "name={{ lookup('env', 'BASE_INTERFACE') }},gw={{ lookup('env', 'BASE_GATEWAY') }},ip={{ ip }}/{{ lookup('env', 'BASE_MASK') }},bridge={{ lookup('env', 'BASE_BRIDGE') }}"
+        net0: "name={{ lookup('env', 'PROXMOX_INTERFACE') }},gw={{ lookup('env', 'PROXMOX_GATEWAY') }},ip={{ ip }}/{{ lookup('env', 'PROXMOX_MASK') }},bridge={{ lookup('env', 'PROXMOX_BRIDGE') }}"
       features: "{{ (features if features and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}"
       mounts: "{{ (mounts if mounts and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}"
       unprivileged: "{{ (share | default(false) and mount | default('') | trim != '') | ternary(false, true) }}"

@@ -1,37 +1,43 @@
 ## Configuration Reference
-* [Credentials](#credentials-localconfigjson-or-localconfiglocaljson)
-* [Global Environment](#global-environment-globalsjson-or-globalslocaljson)
-* [Container Resources](#container-resources-containerenv-or-containerlocalenv)
+* [General Configuration](#general-configuration)
+* [Global Environment](#global-environment)
+* [Container Environment](#container-environment)
 * [Advanced Configuration](#advanced-configuration)
-    * [State & Persistence](#state--persistence)
+    * [Persistence](#persistence)
     * [Reverse Proxy](#reverse-proxy)
 
 The configuration for `Proxmox-GitOps` and the container libraries is split into several files.
 
-### Credentials
-Contains credentials for Proxmox VE, the `Proxmox-GitOps` control plane, and container libraries.
+### General Configuration
 
-- `./local/config.json` or `./local/config.local.json`
+General **Proxmox VE configuration** and **credentials** (`./local/config.json` or `./local/config.local.json`):
 
 ```json
 {
   "proxmox": {
-    "host": "192.168.178.***",
-    "user": "root@pam",
-    "password": "***"
+    "host":       "(set)", 
+    "user":       "(adjust)",
+    "password":   "(set)",
+
+    "node":       "(adjust)",
+    "gateway":    "(adjust)",
+    "mask":       "(adjust)",
+    "interface":  "(adjust)",
+    "bridge":     "(adjust)"
   },
-  "login": "***",
-  "password": "***"
+
+  "login":          "(set)",
+  "password":       "(set)"
+
 }
+
 ```
 
 ### Global Environment
 
-`Proxmox-GitOps` centralizes configuration via Git. It leverages [`Env.get()` and `Env.set()`](config/libraries/env.rb) to access environment variables, which are initially populated from the [globals](globals.json) file.
+`Proxmox-GitOps` centralizes configuration via Git. It leverages `Utils.Env` to access environment variables, which are initially set by `./globals.json` or `./globals.local.json`. 
 
-- `./globals.json` or `./globals.local.json`
-
-### Container Resources
+### Container Environment
 
 Defines resource allocation for the `Proxmox-GitOps` control plane and container libraries.
 
@@ -42,17 +48,15 @@ Defines resource allocation for the `Proxmox-GitOps` control plane and container
 IP="192.168.178.***"
 ID="***"
 ...
-MOUNT="..."
+MOUNT="/mnt/..:/share/.."
 ```
-
-* Host-level resources can be passed to containers via `MOUNT`, e.g., `MOUNT="/mnt/..:/share/.."`.
 
 ### Advanced Configuration
 
-#### State and Persistence
-The control plane `config` manages the (network) `/share`.
+#### Persistence
+The control plane `config` defines the (network) `/share`.
 
-* Create `./local/share/` to override the `Proxmox-GitOps` default share (e.g., to fix keys or set a specific snapshot).
+* Create `./local/share/` to override the `Proxmox-GitOps` generated default share (e.g., to fix keys or set specific snapshots).
 ```
 tree -a ./local/share
 ./local/share

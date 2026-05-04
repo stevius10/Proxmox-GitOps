@@ -54,12 +54,6 @@
 
 - name: Ensure files and directories
   include_tasks: state.yml
-  vars:
-    extra:
-      - { path: "/app", state: "directory", mode: "0755", owner: "app", group: "config" }
-      - { path: "/app/.ssh", state: "directory", mode: "0711", owner: "app", group: "config" }
-      - { path: "{{ DIR_KEYS }}", state: "directory", mode: "0711", owner: "app", group: "config" }
-      - { path: "{{ DIR_CERTS }}", state: "directory", mode: "0711", owner: "app", group: "config" }
 
 - name: Container accessibility
   import_tasks: access.yml

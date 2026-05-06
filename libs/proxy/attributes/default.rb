@@ -10,8 +10,8 @@ default['proxy']['dir']['certs']       = '/share/.certs'
 default['proxy']['dir']['logs']        = '/share/.logs/proxy'
 
 default['proxy']['config']['domain']   = 'l'
-default['proxy']['config']['gateway']  = Env.get(self, 'BASE_GATEWAY').or("192.168.178.0")
-default['proxy']['config']['mask']     = Env.get(self, "BASE_MASK").or("24")
+default['proxy']['config']['gateway']  = Env.get(self, 'PROXMOX_GATEWAY').or("192.168.178.0")
+default['proxy']['config']['mask']     = Env.get(self, "PROXMOX_MASK").or("24")
 default['proxy']['config']['internal'] = "#{ IPAddr.new(node['proxy']['config']['gateway'])
   .mask(node['proxy']['config']['mask'])}/#{node['proxy']['config']['mask']}"
 

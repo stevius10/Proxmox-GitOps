@@ -11,20 +11,18 @@ default['app']['user']                = Default.user
 default['app']['group']               = Default.group
 default['app']['config']              = Default.config
 
-default['app']['gitea']['mirror']     = 'https://dl.gitea.com/gitea/'
-default['app']['gitea']['version']    = '1.26.1' # latest: Utils.request(node['app']['gitea']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
-default['app']['runner']['mirror']    = 'https://dl.gitea.com/act_runner/'
-default['app']['runner']['version']   = '0.4.1'  # latest: Utils.request(node['app']['runner']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
-
-default['git']['conf']['customize']   = true
-default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password' ]
-default['git']['conf']['environment'] = [ "./globals.json", "./globals.local.json" ] # order prioritize .*.local.*
-default['git']['conf']['repo']        = [ "./", "./base", "./config/libraries", "./libs" ]
+default['git']['app']['mirror']     = 'https://dl.gitea.com/gitea/'
+default['git']['app']['version']    = '1.26.1' # latest: Utils.request(node['git']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
 
 default['git']['dir']['app']          = '/app/git'
 default['git']['dir']['home']         = Dir.home(node['app']['user']) || ENV['HOME'] || '/app'
 default['git']['dir']['custom']       = "#{node['git']['dir']['app']}/custom"
 default['git']['dir']['workspace']    = "#{node['git']['dir']['home']}/workspace"
+
+default['git']['conf']['customize']   = true
+default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password' ]
+default['git']['conf']['environment'] = [ "./globals.json", "./globals.local.json" ] # order prioritize .*.local.*
+default['git']['conf']['repo']        = [ "./", "./base", "./config/libraries", "./libs" ]
 
 default['git']['port']['http']        = 8080
 default['git']['port']['ssh']         = 2222
@@ -40,11 +38,11 @@ default['git']['org']['stage']        = 'stage'
 default['git']['org']['tasks']        = 'tasks'
 
 default['git']['branch']['rollback']  = 'rollback'
-
 default['git']['env']['deploy']       = 'AUTO_DEPLOY'
 
+default['runner']['app']['mirror']    = 'https://dl.gitea.com/act_runner/'
+default['runner']['app']['version']   = '0.4.1'  # latest: Utils.request(node['runner']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
+
 default['runner']['dir']['app']       = '/app/runner'
-
 default['runner']['conf']['label']    = 'shell'
-
 default['runner']['dependencies']     = [ 'https://gitea.com/actions/checkout' ] # 'https://github.com/actions/checkout'

@@ -2,7 +2,7 @@ module Logs
 
   FORMAT="\e[1m[%s] %s (%s:%d)\e[0m"; NO_FORMAT="%s (%s:%d)"
 
-  def self.log(msg=nil, verbose: false, level: :info)
+  def self.log(msg=nil, verbose: true, level: :info)
     (c = (s = caller_locations(2, 60)).find { |l| [__FILE__, %r{libraries}].none? { |ig| ig.is_a?(Regexp) ? l.path =~ ig : l.path == ig } } || s.first); f = File.basename(c.path); l = c.lineno
     m = ((label = (c.respond_to?(:label) ? c.label : c.to_s).sub(/block.*in /, '')).eql?('from_file') ? nil : label)
     verbose ? Chef::Log.send(level, m ? FORMAT % [m, msg, f, l] : NO_FORMAT % [msg, f, l]) : (m ? "[#{m}]#{f}:#{l}" : "#{f}:#{l}")
@@ -13,17 +13,17 @@ module Logs
 
   def self.debug(*args, level: :debug)
     message = args.reject(&:blank?).join(", ")
-    log("[(debug) #{message}]", level: level)
+    log("(debug) #{message}", level: level)
   end
 
-  def self.return(msg, result, *args, level: :debug)
-    debug("(return) #{msg}: #{result}", *args, level: level); return result
+  def self.return(label, result, level: :info)
+    info("#{label}: #{result}"); return result
   end
 
-  def self.try!(msg, *args, raise: false)
-    Logs.return("(try) #{msg}", yield, args, level: :debug)
+  def self.try!(label, raise: false)
+    Logs.return(label, yield, level: :info)
   rescue Exception => e
-    raise ? raise("[#{log(verbose: false)}] #{msg}: #{e.message}") : debug("(tried) #{msg}: #{e.message}", *args)
+    raise ? raise("#{label}: #{e.message}") : debug("#{label}: #{e.message}")
   end
 
   def self.blank!(msg, value); error(msg, raise: true) if value.nil? || (value.respond_to?(:empty?) && value.empty?); value; end

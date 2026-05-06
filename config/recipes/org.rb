@@ -6,10 +6,11 @@ password  = (node.run_state['password'] ||= Env.get(self, 'password'))
   ruby_block "config_#{org}_variables" do
     action :nothing
     block do
-      try { Env.dump(self, *node['git']['conf']['defaults'], owner: org) }
-      try { Env.dump(self, *((node['git']['conf']['environment']
-          .map { |file| Utils.mapping(file) }.reduce({}, :merge!)
-      ).compact.each { |k, v| node.default[k] = v }.keys), owner: org) }
+      Env.dump(self, *node['git']['conf']['defaults'], owner: org) # TODO: Gitea instance-level variables awaited
+
+      Env.dump(self, *(
+        (node['git']['conf']['environment'].map { |file| Utils.mapping(file) }.reduce({}, :merge!)).compact.each { |k, v| node.default[k] = v }.keys
+      ), owner: org)
     end
   end
 

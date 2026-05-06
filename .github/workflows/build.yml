@@ -61,7 +61,7 @@ jobs:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
         run: |
-          sudo apt update -y && sudo apt install -y systemd ansible python3 python3-pip curl wget
+          sudo apt install -y systemd ansible 
           ssh-keygen -t ed25519 -f "${ID}" -N ''
           cat <<EOF > base.yml
           - hosts: localhost
@@ -73,12 +73,12 @@ jobs:
                 ansible.builtin.include_role:
                   name: base
           EOF
-          sudo env BASE_SHARE=/share ANSIBLE_ROLES_PATH="$(pwd)/base/roles" ansible-playbook -i localhost, -c local --become -e "ip=${IP} id=${ID}" -e "arch=$(arch="$(uname -m)"; case "$arch" in aarch64|arm64) echo arm64 ;; x86_64) echo amd64 ;; *) echo amd64 ;; esac)" -e "configure_ssh=0" -e "private_key='$(cat ./${ID})\n'" -e "public_key='$(cat ./${ID}.pub)\n'" base.yml
+          sudo env ANSIBLE_ROLES_PATH="$(pwd)/base/roles" ansible-playbook -i localhost, -c local --become -e "ip=${IP} id=${ID}" -e "arch=$(arch="$(uname -m)"; case "$arch" in aarch64|arm64) echo arm64 ;; x86_64) echo amd64 ;; *) echo amd64 ;; esac)" -e "configure_ssh=0" -e "update_system=0" -e "private_key='$(cat ./${ID})\n'" -e "public_key='$(cat ./${ID}.pub)\n'" base.yml
 
       - name: Mock config.json
         run: |
           cat <<EOF > ./local/config.json
-          { "proxmox": { "host": "localhost", "user": "test", "password": "test" }, "login": "test", "password": "test", "email": "test@example.com" }
+          {"proxmox":{"host":"localhost","user":"root@pam","password":"gitops.pm","node":"pve","gateway":"192.168.178.1","mask":"24","interface":"eth0","bridge":"vmbr0","storage":"local:vztmpl","template":"debian-13-standard_13.1-2"},"login":"proxmox","password":"gitops"}
           EOF
 
       - name: System installation
@@ -90,12 +90,11 @@ jobs:
           sudo env IP="$IP" ID="$ID" PWD="$PWD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="." -j ./local/config.json -o config
 
       - name: Install libs
-        # if: github.ref == 'refs/heads/main'
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
-          LOGIN: "test"
-          PASSWORD: "test"
+          LOGIN: "proxmox"
+          PASSWORD: "gitops"
         run: |
           for lib in $(ls libs); do
             if [ -f "libs/$lib/container.env" ]; then
@@ -136,7 +135,6 @@ jobs:
           done
 
       - name: Idempotency
-        # if: github.ref == 'refs/heads/main'
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}

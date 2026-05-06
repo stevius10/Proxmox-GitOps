@@ -30,9 +30,6 @@ submodules.each do |submodule|
         git submodule add #{module_url} #{path_module}
       fi
       git submodule update --init --recursive
-      if [ "#{is_bootstrap}" = "true" ]; then
-        (git add --force '**/config*.json' || true) 
-      fi
     EOH
     cwd path_destination
     user node['app']['user']

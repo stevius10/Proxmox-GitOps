@@ -1,13 +1,21 @@
 {
 
-  "proxmox":
-    {
-      "host": "192.168.178.",
-      "user": "root@pam",
-      "password": ""
+    "proxmox": {
+        "host":       "192.168.178.",
+        "user":       "root@pam",
+        "password":   "",
+
+        "node":       "pve",
+        "gateway":    "192.168.178.1",
+        "mask":       "24",
+        "interface":  "eth0",
+        "bridge":     "vmbr0",
+
+        "storage":    "local:vztmpl",
+        "template":   "debian-13-standard_13.1-2"
     },
 
-  "login":    "proxmox",
-  "password": "gitops"
+    "login":          "proxmox",
+    "password":       "gitops"
 
 }

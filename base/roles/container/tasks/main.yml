@@ -3,7 +3,7 @@
 
 - name: Get architecture
   uri:
-    url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ BASE_NODE }}/status"
+    url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ PROXMOX_NODE }}/status"
     method: GET
     headers: "{{ proxmox_auth }}"
     return_content: yes
@@ -13,7 +13,7 @@
 - name: Set OS template
   set_fact:
     os: |-
-      {{ OS | default(BASE_STORAGE ~ '/' ~ BASE_TEMPLATE ~ '_' ~
+      {{ OS | default(PROXMOX_STORAGE ~ '/' ~ PROXMOX_TEMPLATE ~ '_' ~
         ('arm64' if (status.json.data['current-kernel'].machine | default('x86_64')
         | lower is search('arm|aarch64')) else 'amd64') ~ '.tar.zst' ) }}
 

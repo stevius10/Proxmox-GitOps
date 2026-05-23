@@ -12,7 +12,7 @@ default['app']['group']               = Default.group
 default['app']['config']              = Default.config
 
 default['git']['app']['mirror']     = 'https://dl.gitea.com/gitea/'
-default['git']['app']['version']    = '1.26.1' # latest: Utils.request(node['git']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
+default['git']['app']['version']    = '1.26.2' # latest: Utils.request(node['git']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
 
 default['git']['dir']['app']          = '/app/git'
 default['git']['dir']['home']         = Dir.home(node['app']['user']) || ENV['HOME'] || '/app'

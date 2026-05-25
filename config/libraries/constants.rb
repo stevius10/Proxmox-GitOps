@@ -9,6 +9,8 @@ module Constants
     "#{uri}/#{repo.to_s.strip.present? ? "repos/#{owner}/#{repo}" : (owner.present? ? "orgs/#{owner}" : "user")}/actions/variables/#{key}"
   }
 
+  ENV_STAGE = 'STAGE'
+
   HEADER_JSON = {
     'Content-Type' => 'application/json',
     'Accept'       => 'application/json'

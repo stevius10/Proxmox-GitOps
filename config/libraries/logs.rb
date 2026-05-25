@@ -16,12 +16,12 @@ module Logs
     log("(debug) #{message}", level: level)
   end
 
-  def self.return(label, result, level: :info)
-    info("#{label}: #{result}"); return result
+  def self.return(label, result, level: :debug)
+    log("#{label}: #{result}", level: level); return result
   end
 
   def self.try!(label, raise: false)
-    Logs.return(label, yield, level: :info)
+    Logs.return(label, yield, level: :debug)
   rescue Exception => e
     raise ? raise("#{label}: #{e.message}") : debug("#{label}: #{e.message}")
   end

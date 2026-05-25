@@ -77,7 +77,7 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 ### Requirements
 
 - Docker
-- Proxmox VE 8.4-9.1
+- Proxmox VE 8.4-9.2
 - See [Getting Started](docs/GETTING_STARTED.md) and [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
 ### Deployment

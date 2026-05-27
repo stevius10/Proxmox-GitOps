@@ -1,6 +1,6 @@
 default['title']                      = "Proxmox-GitOps"
 default['online']                     = "https://github.com/stevius10/Proxmox-GitOps"
-default['version']                    = "v1.3.4"
+default['version']                    = "v1.4.0"
 
 default['id']                         = ENV['ID']
 default['host'] = ( default['ip']     = ENV['IP'].to_s.presence  || Constants::LOCALHOST )

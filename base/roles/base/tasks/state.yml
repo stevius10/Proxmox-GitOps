@@ -2,37 +2,43 @@
   set_fact:
     defaults:
       - { path: "{{ DIR_KEYS }}", state: "directory", mode: "0711", owner: "app", group: "config" }
-      - { path: "{{ DIR_KEYS }}/{{ id }}", state: "file", mode: "0600", owner: "app", group: "config" }
-      - { path: "{{ DIR_KEYS }}/{{ id }}.pub", state: "file", mode: "0644", owner: "app", group: "config" }
-  when: defaults is not defined
+      - { path: "{{ DIR_CERTS }}", state: "directory", mode: "0711", owner: "app", group: "config" }
+      - { path: "/app", state: "directory", mode: "0755", owner: "app", group: "config" }
+      - { path: "/app/.ssh", state: "directory", mode: "0711", owner: "app", group: "config" }
 
-- name: Gather files and directories
-  set_fact:
-    objects: "{{ defaults + (extra | default([])) }}"
-
-- name: Ensure directories exists
+- name: Ensure directories
   file:
     path: "{{ item.path }}"
     state: directory
     owner: "{{ item.owner }}"
     group: "{{ item.group }}"
     mode: "{{ item.mode }}"
-  loop: "{{ objects }}"
+  loop: "{{ defaults }}"
   when: item.state == 'directory'
 
-- name: Check if files exist
-  stat:
-    path: "{{ item.path }}"
-  register: file
-  loop: "{{ objects }}"
-  when: item.state == 'file'
-
-- name: Ensure permissions on existing files
+- name: Ensure files
   file:
     path: "{{ item.item.path }}"
     state: file
     owner: "{{ item.item.owner }}"
     group: "{{ item.item.group }}"
     mode: "{{ item.item.mode }}"
-  loop: "{{ file.results }}"
-  when: item.stat is defined and item.stat.exists
+  loop: "{{ defaults }}"
+  when: item.state == 'file'
+
+- name: Find keys
+  find:
+    paths: "{{ DIR_KEYS }}"
+    file_type: file
+  register: keys
+
+- name: Set key permissions
+  file:
+    path: "{{ item.path }}"
+    state: file
+    owner: "app"
+    group: "config"
+    mode: "{{ '0644' if item.path.endswith('.pub') else '0600' }}"
+  loop: "{{ keys.files }}"
+  loop_control:
+    label: "{{ item.path }}"

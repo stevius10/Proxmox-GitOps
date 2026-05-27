@@ -64,7 +64,7 @@ module Utils
 
     verify = ->(archive, compare_dir) {
       Dir.mktmpdir do |tmp|
-        Logs.try!("snapshot extraction", [archive, tmp], raise: true) do
+        Logs.try!("snapshot extraction", raise: true) do
           system("tar -xzf #{Shellwords.escape(archive)} -C #{Shellwords.escape(tmp)}") or raise("snapshot verification failed")
         end
         raise("verify snapshot failed") unless md5_dir.(tmp) == (Dir.exist?(compare_dir) ? md5_dir.(compare_dir) : '')
@@ -75,7 +75,7 @@ module Utils
       if latest && ::File.exist?(latest)
         FileUtils.rm_rf(data_dir)
         FileUtils.mkdir_p(data_dir)
-        Logs.try!("snapshot restore", [data_dir, latest], raise: true) do
+        Logs.try!("snapshot restore", raise: true) do
           system("tar -xzf #{Shellwords.escape(latest)} -C #{Shellwords.escape(data_dir)}") or raise("tar extract failed")
         end
         FileUtils.chown_R(user, group, data_dir)
@@ -86,7 +86,7 @@ module Utils
     return true unless Dir.exist?(data_dir) && !Dir.glob("#{data_dir}/*").empty? # true to be idempotent integrable before installation
 
     FileUtils.mkdir_p(File.dirname(snapshot))
-    Logs.try!("snapshot creation", [data_dir, snapshot], raise: true) do
+    Logs.try!("snapshot creation", raise: true) do
       system("tar -czf #{Shellwords.escape(snapshot)} -C #{Shellwords.escape(data_dir)} .") or raise("tar compress failed")
     end
 
@@ -96,35 +96,39 @@ module Utils
   # Remote
 
   def self.request(uri, method: Net::HTTP::Get, body: nil, headers: {}, user: nil, pass: nil, log: nil, expect: false, raise: true, sensitive: false, verify: OpenSSL::SSL::VERIFY_NONE)
-    request = method.new(uri = URI(uri)); headers.each { |k, v| request[k] = v }
-    request.basic_auth(user, pass) if user && pass
-    if body and body.is_a?(Hash)
-      Constants::HEADER_JSON.each { |k, v| request[k] = v }
-      body = body.try(:json).or(body)
-    end
-    request.body = body
+    begin
+      request = method.new(uri = URI(uri)); headers.each { |k, v| request[k] = v }
+      request.basic_auth(user, pass) if user && pass
+      if body and body.is_a?(Hash)
+        Constants::HEADER_JSON.each { |k, v| request[k] = v }
+        body = body.try(:json).or(body)
+      end
+      request.body = body
 
-    response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https', verify_mode: verify ) { |http| http.request(request) }
-    if response.is_a?(Net::HTTPRedirection) && (location = response['location'])
-      response = request(location.start_with?('/') ? "#{uri.scheme}://#{uri.host}#{location}" : URI.join("#{uri.scheme}://#{uri.host}#{uri.path}", location).to_s,
-        user: user, pass: pass, headers: headers, method: method, body: body, expect: expect, log: log)
-    end
+      response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https', verify_mode: verify ) { |http| http.request(request) }
+      if response.is_a?(Net::HTTPRedirection) && (location = response['location'])
+        response = request(location.start_with?('/') ? "#{uri.scheme}://#{uri.host}#{location}" : URI.join("#{uri.scheme}://#{uri.host}#{uri.path}", location).to_s,
+          user: user, pass: pass, headers: headers, method: method, body: body, expect: expect, log: log)
+      end
 
-    Logs.info(message = "[#{uri}] #{response&.code} #{response&.message} #{'(' + (sensitive ? body.try(:mask) : body) + ')' if body}") if log
-    Logs.debug((sensitive ? response&.body.try(:mask) : response&.body), level: :debug) if log
-    if expect
-      result = (expect == true ? response.is_a?(Net::HTTPSuccess) : expect.include?(response.code.to_i))
-      (raise and not result) ? raise(message) : result
-    else return response end
+      Logs.info(message = "#{method} [#{uri}] #{response&.code} #{response&.message} #{'(' + (sensitive ? body.try(:mask) : body) + ')' if body}") if log
+      Logs.debug((sensitive ? response&.body.try(:mask) : response&.body), level: :debug) if log
+      if expect
+        result = (expect == true ? response.is_a?(Net::HTTPSuccess) : expect.include?(response.code.to_i))
+        (raise and not result) ? raise(message) : result
+      else return response end
+    rescue Exception => e
+      message = "[#{uri}] #{e.message}"; raise ? raise(message) : Logs.error(message)
+    end
   end
 
   def self.proxmox(ctx, path)
-    host    ||= Env.get_variable(ctx, 'proxmox_host', owner: Default.stage)
-    user    ||= Env.get_variable(ctx, 'proxmox_user', owner: Default.stage)
-    pass    ||= Env.get_variable(ctx, 'proxmox_password', owner: Default.stage)
-    token   ||= Env.get_variable(ctx, 'proxmox_token', owner: Default.stage)
-    secret  ||= Env.get_variable(ctx, 'proxmox_secret', owner: Default.stage)
-    node    ||= Env.get_variable(ctx, 'base_node', owner: Default.stage)
+    host    ||= Env.get_variable(ctx, 'proxmox_host')
+    user    ||= Env.get_variable(ctx, 'proxmox_user')
+    pass    ||= Env.get_variable(ctx, 'proxmox_password')
+    token   ||= Env.get_variable(ctx, 'proxmox_token')
+    secret  ||= Env.get_variable(ctx, 'proxmox_secret')
+    node    ||= Env.get_variable(ctx, 'proxmox_node')
 
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", log: "Proxmox: Ticket", method: Net::HTTP::Post,

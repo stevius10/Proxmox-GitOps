@@ -18,13 +18,6 @@ ruby_block "repo_#{name_repo}_init_configure" do
   end
 end
 
-ruby_block "repo_#{name_repo}_init_dump" do
-  block do
-    Env.dump(self, ['ip', 'git', 'runner'], repo: cookbook_name)
-  end
-  only_if { monorepo }
-end
-
 execute "repo_#{name_repo}_init_git" do
   command <<-EOH
     mkdir -p #{path_destination} && cd #{path_destination} && git init -b main
@@ -49,4 +42,11 @@ execute "repo_#{name_repo}_init_base" do
   EOH
   cwd path_destination
   user node['app']['user']
+end
+
+ruby_block "repo_#{name_repo}_init_dump" do
+  block do
+    Env.dump(self, ['ip', 'git', 'runner'], repo: cookbook_name)
+  end
+  only_if { monorepo }
 end

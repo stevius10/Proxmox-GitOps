@@ -21,7 +21,7 @@ module Default
   end
 
   def self.stage(ctx=nil, default: "main")
-    !ctx.present? ? default : runtime(hostname(ctx))[:stage].or(default)
+    ENV[Constants::ENV_STAGE] || (!ctx.present? ? default : runtime(hostname(ctx))[:stage].or(default))
   end
 
   def self.hostname(ctx); Ctx.node(ctx).dig('hostname'); end

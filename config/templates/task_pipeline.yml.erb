@@ -10,13 +10,13 @@ jobs:
   run:
     runs-on: [ "shell" ]
     steps:
-      - uses: tasks/checkout@v6
+      - uses: tasks/checkout@v7
         with:
           repository: '<%= @org %>/<%= @repo %>'
           ref: 'main'
           path: task
 
-      - uses: tasks/checkout@v6
+      - uses: tasks/checkout@v7
         with:
           repository: 'main/libraries'
           ref: 'main'

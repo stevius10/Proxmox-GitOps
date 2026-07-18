@@ -11,7 +11,7 @@ runs:
   using: 'composite'
   steps:
     - name: Checkout repository
-      uses: tasks/checkout@v6
+      uses: tasks/checkout@v7
       with:
         repository: "${{ inputs.repo }}"
         ref: "${{ inputs.branch }}"
@@ -57,14 +57,14 @@ runs:
       if: ${{ gitea.ref == 'refs/heads/release' }}
 
     - name: Checkout repository
-      uses: tasks/checkout@v6
+      uses: tasks/checkout@v7
       with:
         repository: "${{ inputs.repo }}"
         ref: "${{ inputs.branch }}"
         path: "${{ env.repo }}"
 
     - name: Checkout libraries
-      uses: tasks/checkout@v6
+      uses: tasks/checkout@v7
       with:
         repository: 'main/libraries'
         ref: 'main'

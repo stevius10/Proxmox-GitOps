@@ -12,7 +12,7 @@ default['app']['group']               = Default.group
 default['app']['config']              = Default.config
 
 default['git']['app']['mirror']     = 'https://dl.gitea.com/gitea/'
-default['git']['app']['version']    = '1.26.2' # latest: Utils.request(node['git']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
+default['git']['app']['version']    = '1.27.0' # latest: Utils.request(node['git']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
 
 default['git']['dir']['app']          = '/app/git'
 default['git']['dir']['home']         = Dir.home(node['app']['user']) || ENV['HOME'] || '/app'
@@ -40,8 +40,8 @@ default['git']['org']['tasks']        = 'tasks'
 default['git']['branch']['rollback']  = 'rollback'
 default['git']['env']['deploy']       = 'AUTO_DEPLOY'
 
-default['runner']['app']['mirror']    = 'https://dl.gitea.com/act_runner/'
-default['runner']['app']['version']   = '0.4.1'  # latest: Utils.request(node['runner']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
+default['runner']['app']['mirror']    = 'https://dl.gitea.com/gitea-runner/'
+default['runner']['app']['version']   = '2.1.0'  # latest: Utils.request(node['runner']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
 
 default['runner']['dir']['app']       = '/app/runner'
 default['runner']['conf']['label']    = 'shell'

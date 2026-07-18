@@ -2,7 +2,7 @@ ruby_block 'runner' do block do
   Common.directories(self, node['runner']['dir']['app'])
 
   Utils.download(node, "#{node['runner']['dir']['app']}/#{self.recipe_name}",
-    "#{node['runner']['app']['mirror']}#{node['runner']['app']['version']}/act_runner-#{node['runner']['app']['version']}-linux-#{Utils.arch()}")
+    "#{node['runner']['app']['mirror']}#{node['runner']['app']['version']}/gitea-runner-#{node['runner']['app']['version']}-linux-#{Utils.arch()}")
 
   Utils.wait("#{node['git']['host']['local']}:#{node['git']['port']['http']}")
 

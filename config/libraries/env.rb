@@ -45,7 +45,7 @@ module Env
   end
 
   def self.dump(ctx, *args, repo: nil, owner: Default.stage)
-      node = Ctx.node(ctx); rec = nil; result = true
+      node = Ctx.node(ctx); result = true
       get = ->(key) { try { k = key.is_a?(String) ? key : key.to_s; return (node[key] || node[k] || node[k.to_sym]) } }
       set = ->(key, value) { return value if value.blank?; try { Env.set_variable(node, key, value, repo: repo, owner: owner); true } }
       req = ->(key, value) { try { v = value; v = v.call(node) if v.respond_to?(:call); v = node.dig(*v) if v.is_a?(Array); set.(key, v); true } }

@@ -7,7 +7,7 @@ broker    = Env.get(self, 'broker')
 package "npm"
 
 execute 'install_pnpm' do
-  command 'npm i -g pnpm@9'
+  command 'npm i -g pnpm'
   not_if 'which pnpm'
 end
 

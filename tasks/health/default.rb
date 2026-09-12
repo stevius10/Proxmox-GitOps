@@ -19,7 +19,7 @@ Utils.proxmox(ctx, 'lxc').each do |container| id = container['vmid']
   current = Utils.proxmox(ctx, "lxc/#{id}/status/current")
 
   Env.set(ctx, (hostname = config['hostname'] || id.to_s), (state=({
-    'ip '=> (ip=(config['net0'] && config['net0'][/ip=(\d+\.\d+\.\d+\.\d+)/, 1])),
+    'ip'=> (ip=(config['net0'] && config['net0'][/ip=(\d+\.\d+\.\d+\.\d+)/, 1])),
     'status' => (current['status'] == 'running' ? check_service(Default.runtime(hostname)[:name], id, ip) : current['status'])
   }.compact)), repo: 'health', owner: 'tasks')
 

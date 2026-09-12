@@ -29,7 +29,7 @@ Modular container definitions in `libs/` following this structure:
 
 ```
 libs/mycontainer/
-├── config.env
+├── container.env
 ├── recipes/
 │   └── default.rb
 ├── templates/

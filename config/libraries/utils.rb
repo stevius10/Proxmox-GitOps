@@ -146,7 +146,7 @@ module Utils
     release = nil
 
     FileUtils.mkdir_p(app_dir)
-    assets = ->(a) { a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha265', '.pem') }
+    assets = ->(a) { a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha256', '.pem') }
 
     if version == 'latest'
       release = Logs.blank!("check latest", latest(owner, repo))

@@ -1,4 +1,5 @@
-ansible.builtin:
-  validate_certs: no
-  retries: 3
-  delay: 3
+module_defaults:
+  ansible.builtin:
+    validate_certs: no
+    retries: 3
+    delay: 3

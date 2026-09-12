@@ -41,7 +41,7 @@ default['git']['branch']['rollback']  = 'rollback'
 default['git']['env']['deploy']       = 'AUTO_DEPLOY'
 
 default['runner']['app']['mirror']    = 'https://dl.gitea.com/gitea-runner/'
-default['runner']['app']['version']   = '3.3.1'  # latest: Utils.request(node['runner']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
+default['runner']['app']['version']   = '3.4.2'  # latest: Utils.request(node['runner']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
 
 default['runner']['dir']['app']       = '/app/runner'
 default['runner']['conf']['label']    = 'shell'

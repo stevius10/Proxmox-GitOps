@@ -13,6 +13,7 @@ end
 
 execute "create_samba_#{login}" do
   command "printf '#{password}\\n#{password}\\n' | smbpasswd -a -s #{login}"
+  sensitive true
   not_if "pdbedit -L | grep -w #{login}"
 end
 

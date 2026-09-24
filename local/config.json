@@ -12,7 +12,7 @@
         "bridge":     "vmbr0",
 
         "storage":    "local:vztmpl",
-        "template":   "debian-13-standard_13.1-2"
+        "template":   "debian-13-standard_13.6-1"
     },
 
     "login":          "proxmox",

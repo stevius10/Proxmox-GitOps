@@ -66,7 +66,7 @@ runs:
         PROXMOX_DIR: ${{ vars.PROXMOX_DIR || '/tmp/config' }}
         PROXMOX_SHARE: ${{ vars.PROXMOX_SHARE || '/share' }}
         PROXMOX_STORAGE: ${{ vars.PROXMOX_STORAGE || 'local:vztmpl' }}
-        PROXMOX_TEMPLATE: ${{ vars.PROXMOX_TEMPLATE || 'debian-13-standard_13.1-2' }}
+        PROXMOX_TEMPLATE: ${{ vars.PROXMOX_TEMPLATE || 'debian-13-standard_13.6-1' }}
         PROXMOX_GATEWAY: ${{ vars.PROXMOX_GATEWAY || '192.168.178.1' }}
         PROXMOX_MASK: ${{ vars.PROXMOX_MASK || '24' }}
         PROXMOX_INTERFACE: ${{ vars.PROXMOX_INTERFACE || 'eth0' }}

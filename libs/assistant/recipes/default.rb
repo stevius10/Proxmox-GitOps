@@ -2,7 +2,12 @@ Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
 Common.directories(self, [node['assistant']['dir']['data']])
 
-Common.packages(self, %w[build-essential bluez dbus-broker git mc pkg-config libmariadb-dev-compat python3-pip python3-venv])
+Common.packages(self, %w[build-essential bluez dbus-broker git mc pkg-config libmariadb-dev-compat libpq-dev])
+
+execute 'install_uv' do
+  command 'curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/local/bin" sh'
+  creates '/usr/local/bin/uv'
+end
 
 link '/config' do
   to node['assistant']['dir']['data']
@@ -12,25 +17,25 @@ end
 
 [node['assistant']['dir']['env'], node['configurator']['dir']].each do |dir|
   execute "create_environment_#{::File.basename(dir)}" do
-    command "python3 -m venv #{dir}"
+    command "/usr/local/bin/uv venv #{dir} --python 3.14"
     user node['app']['user']
     group node['app']['group']
-    not_if { ::File.exist?("#{dir}/bin/activate") }
+    creates "#{dir}/bin/activate"
   end
 end
 
 execute 'install_assistant' do
-  command "#{node['assistant']['dir']['env']}/bin/pip install webrtcvad wheel homeassistant mysqlclient psycopg2-binary isal pycares"
+  command "/usr/local/bin/uv pip install --python #{node['assistant']['dir']['env']} webrtcvad homeassistant mysqlclient psycopg2-binary isal pycares"
   user node['app']['user']
   group node['app']['group']
-  not_if { ::File.exist?("#{node['assistant']['dir']['env']}/bin/hass") }
+  creates "#{node['assistant']['dir']['env']}/bin/hass"
 end
 
 execute 'install_configurator' do
-  command "#{node['configurator']['dir']}/bin/pip install legacy-cgi hass-configurator"
+  command "/usr/local/bin/uv pip install --python #{node['configurator']['dir']} legacy-cgi hass-configurator"
   user node['app']['user']
   group node['app']['group']
-  not_if { ::File.exist?("#{node['configurator']['dir']}/bin/hass-configurator") }
+  creates "#{node['configurator']['dir']}/bin/hass-configurator"
 end
 
 ruby_block "restore_snapshot_if_exists" do

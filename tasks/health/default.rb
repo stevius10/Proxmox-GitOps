@@ -23,7 +23,7 @@ Utils.proxmox(ctx, 'lxc').each do |container| id = container['vmid']
     'status' => (current['status'] == 'running' ? check_service(Default.runtime(hostname)[:name], id, ip) : current['status'])
   }.compact)), repo: 'health', owner: 'tasks')
 
-  repository_description = "[<b>#{state['status']}</b>] #{id} (#{ip})"
+  repository_description = "#{state['status'] == 'healthy' ? '🟢' : '🔴'} [#{id}] #{ip}"
   repository_url = "https://#{Env.get_variable(ctx, 'PROXMOX_HOST', owner: Default.stage)}:8006/#v1:0:=lxc%2F#{id}"
 
   uri = "#{Env.endpoint(ctx)}/repos/#{Default.runtime(hostname)[:stage]}/#{Default.runtime(hostname)[:name]}"

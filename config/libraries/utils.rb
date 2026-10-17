@@ -140,13 +140,14 @@ module Utils
     request("https://#{host}:8006/api2/json/nodes/#{node}/#{path}", headers: headers).json['data']
   end
 
-  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', user: Default.user, group: Default.group, extract: true)
+  def self.install(ctx, owner:, repo:, app_dir:, name: nil, version: 'latest', user: Default.user, group: Default.group, extract: true, strip_components: 1)
     version_file = File.join(app_dir, '.version')
     version_installed = ::File.exist?(version_file) ? ::File.read(version_file).strip : nil
     release = nil
 
     FileUtils.mkdir_p(app_dir)
-    assets = ->(a) { a[:name].match?(/linux[-_]#{Utils.arch}/i) && !a[:name].end_with?('.asc', '.sha256', '.pem') }
+    arch = { 'amd64' => 'amd64|x86_64', 'arm64' => 'arm64|aarch64' }.fetch(Utils.arch, Utils.arch)
+    assets = ->(a) { a[:name].match?(/linux[-_](?:#{arch})/i) && !a[:name].end_with?('.asc', '.sha256', '.pem', '.deb') }
 
     if version == 'latest'
       release = Logs.blank!("check latest", latest(owner, repo))
@@ -174,7 +175,7 @@ module Utils
         Utils.download(ctx, path, download_url)
 
         if extract && path.end_with?('.tar.gz', '.tgz', '.zip')
-          (system("tar -xzf #{Shellwords.escape(path)} --strip-components=1 -C #{Shellwords.escape(app_dir)}") or
+          (system("tar -xzf #{Shellwords.escape(path)} --strip-components=#{strip_components} -C #{Shellwords.escape(app_dir)}") or
             raise "tar extract failed for #{path}") if extract
         else # Binary
           FileUtils.mv(path, File.join(app_dir, name || repo))
@@ -187,9 +188,7 @@ module Utils
 
     Ctx.dsl(ctx).file version_file do
       content version.to_s
-      owner Default.user
-      group Default.group
-      mode '0755'
+      owner Default.user; group Default.group; mode '0755'
       action :create
     end
     return version
@@ -199,11 +198,8 @@ module Utils
   def self.download(ctx, path, url, owner: Default.user, group: Default.group, mode: '0755', action: :create)
     Common.directories(Ctx.dsl(ctx), File.dirname(path), owner: owner, group: group, mode: mode)
     Ctx.dsl(ctx).remote_file path do
-      source url.respond_to?(:call)? lazy { url.call } : url
-      owner  owner
-      group  group
-      mode   mode
-      action action
+      source Logs.return("download", url.respond_to?(:call)? lazy { url.call } : url)
+      owner owner; group group; mode mode; action action
     end.run_action(action)
   end
 

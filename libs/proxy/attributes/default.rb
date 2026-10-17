@@ -6,6 +6,8 @@ default['app']['group']                = Default.group
 default['proxy']['dir']['app']         = '/app/proxy'
 default['proxy']['dir']['config']      = "#{node['proxy']['dir']['app']}/conf.d"
 
+default['proxy']['modules']             = [ "github.com/tuzzmaniandevil/caddy-dynamic-clientip", "github.com/fvbommel/caddy-dns-ip-range" ]
+
 default['proxy']['dir']['certs']       = '/share/.certs'
 default['proxy']['dir']['logs']        = '/share/.logs/proxy'
 

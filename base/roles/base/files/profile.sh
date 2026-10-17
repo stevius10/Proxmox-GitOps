@@ -44,6 +44,10 @@ backport() {
 
 # Functions
 
+cd() {
+    builtin cd "$@" && ls -lAhF --color=auto
+}
+
 extract () {
    if [ -f "$1" ] ; then
        case "$1" in

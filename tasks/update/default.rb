@@ -9,7 +9,7 @@ def update_container(id, ip)
   script = <<~SHELL
     set -e; export DEBIAN_FRONTEND=noninteractive
     apt-get update && apt-get -y dist-upgrade && apt-get autoremove -y && apt-get clean
-    if [ -f /var/run/reboot-required ]; then
+    if [ -f /var/run/reboot-required ] || [ $(last reboot | grep -c "^reboot") -eq 1 ]; then
       /sbin/reboot
     fi
   SHELL

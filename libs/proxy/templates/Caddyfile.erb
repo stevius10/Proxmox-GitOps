@@ -1,5 +1,7 @@
 {
   storage file_system <%= @app_dir %>
+
+  order log before handle
 }
 
 (header) {
@@ -12,7 +14,7 @@
 (default) {
   import header
   log {
-    output file <%= @log_dir %>/{args.0}.log {
+    output file <%= @log_dir %>/{args[0]}.log {
       roll_size     <%= @logs_roll_size %>
       roll_keep     <%= @logs_roll_keep %>
       roll_keep_for <%= @logs_roll_for %>
@@ -22,23 +24,20 @@
       fields {
         request>duration delete
         request>headers delete
+        request>client_ip delete
+        request>proto delete
         request>size delete
         request>tls delete
         request>remote_port delete
+        duration delete
         resp_headers delete
         bytes_read delete
         user_id delete
       }
     }
   }
-  vars upstream {args.1}
-
-  reverse_proxy {args.1} {
-    header_up Host {args.0}
-    header_up X-Real-IP {http.request.remote.host}
-    header_up X-Forwarded-For {http.request.remote.host}
-    header_up X-Container-IP {args.1}
-  }
+  vars upstream {args[1]}
+  reverse_proxy {args[1]}
 }
 
 (internal) {
@@ -49,10 +48,9 @@
 
 <% @hosts.each do |entry| -%> <% domain, upstream, hostname = entry.split(' ') -%><%= domain %> {
   import internal
-  import <%= @config_dir %>/*<%= hostname %>.caddy
-
   tls internal
-  import default <%= hostname %> <%= upstream %>
+
+  import <%= @config_dir %>/*<%= hostname %>.caddy
 }
 <% end -%>
 

@@ -1,11 +1,15 @@
-# *.local.caddy (.gitignore): *.* {
-#   import default api 192..
-#   tls /share/.certs/.lego/certificates/*.*.crt /share/.certs/.lego/certificates/*.*.key
+# Example: 10-assistant.local.caddy (see .gitignore)
+#
+# gitops.pm {
+#     tls /share/.certs/.lego/certificates/gitops.pm.crt /share/.certs/.lego/certificates/gitops.pm.key
+#
+#     @self dynamic_client_ip dns gitops.pm {
+#         interval 1h
+#     }
+#
+#     handle @self {
+#         import default assistant 192.168.178.110:8123
+#     }
 # }
 
-# Home Assistant Proxy Configuration
-# http: trusted_proxies: - <proxy> # e. g. 192.168.178.101
-
-route {
-    reverse_proxy @internal {vars.upstream}:8123
-}
+import default assistant.l 192.168.178.110:8123

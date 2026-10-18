@@ -4,17 +4,36 @@ Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
 Common.directories(self, [ node['proxy']['dir']['app'], node['proxy']['dir']['config'], node['proxy']['dir']['logs'] ] )
 
-package 'caddy'
+package 'golang-go'
+
+ruby_block "get_xcaddy" do block do
+  Utils.install(self, owner: 'caddyserver', repo: 'xcaddy', app_dir: node['proxy']['dir']['app'], strip_components: 0)
+end end
+
+execute 'build_caddy' do
+  command [ "#{node['proxy']['dir']['app']}/xcaddy build",
+    Array(node['proxy']['modules']).compact.map { |m| "--with #{m}" }.join(' '),
+    "--output #{node['proxy']['dir']['app']}/caddy" ].reject(&:empty?).join(' ')
+  user node['app']['user']
+  action :run
+end
 
 ruby_block 'proxmox_containers' do
   block do
-    node.run_state['proxy_hosts'] = Utils.proxmox(node, 'lxc').map do |state|
+    Logs.info(node.run_state['proxy_hosts'] = Utils.proxmox(node, 'lxc').map do |state|
       config = Utils.proxmox(node, "lxc/#{state['vmid']}/config")
       ip = config['net0'] ? config['net0'].match(/ip=([\d\.]+)/)&.[](1) : "404"
       "#{state['name']}.#{node['proxy']['config']['domain']} #{ip} #{state['name']}"
-    end
-    Logs.info(node.run_state['proxy_hosts'])
+    end)
   end
+end
+
+remote_directory node['proxy']['dir']['config'] do
+  source 'config'
+  owner node['app']['user']
+  group node['app']['group']
+  mode '0775'
+  files_mode '0664'
 end
 
 template "#{node['proxy']['dir']['app']}/Caddyfile" do
@@ -28,27 +47,9 @@ template "#{node['proxy']['dir']['app']}/Caddyfile" do
     internal: node['proxy']['config']['internal'] )
 end
 
-remote_directory node['proxy']['dir']['config'] do
-  source 'config'
-  owner node['app']['user']
-  group node['app']['group']
-  mode '0775'
-  files_mode '0664'
-end
-
-execute "#{self.cookbook_name}_initialize" do
-  command "/bin/caddy trust --config #{node['proxy']['dir']['app']}/Caddyfile"
-  user 'root'
-  timeout 120
-  not_if { ::File.directory?("#{node['proxy']['dir']['app']}/certificates") ||
-    ::File.directory?("#{node['proxy']['dir']['app']}/pki") }
-  subscribes :run, "template[#{node['proxy']['dir']['app']}/Caddyfile]", :immediately
-  action :nothing
-end
-
 ruby_block "#{self.cookbook_name}_application" do block do
   Common.application(self, cookbook_name, actions: [:start, :enable],
-    exec: "/bin/caddy run --config #{node['proxy']['dir']['app']}/Caddyfile",
+    exec: "#{node['proxy']['dir']['app']}/caddy run --config #{node['proxy']['dir']['app']}/Caddyfile",
     subscribe: ["template[#{node['proxy']['dir']['app']}/Caddyfile]", "remote_directory[#{node['proxy']['dir']['config']}]"],
     unit: { 'Unit': { 'Wants' => 'share.service', 'After' => 'network.target share.service' },
       'Service' => { 'AmbientCapabilities' => 'CAP_NET_BIND_SERVICE' } } )

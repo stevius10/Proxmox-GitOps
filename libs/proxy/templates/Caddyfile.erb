@@ -1,7 +1,7 @@
 {
   storage file_system <%= @app_dir %>
 
-  order log before basicauth
+  order log before handle
 }
 
 (header) {
@@ -20,7 +20,7 @@
       roll_keep_for <%= @logs_roll_for %>
     }
     format filter {
-      wrap json
+      wrap console
       fields {
         request>duration delete
         request>headers delete

@@ -12,4 +12,4 @@
 #     }
 # }
 
-import default <%= hostname %> <%= upstream %>
+import default assistant.l 192.168.178.110:8123

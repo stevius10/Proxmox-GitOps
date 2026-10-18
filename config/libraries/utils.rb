@@ -146,7 +146,8 @@ module Utils
     release = nil
 
     FileUtils.mkdir_p(app_dir)
-    arch = { 'amd64' => 'amd64|x86_64', 'arm64' => 'arm64|aarch64' }.fetch(Utils.arch, Utils.arch)
+
+    arch =  { 'amd64' => 'amd64|x86_64', 'x86_64' => 'amd64|x86_64', 'arm64' => 'arm64|aarch64', 'aarch64' => 'arm64|aarch64' }.fetch(Utils.arch, Utils.arch)
     assets = ->(a) { a[:name].match?(/linux[-_](?:#{arch})/i) && !a[:name].end_with?('.asc', '.sha256', '.pem', '.deb') }
 
     if version == 'latest'
@@ -166,9 +167,10 @@ module Utils
 
       release = request(Constants::URI_GITHUB_TAG.call(owner, repo, version),
         headers: { 'Accept' => 'application/vnd.github+json' }, expect: true).json unless release
-      download_url, filename = (if (asset = release[:assets].find(&assets))
-        [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
-      else [release[:tarball_url], "#{repo}-#{version}.tar.gz"] end)
+      download_url, filename = (
+        if (asset = release[:assets].find(&assets))
+          [asset[:browser_download_url], File.basename(URI.parse(asset[:browser_download_url]).path)]
+        else Logs.return("no asset for '#{arch}'", [release[:tarball_url], "#{repo}-#{version}.tar.gz"], level: :warn) end )
 
       Dir.mktmpdir do |tmpdir|
         path = File.join(tmpdir, filename)
@@ -198,7 +200,7 @@ module Utils
   def self.download(ctx, path, url, owner: Default.user, group: Default.group, mode: '0755', action: :create)
     Common.directories(Ctx.dsl(ctx), File.dirname(path), owner: owner, group: group, mode: mode)
     Ctx.dsl(ctx).remote_file path do
-      source Logs.return("download", url.respond_to?(:call)? lazy { url.call } : url)
+      source Logs.return("download", url.respond_to?(:call)? lazy { url.call } : url, level: :info)
       owner owner; group group; mode mode; action action
     end.run_action(action)
   end

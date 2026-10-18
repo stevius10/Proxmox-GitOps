@@ -1,5 +1,7 @@
 {
   storage file_system <%= @app_dir %>
+
+  order log before basicauth
 }
 
 (header) {
@@ -18,13 +20,16 @@
       roll_keep_for <%= @logs_roll_for %>
     }
     format filter {
-      wrap console
+      wrap json
       fields {
         request>duration delete
         request>headers delete
+        request>client_ip delete
+        request>proto delete
         request>size delete
         request>tls delete
         request>remote_port delete
+        duration delete
         resp_headers delete
         bytes_read delete
         user_id delete
@@ -32,11 +37,7 @@
     }
   }
   vars upstream {args[1]}
-
-  reverse_proxy {args[1]} {
-    header_up X-Real-IP {http.request.remote.host}
-    header_up X-Container-IP {args[1]}
-  }
+  reverse_proxy {args[1]}
 }
 
 (internal) {
@@ -47,10 +48,9 @@
 
 <% @hosts.each do |entry| -%> <% domain, upstream, hostname = entry.split(' ') -%><%= domain %> {
   import internal
-  import <%= @config_dir %>/*<%= hostname %>.caddy
-
   tls internal
-  import default <%= hostname %> <%= upstream %>
+
+  import <%= @config_dir %>/*<%= hostname %>.caddy
 }
 <% end -%>
 

@@ -4,6 +4,6 @@ end
 
 Clients::Git.new(Env.endpoint( {"host"=>ENV["HOST"]} ), ENV["LOGIN"], ENV["PASSWORD"]).auto_merge(owner="main")
 
-%w(update).each do |task|
+%w(update health).each do |task|
   Clients::Git.new(Env.endpoint( {"host"=>ENV["HOST"]} ), ENV["LOGIN"], ENV["PASSWORD"]).run_task(task)
 end

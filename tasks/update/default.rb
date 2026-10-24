@@ -7,11 +7,12 @@ ctx = { "host" => ENV["HOST"], "login" => ENV["LOGIN"], "password" => ENV["PASSW
 
 def update_container(id, ip)
   script = <<~SHELL
-    set -e; export DEBIAN_FRONTEND=noninteractive
-    apt-get update && apt-get -y dist-upgrade && apt-get autoremove -y && apt-get clean
-    if [ -f /var/run/reboot-required ] || [ $(last reboot | grep -c "^reboot") -eq 1 ]; then
-      /sbin/reboot
-    fi
+    nohup sh -c 'set -e; export DEBIAN_FRONTEND=noninteractive
+      apt-get update && apt-get -y dist-upgrade && apt-get autoremove -y && apt-get clean
+      if [ -f /var/run/reboot-required ]; then
+        /sbin/shutdown -r +30 "reboot scheduled by update task"
+      fi
+    ' > /var/log/task-update.log 2>&1 &
   SHELL
 
   IO.popen([ "ssh", "-o", "ConnectTimeout=10", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no",

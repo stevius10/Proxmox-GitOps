@@ -6,4 +6,4 @@ Clients::Git.new(Env.endpoint( {"host"=>ENV["HOST"]} ), ENV["LOGIN"], ENV["PASSW
 
 %w(update health).each do |task|
   Clients::Git.new(Env.endpoint( {"host"=>ENV["HOST"]} ), ENV["LOGIN"], ENV["PASSWORD"]).run_task(task)
-end
+end unless ['127.0.0.1', 'localhost', '::1'].include?(ENV["HOST"])

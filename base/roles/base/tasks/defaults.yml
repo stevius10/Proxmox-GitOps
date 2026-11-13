@@ -14,11 +14,11 @@
       name: "{{ item }}"
       state: present
     loop:
-      - en_US.UTF-8
+      - "{{ locale }}"
 
   - name: Set locale
     copy:
-      src: locale
+      content: "LANG={{ locale }}\nLC_ALL=C.UTF-8\n"
       dest: /etc/default/locale
       owner: root
       group: root
@@ -52,11 +52,11 @@
         ansible.builtin.lineinfile:
           path: /etc/timezone
           create: yes
-          line: 'Europe/Berlin'
+          line: "{{ timezone }}"
 
       - name: Timezone link
         ansible.builtin.file:
-          src: /usr/share/zoneinfo/Europe/Berlin
+          src: "/usr/share/zoneinfo/{{ timezone }}"
           dest: /etc/localtime
           state: link
           force: yes

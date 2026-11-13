@@ -2,7 +2,7 @@
   block:
   - name: Wait for container to be created
     uri:
-      url: "https://{{ PROXMOX_HOST }}:8006/api2/json/nodes/{{ PROXMOX_NODE }}/lxc/{{ id }}/config"
+      url: "https://{{ PROXMOX_HOST }}:{{ proxmox_port }}/api2/json/nodes/{{ PROXMOX_NODE }}/lxc/{{ id }}/config"
       method: GET
       headers: "{{ proxmox_auth }}"
     delay: "{{ check_delay }}"
@@ -21,6 +21,6 @@
 
   - name: Wait for container to be connectable
     wait_for:
-      port: 22
+      port: "{{ ssh_port }}"
       host: "{{ ip }}"
       timeout: 180

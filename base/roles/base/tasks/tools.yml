@@ -12,9 +12,13 @@
       ansible.builtin.set_fact:
         versions: "{{ (download_configuration_management_version.content | regex_findall('href=\"(\\d+\\.\\d+\\.\\d+)/\"') | sort | reverse)[:3] }}"
 
+    - name: Extract operating system version from template
+      ansible.builtin.set_fact:
+        os_version: "{{ (os | regex_search('[a-z]+-(\\d+)', '\\1')) | first | default('13') }}"
+
     - name: Download latest configuration management
       ansible.builtin.get_url:
-        url: "https://downloads.cinc.sh/files/stable/cinc/{{ item }}/debian/13/cinc_{{ item }}-1_{{ arch | default('amd64') }}.deb"
+        url: "https://downloads.cinc.sh/files/stable/cinc/{{ item }}/debian/{{ os_version }}/cinc_{{ item }}-1_{{ arch | default('amd64') }}.deb"
         dest: /tmp/cinc.deb
       register: download_result
       ignore_errors: true

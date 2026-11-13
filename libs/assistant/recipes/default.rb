@@ -2,7 +2,7 @@ Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
 Common.directories(self, [node['assistant']['dir']['data']])
 
-Common.packages(self, %w[build-essential bluez dbus-broker git mc pkg-config libmariadb-dev-compat libpq-dev])
+Common.packages(self, %w[build-essential bluez dbus-broker git pkg-config ffmpeg])
 
 execute 'install_uv' do
   command 'curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/local/bin" sh'
@@ -25,7 +25,7 @@ end
 end
 
 execute 'install_assistant' do
-  command "/usr/local/bin/uv pip install --python #{node['assistant']['dir']['env']} webrtcvad homeassistant mysqlclient psycopg2-binary isal pycares"
+  command "/usr/local/bin/uv pip install --python #{node['assistant']['dir']['env']} homeassistant isal pycares paho-mqtt"
   user node['app']['user']
   group node['app']['group']
   creates "#{node['assistant']['dir']['env']}/bin/hass"

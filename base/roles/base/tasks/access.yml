@@ -61,6 +61,7 @@
       loop:
         - { name: "{{ id }}", content: "{{ private_key }}", mode: "0600" }
         - { name: "{{ id }}.pub", content: "{{ public_key }}",  mode: "0644" }
+      no_log: true
 
     - name: Verify container key
       shell: "ssh-keygen -y -f {{ DIR_KEYS }}/{{ id }} | diff - {{ DIR_KEYS }}/{{ id }}.pub"

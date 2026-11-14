@@ -2,7 +2,7 @@ Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
 
 Common.directories(self, [node['assistant']['dir']['data']])
 
-Common.packages(self, %w[build-essential bluez dbus-broker git pkg-config ffmpeg])
+Common.packages(self, %w[build-essential bluez dbus-broker git pkg-config libturbojpeg0 ffmpeg])
 
 execute 'install_uv' do
   command 'curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="/usr/local/bin" sh'

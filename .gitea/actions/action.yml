@@ -43,7 +43,7 @@ runs:
         echo "mount=$MOUNT" >> "$GITEA_ENV"
 
     - name: Base configuration
-      uses: main/base/.gitea/workflows@main
+      uses: main/base/.gitea/actions@main
       with:
         ip: ${{ env.ip }}
         id: ${{ env.id }}

@@ -38,7 +38,7 @@ jobs:
     needs: init
     steps:
       - id: init
-        uses: main/base/.gitea/workflows@main
+        uses: main/base/.gitea/actions@main
         with:
           ip: ${{ needs.init.outputs.ip }}
           id: ${{ needs.init.outputs.id }}

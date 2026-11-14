@@ -23,11 +23,11 @@ directory "#{path_destination}/.gitea/workflows" do
   recursive true
 end
 
-template "#{path_destination}/.gitea/workflows/pipeline.yml" do
-  source 'repo_pipeline.yml.erb'
+template "#{path_destination}/.gitea/workflows/deploy.yml" do
+  source 'repo_pipeline_action.yml.erb'
   owner node['app']['user']
   group node['app']['group']
   mode '0644'
   only_if { repository.include?('libs/') and Dir.glob("#{path_destination}/container*.env").any? }
-  not_if { File.exist?("#{path_destination}/.gitea/workflows/pipeline.yml") }
+  not_if { Dir.glob("#{path_destination}/.gitea/workflows/*.yml").any? }
 end

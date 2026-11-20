@@ -1,42 +1,48 @@
 /* Navigation */
 
-#navbar-logo {display: none !important;}
+#navbar-logo { display: none !important; }
 
-#navbar .item[href$="/issues"] {display: none !important;}
-#navbar .item[href$="/pulls"] {display: none !important;}
-#navbar .item[href$="/explore/repos"] {display: none !important;}
-#navbar .item[href$="https://docs.gitea.com"] {display: none !important;}
+#navbar .item[href$="/issues"] { display: none !important; }
+#navbar .item[href$="/pulls"] { display: none !important; }
+#navbar .item[href$="/explore/repos"] { display: none !important; }
+#navbar .item[href$="https://docs.gitea.com"] { display: none !important; }
 
-#navbar svg.octicon-triangle-down {display: none;}
-#navbar .text:has(img[src*="/avatars/"]) > * svg {display: inline-block !important;}
-#navbar .tw-ml-1 {display: none;}
+.navbar-right a[href="/notifications"] { display: none !important; }
+.navbar-right a[href$="/-/admin"] { display: none !important; }
+.navbar-right .user-menu a[href="/notifications/subscriptions"] { display: none !important; }
 
-.navbar-right a[href="/notifications"] {display: none !important;}
-.navbar-right a[href$="/-/admin"] {display: none !important;}
-.navbar-right .user-menu a[href="/notifications/subscriptions"] {display: none !important;}
+#navbar svg.octicon-shield-check { display: none !important; }
+#navbar .ui.dropdown:has(> .flex-text-block > svg.octicon-plus) { svg.octicon-triangle-down { display: none; } }
+#navbar .flex-text-block .navbar-avatar { display: none !important; }
+#navbar .tw-ml-1 { display: none !important; }
 
 /* Menu */
 
-overflow-menu .item[href$="/org/main/members"] {display: none !important;}
+overflow-menu .item[href$="/org/main/members"] { display: none !important; }
 
 /* View */
 
-.ui.menu .item:has(.resize-for-semibold[data-text="Activity"]) {display: none !important;}
-.ui.grid [class*="five"].wide.column {display: none !important;}
-.ui.grid [class*="eleven"].wide.column {width: 100% !important;}
+.ui a.item[href*="/activity"] { display: none !important; }
+.ui a.item[href*="/projects"] { display: none !important; }
+.ui a.item[href*="/packages"] { display: none !important; }
+.ui a.item[href*="/teams"] { display: none !important; }
+.ui a.item[href*="/worktime"] { display: none !important; }
 
-.ui a.item[href*="/activity"] {display: none !important;}
-.ui a.item[href*="/projects"] {display: none !important;}
-.ui a.item[href*="/packages"] {display: none !important;}
-.ui a.item[href*="/teams"] {display: none !important;}
-.ui a.item[href*="/worktime"] {display: none !important;}
+.ui.menu .item:has(.resize-for-semibold[data-text="Activity"]) { display: none !important; }
+@media (min-width: 768px) {
+    .ui.grid [class*="five"].wide.column { display: none !important; }
+    .ui.grid [class*="eleven"].wide.column {width: 100% !important; }
+}
 
 /* Mixed */
 
-#user-heatmap,.total-contributions,.vch__legend {display: none !important;}
+button[data-fetch-url*="action=follow"] { display: none !important; }
 
-button[data-fetch-url*="action=follow"] {display: none !important;}
+img[src*="/avatars/"] { display: none !important; }
+
+#user-heatmap, .total-contributions, .vch__legend { display: none !important; }
+
 
 /* Footer */
 
-.page-footer:not(#customized-footer) {display: none !important;}
+.page-footer:not(#customized-footer) { display: none !important; }

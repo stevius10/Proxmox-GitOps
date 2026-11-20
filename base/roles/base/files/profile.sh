@@ -74,13 +74,22 @@ d() {
 }
 
 e() {
-  docker exec -it "$(docker ps -qf "name=^$1$")" /bin/bash
+  [ -z "$1" ] || ! command -v docker >/dev/null 2>&1 && return 1
+  local arg="$1" flags=(-it) cmd=(/bin/bash); shift
+  [ "$#" -gt 0 ] && flags=(-i) && cmd=(/bin/bash -c "$*")
+
+  if [ -n "$(docker ps -aqf "name=^${arg}$")" ]; then
+    docker start "$arg" >/dev/null && docker exec "${flags[@]}" "$arg" "${cmd[@]}"
+  else
+    docker image inspect "$arg" >/dev/null 2>&1 || docker pull "$arg" || return 1
+    docker run --rm --entrypoint="" "${flags[@]}" "$arg" "${cmd[@]}"
+  fi
 }
 
 f() {
     case "$1" in
       /*) grep --color=auto -rni "$1" . ;;
-       *) find . -iname "*${1:1}*" ;;
+       *) find . -iname "*${1}*" ;;
     esac
 }
 

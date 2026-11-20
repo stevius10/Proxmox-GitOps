@@ -3,6 +3,7 @@ default_packages:
   - locales
   - curl
   - jq
+  - procps
   - unzip
   - vim
 

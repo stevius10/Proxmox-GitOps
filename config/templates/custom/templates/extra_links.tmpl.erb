@@ -1,7 +1,6 @@
 <a class="item" href="{{AppSubUrl}}/-/admin/actions/runners/1">{{svg "octicon-three-bars"}}</a>
-<% if @local %><a class="item" href="{{AppSubUrl}}/main/config">{{svg "octicon-package"}}</a><% end %>
-
 <a class="item" id="navbar-home" href="{{AppSubUrl}}/main" aria-label="home"></a>
+<a class="item" <%= 'hidden' unless @local %> href="{{AppSubUrl}}/main/config">{{svg "octicon-package"}}</a>
 
 <div class="ui dropdown jump item"><%= @local ? "localhost" : "remote" %> {{svg "octicon-chevron-down" 14}}
   <div class="transition menu user-menu">

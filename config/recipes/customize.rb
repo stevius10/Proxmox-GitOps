@@ -33,7 +33,10 @@ end
     owner node['app']['user']
     group node['app']['group']
     mode '0644'
-    variables(title: node['title'], online: node['online'], version: node['version'])
+    variables(
+      title: node['title'], online: node['online'], version: node['version'],
+      local: ['127.0.0.1', 'localhost', '::1'].include?(Env.get(self, 'host'))
+    )
     sensitive true
   end
 end

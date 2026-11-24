@@ -29,6 +29,21 @@ inputs:
 
 # Overwrite
 
+  gateway: # container.env GATEWAY (default: vars.PROXMOX_GATEWAY)
+    required: false
+    default: ""
+    type: string
+
+  mask: # container.env NETMASK, CIDR or dotted (default: vars.PROXMOX_MASK)
+    required: false
+    default: ""
+    type: string
+
+  dns: # container.env DNS (default: vars.PROXMOX_NAMESERVER, else Proxmox host settings)
+    required: false
+    default: ""
+    type: string
+
   share: # config: network share
     required: false
     default: false
@@ -67,7 +82,8 @@ runs:
         PROXMOX_SHARE: ${{ vars.PROXMOX_SHARE || '/share' }}
         PROXMOX_STORAGE: ${{ vars.PROXMOX_STORAGE || 'local:vztmpl' }}
         PROXMOX_TEMPLATE: ${{ vars.PROXMOX_TEMPLATE || 'debian-13-standard_13.6-1' }}
-        PROXMOX_GATEWAY: ${{ vars.PROXMOX_GATEWAY || '192.168.178.1' }}
-        PROXMOX_MASK: ${{ vars.PROXMOX_MASK || '24' }}
+        PROXMOX_GATEWAY: ${{ inputs.gateway || vars.PROXMOX_GATEWAY || '192.168.178.1' }}
+        PROXMOX_MASK: ${{ inputs.mask || vars.PROXMOX_MASK || '24' }}
+        PROXMOX_NAMESERVER: ${{ inputs.dns || vars.PROXMOX_NAMESERVER || '' }}
         PROXMOX_INTERFACE: ${{ vars.PROXMOX_INTERFACE || 'eth0' }}
         PROXMOX_BRIDGE: ${{ vars.PROXMOX_BRIDGE || 'vmbr0' }}

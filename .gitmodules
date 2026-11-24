@@ -1,0 +1,8 @@
+[submodule "libs/dhcp"]
+	path = libs/dhcp
+	url = https://github.com/Further-Thinking-Consulting-Ltd/dhcp.git
+	branch = main
+[submodule "libs/dns"]
+	path = libs/dns
+	url = https://github.com/Further-Thinking-Consulting-Ltd/dns.git
+	branch = main

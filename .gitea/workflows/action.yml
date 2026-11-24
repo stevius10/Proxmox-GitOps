@@ -41,6 +41,9 @@ runs:
         echo "disk=$DISK" >> "$GITEA_ENV"
         echo "boot=$BOOT" >> "$GITEA_ENV"
         echo "mount=$MOUNT" >> "$GITEA_ENV"
+        echo "gateway=$GATEWAY" >> "$GITEA_ENV"
+        echo "mask=$NETMASK" >> "$GITEA_ENV"
+        echo "dns=$DNS" >> "$GITEA_ENV"
 
     - name: Base configuration
       uses: main/base/.gitea/workflows@main
@@ -54,6 +57,9 @@ runs:
         disk: ${{ env.disk }}
         boot: ${{ env.boot }}
         mount: ${{ env.mount }}
+        gateway: ${{ env.gateway }}
+        mask: ${{ env.mask }}
+        dns: ${{ env.dns }}
       if: ${{ gitea.ref == 'refs/heads/release' }}
 
     - name: Checkout repository

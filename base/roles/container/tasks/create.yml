@@ -39,6 +39,26 @@
       - PROXMOX_PASSWORD is defined
       - PROXMOX_PASSWORD != ''
 
+  - name: Set network prefix # MASK accepts CIDR (24) or dotted netmask (255.255.255.0)
+    set_fact:
+      net_prefix: >-
+        {%- set m = (lookup('env', 'PROXMOX_MASK') | string | trim) -%}
+        {%- if '.' in m -%}
+        {%- set bits = {'255': 8, '254': 7, '252': 6, '248': 5, '240': 4, '224': 3, '192': 2, '128': 1, '0': 0} -%}
+        {%- set o = m.split('.') -%}
+        {%- set ok = o | length == 4 and (o | reject('in', bits) | list | length == 0) -%}
+        {%- set ns = namespace(ok=ok) -%}
+        {%- if ok -%}{%- for i in range(3) -%}{%- if o[i] != '255' and o[i + 1] != '0' -%}{%- set ns.ok = false -%}{%- endif -%}{%- endfor -%}{%- endif -%}
+        {{ (o | map('extract', bits) | sum) if ns.ok else 0 }}
+        {%- else -%}{{ m }}{%- endif -%}
+
+  - name: Validate network prefix
+    assert:
+      that:
+        - net_prefix | int >= 1
+        - net_prefix | int <= 32
+      fail_msg: "Invalid PROXMOX_MASK '{{ lookup('env', 'PROXMOX_MASK') }}' (expected 1-32 or a contiguous dotted netmask)"
+
   - name: Create container
     community.general.proxmox: &create_container
       vmid: "{{ id }}"
@@ -50,7 +70,8 @@
       swap: "{{ swap }}"
       disk: "{{ disk }}"
       netif:
-        net0: "name={{ lookup('env', 'PROXMOX_INTERFACE') }},gw={{ lookup('env', 'PROXMOX_GATEWAY') }},ip={{ ip }}/{{ lookup('env', 'PROXMOX_MASK') }},bridge={{ lookup('env', 'PROXMOX_BRIDGE') }}"
+        net0: "name={{ lookup('env', 'PROXMOX_INTERFACE') }},gw={{ lookup('env', 'PROXMOX_GATEWAY') }},ip={{ ip }}/{{ net_prefix | int }},bridge={{ lookup('env', 'PROXMOX_BRIDGE') }}"
+      nameserver: "{{ lookup('env', 'PROXMOX_NAMESERVER') | default(omit, true) }}"
       features: "{{ (features if features and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}"
       mounts: "{{ (mounts if mounts and (PROXMOX_PASSWORD is defined and PROXMOX_PASSWORD != '') else omit) }}"
       unprivileged: "{{ (share | default(false) and mount | default('') | trim != '') | ternary(false, true) }}"

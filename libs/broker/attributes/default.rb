@@ -1,3 +1,4 @@
+default['id']                       = ENV['ID']
 default['ip']                       = "#{ENV['IP']}"
 
 default['app']['user']              = Default.user

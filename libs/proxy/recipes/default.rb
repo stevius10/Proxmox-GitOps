@@ -1,6 +1,6 @@
 require 'ipaddr'
 
-Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
+Env.dump(self, *Default.defaults(self), repo: Default.name(self))
 
 Common.directories(self, [ node['proxy']['dir']['app'], node['proxy']['dir']['config'], node['proxy']['dir']['logs'] ] )
 

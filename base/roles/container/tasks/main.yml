@@ -20,7 +20,7 @@
 - name: Container orchestration
   block:
   - name: Check container
-    community.general.proxmox_vm_info:
+    community.proxmox.proxmox_vm_info:
       vmid: "{{ id }}"
     register: container_exists
 
@@ -38,8 +38,8 @@
     include_tasks: add.yml
 
   module_defaults:
-    community.general.proxmox: "{{ proxmox_cred | combine({'timeout': 120}, recursive=True) }}"
-    community.general.proxmox_vm_info: "{{ proxmox_cred }}"
+    community.proxmox.proxmox: "{{ proxmox_cred | combine({'timeout': 120}, recursive=True) }}"
+    community.proxmox.proxmox_vm_info: "{{ proxmox_cred }}"
     uri:
       return_content: yes
       validate_certs: no

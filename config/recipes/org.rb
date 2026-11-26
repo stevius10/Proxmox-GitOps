@@ -1,16 +1,20 @@
-login     = (node.run_state['login']    ||= Env.get(self, 'login'))
-password  = (node.run_state['password'] ||= Env.get(self, 'password'))
+login     = (node.run_state['user_login']    ||= Env.get(self, 'user_login'))
+password  = (node.run_state['user_password'] ||= Env.get(self, 'user_password'))
 
 [node['git']['org']['main'], node['git']['org']['stage'], node['git']['org']['tasks']].each do |org|
 
   ruby_block "config_#{org}_variables" do
     action :nothing
-    block do
-      Env.dump(self, *node['git']['conf']['defaults'], owner: org) # TODO: Gitea instance-level variables awaited
-
-      Env.dump(self, *(
-        (node['git']['conf']['environment'].map { |file| Utils.mapping(file) }.reduce({}, :merge!)).compact.each { |k, v| node.default[k] = v }.keys
-      ), owner: org)
+    block do [
+      [ node['git']['conf']['defaults'], false ],
+      [ node['git']['conf']['secrets'], true ],
+      [ node['git']['conf']['environment']
+         .map { |file| Utils.mapping(file) }.reduce({}, :merge!).compact
+         .each { |key, value| node.default[key] = value }.keys,
+       false ]
+    ].each do |keys, secret|
+        Env.dump(self, *keys, owner: org, secret: secret)
+      end
     end
   end
 

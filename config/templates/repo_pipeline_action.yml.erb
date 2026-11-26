@@ -3,12 +3,31 @@ on:
   push:
     branches: [ release, main ]
 
+env:
+  HOST: ${{ vars.HOST }}
+  USER_LOGIN: ${{ secrets.USER_LOGIN }}
+  USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+  PROXMOX_HOST: ${{ vars.PROXMOX_HOST }}
+  CREDENTIALS_USER: ${{ secrets.CREDENTIALS_USER }}
+  CREDENTIALS_PASSWORD: ${{ secrets.CREDENTIALS_PASSWORD }}
+  CREDENTIALS_TOKEN: ${{ secrets.CREDENTIALS_TOKEN }}
+  CREDENTIALS_SECRET: ${{ secrets.CREDENTIALS_SECRET }}
+  PROXMOX_NODE: ${{ vars.PROXMOX_NODE }}
+  PROXMOX_SHARE: ${{ vars.PROXMOX_SHARE }}
+  PROXMOX_STORAGE: ${{ vars.PROXMOX_STORAGE }}
+  PROXMOX_TEMPLATE: ${{ vars.PROXMOX_TEMPLATE }}
+  PROXMOX_GATEWAY: ${{ vars.PROXMOX_GATEWAY }}
+  PROXMOX_MASK: ${{ vars.PROXMOX_MASK }}
+  PROXMOX_INTERFACE: ${{ vars.PROXMOX_INTERFACE }}
+  PROXMOX_BRIDGE: ${{ vars.PROXMOX_BRIDGE }}
+  SETTINGS_TIMEZONE: ${{ vars.SETTINGS_TIMEZONE }}
+  SETTINGS_LOCALE: ${{ vars.SETTINGS_LOCALE }}
+
 jobs:
   include:
     runs-on: shell
     steps:
-      - id: init
-        uses: main/config/.gitea/actions@main
+      - uses: main/config/.gitea/actions@main
         with:
           repo: ${{ gitea.repository }}
           branch: ${{ gitea.ref_name }}

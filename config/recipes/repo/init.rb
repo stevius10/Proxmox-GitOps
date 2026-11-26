@@ -44,9 +44,8 @@ execute "repo_#{name_repo}_init_base" do
   user node['app']['user']
 end
 
-ruby_block "repo_#{name_repo}_init_dump" do
-  block do
-    Env.dump(self, ['ip', 'git', 'runner'], repo: cookbook_name)
+ruby_block "repo_#{name_repo}_init_dump" do block do
+    Env.dump(self, *Default.defaults(self), 'git', 'runner', repo: Default.name(self))
   end
   only_if { monorepo }
 end

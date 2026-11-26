@@ -17,7 +17,11 @@ module Default
   end
 
   def self.name(ctx=nil, default: "config")
-    !ctx.present? ? default : runtime(hostname(ctx))[:name].or(default)
+    !ctx.present? ? default : ctx.cookbook_name.or(default)
+  end
+
+  def self.defaults(ctx=nil, default: ['ip', 'id'])
+    !ctx.present? ? default : default + [ctx.cookbook_name]
   end
 
   def self.stage(ctx=nil, default: "main")

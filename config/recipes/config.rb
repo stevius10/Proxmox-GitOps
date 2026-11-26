@@ -1,5 +1,5 @@
-login    = node.run_state['login']
-password = node.run_state['password']
+@login    = ( login    = node.run_state['user_login'].presence    || Env.get(self, 'user_login') )
+@password = ( password = node.run_state['user_password'].presence || Env.get(self, 'user_password') )
 
 # User configuration
 

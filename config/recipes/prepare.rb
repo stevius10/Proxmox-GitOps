@@ -31,5 +31,5 @@ end
 
 # Runtime
 
-node.run_state['login']     = Env.get(self, 'login')
-node.run_state['password']  = Env.get(self, 'password')
+node.run_state['user_login']     = Env.get(self, 'user_login')
+node.run_state['user_password']  = Env.get(self, 'user_password')

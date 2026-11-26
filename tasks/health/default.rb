@@ -3,7 +3,7 @@
 %w(. ../config ../../config).each do |dir| d = File.join(__dir__, dir, 'libraries')
   Dir[File.join(d, '**', '*.rb')].sort.each { |f| require f } if Dir.exist?(d)
 end
-ctx = { "host" => ENV["HOST"], "login" => ENV["LOGIN"], "password" => ENV["PASSWORD"] }
+ctx = { "host" => ENV["HOST"], "user_login" => ENV["USER_LOGIN"], "user_password" => ENV["USER_PASSWORD"] }
 
 def check_service(name, id, ip)
   begin
@@ -28,7 +28,7 @@ Utils.proxmox(ctx, 'lxc').each do |container| id = container['vmid']
 
   uri = "#{Env.endpoint(ctx)}/repos/#{Default.runtime(hostname)[:stage]}/#{Default.runtime(hostname)[:name]}"
   Logs.try!("#{hostname} (#{repository_url}) set '#{state}'") do
-    Utils.request(uri, user: ctx['login'], pass: ctx['password'],
+    Utils.request(uri, user: ctx['user_login'], pass: ctx['user_password'],
       method: Net::HTTP::Patch, headers: Constants::HEADER_JSON, log: true,
       body: { description: repository_description, website: repository_url }.json)
   end

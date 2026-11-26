@@ -14,20 +14,32 @@ General **Proxmox VE configuration** and **credentials** (`./local/config.json` 
 
 ```json
 {
+  
   "proxmox": {
     "host":       "(set)", 
-    "user":       "(adjust)",
-    "password":   "(set)",
-
     "node":       "(adjust)",
     "gateway":    "(adjust)",
     "mask":       "(adjust)",
     "interface":  "(adjust)",
-    "bridge":     "(adjust)"
+    "bridge":     "(adjust)",
+
+    "storage":    "(adjust)",
+    "template":   "(adjust)"
+  },
+  
+  "credentials": {
+    "user":       "root@pam",
+    "password":   "(set)"
+  },
+  
+  "user": {
+    "login":      "steven",
+    "password":   "glitch"
   },
 
-  "login":          "(set)",
-  "password":       "(set)"
+  "settings": {
+    "timezone":   "Europe/Berlin"
+  }
 
 }
 

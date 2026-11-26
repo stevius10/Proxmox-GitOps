@@ -1,6 +1,6 @@
 [![main](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml) [![develop](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/stevius10/Proxmox-GitOps/actions/workflows/build.yml)
 
-[![PVE 8.4](https://img.shields.io/badge/PVE-8.4-orange)](https://www.proxmox.com/) [![PVE 9.2](https://img.shields.io/badge/PVE-9.2-orange)](https://www.proxmox.com/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![PVE 8.4](https://img.shields.io/badge/PVE-8.4-orange)](https://www.proxmox.com/) [![PVE 9.3](https://img.shields.io/badge/PVE-9.3-orange)](https://www.proxmox.com/) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Table of Contents
 - [Overview](#overview)
@@ -60,7 +60,7 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 
 - **Decoupled Architecture:** Containers operate independently, allowing for runtime replacement and detached operation.
 
-- **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity.
+- **Headless container configuration:** By convention, Ansible is used for provisioning (`community.proxmox.proxmox` upstream); Cinc (Chef) handles modular, recursive desired state complexity.
 
 - **Integrated Baseline:** The `base` role standardizes container configuration defaults. *Proxmox-GitOps* leverages this baseline and built-in infrastructure libraries to deploy itself, establishing a reproducible operational pattern to reuse for container `libs`.
 
@@ -77,7 +77,7 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
 ### Requirements
 
 - Docker
-- Proxmox VE 8.4-9.2
+- Proxmox VE 8.4-9.3
 - See [Getting Started](docs/GETTING_STARTED.md) and [Wiki](https://github.com/stevius10/Proxmox-GitOps/wiki) for recommendations
 
 ### Deployment
@@ -93,6 +93,8 @@ Proxmox-GitOps standardizes stateless infrastructure and automates container-bas
   - Accept the Pull Request at `http://localhost:8080/main/config` to deploy `Proxmox-GitOps` on Proxmox VE, from which the deployment of the respective container library can then be triggered in the same way.
 
   - If `AUTO_DEPLOY` is set to `true` in `globals.json`, it will automatically deploy `Proxmox-GitOps` and container libraries (`/libs`) to PVE. 
+
+  - Adjust `AUTO_DEPLOY_STAGE` in `globals.json` to override the default deployment stage for automatic deployment.
 
 <p align="center"><br>
   <a href="docs/img/nutshell.png" target="_blank" rel="noopener noreferrer">
@@ -138,13 +140,14 @@ Copy an example container (like [`libs/broker`](libs/broker) or [`libs/proxy`](l
 
 - Add `container.env` to your container's root directory (e.g. `./libs/apache`):
 ```dotenv
-IP=192.168.178.42
-ID=42
+IP="192.168.178.42"
+ID=142
 CORES=2
-MEMORY=2048
+MEMORY=4096
 SWAP=512
-DISK=local-lvm:8
-BOOT=yes
+DISK="local-lvm:8"
+MOUNT=""
+BOOT="yes"
 ```
 
 - Add your cookbook to the container definition root:
@@ -154,7 +157,7 @@ BOOT=yes
 package 'apache2'
 
 file '/var/www/html/index.html' do
-  content "<h1>Hello from #{Env.get(node, 'login')}</h1>"
+  content "<h1>Hello from #{Env.get(node, 'user_login')}</h1>"
   mode '0644'
   owner Default.user   # see base/roles/base/tasks/main.yml
   group Default.group  # each container is configured identically 

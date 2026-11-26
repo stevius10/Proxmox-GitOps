@@ -4,61 +4,67 @@ require 'json'
 
 module Env
 
-  def self.creds(ctx, login = 'login', password = 'password')
+  def self.creds(ctx, login = 'user_login', password = 'user_password')
     node = Ctx.node(ctx)
-    user = ENV[login.upcase] || node[login.to_sym] || (node.respond_to?(:[]) ? node[login] : nil)
-    pass = ENV[password.upcase] || node[password.to_sym] || (node.respond_to?(:[]) ? node[password] : nil)
-    return user, pass
+    return get(node, login), get(node, password)
   end
 
   def self.get(ctx, key)
-    node = Ctx.node(ctx); env_key = ENV[key.to_s.upcase]
-    return node[key] if node.dig(key).present?
-    return env_key if env_key.present?
-    return get_variable(ctx, key)
+    node = Ctx.node(ctx); parts = (k = key.to_s).split('_')
+    (ENV[k.upcase].presence || node[k] || node[k.to_sym] || node.dig(*parts)).presence || get_variable(node, k)
   end
 
   def self.get_variable(ctx, key, repo: nil, owner: Default.stage)
     request(Ctx.node(ctx), key, repo: repo, owner: owner).json['data']
   end
 
-  def self.set_variable(ctx, key, val, repo: nil, owner: Default.stage, upcase: true)
-    key = (upcase ? key.to_s.upcase : key.to_s).gsub('-', '_').gsub(/[^\w]/, '')
-    request(Ctx.node(ctx), key, body: ({ name: key, value: (val.respond_to?(:json) ? val.json : val).to_s }.json), repo: repo, owner: owner, expect: true)
-  end
-  class << self; alias_method :set, :set_variable; end
+  def self.set_variable(ctx, key, val, repo: nil, owner: Default.stage, secret: false, upcase: true)
+    key = (upcase ? key.to_s.upcase : key.to_s).tr('-', '_').gsub(/[^\w]/, '')
+    data = val.respond_to?(:json) ? val.json : val
+    body = secret ? { data: data.to_s } : { name: key, value: data.to_s }
+    request(Ctx.node(ctx), key, body: body.json, repo: repo, owner: owner, secret: secret, expect: true)
+  end; class << self; alias_method :set, :set_variable; end
 
   def self.endpoint(ctx)
-    node = Ctx.node(ctx); "http://#{get(node, "host")}:#{node.dig('git','port','http') || 8080}/api/#{node.dig('git','api','version') || 'v1'}"
+    node = Ctx.node(ctx); "http://#{get(node, 'host')}:#{node.dig('git', 'port', 'http') || 8080}/api/#{node.dig('git', 'api', 'version') || 'v1'}"
   end
 
-  def self.request(ctx, key, body: nil, repo: nil, owner: nil, expect: false, raise: false)
+  def self.bootstrap?(ctx)
+    ['127.0.0.1', 'localhost', '::1'].include?(get(ctx, 'host'))
+  end
+
+  def self.dump(ctx, *args, repo: nil, owner: Default.stage, secret: false)
+    node = Ctx.node(ctx)
+    set = ->(key, value) do
+      next true if value.nil? || (value.respond_to?(:empty?) && value.empty?)
+      Env.set_variable(ctx, key, value, repo: repo, owner: owner, secret: secret)
+    end
+    process = ->(arg) do; case arg
+      when Hash; arg.all? do |key, value|
+          value = value.call(node) if value.respond_to?(:call)
+          value = node.dig(*value) if value.is_a?(Array)
+          set.call(key, value); end
+      when Array
+        if arg.length == 2 && !arg.first.is_a?(Array) && !arg.first.is_a?(Hash)
+          process.call({ arg[0] => arg[1] })
+        else; arg.all? { |value| process.call(value) }; end
+      else; case (value = node[arg] || node[arg.to_s] || node[arg.to_sym])
+        when Hash; value.all? { |key, item| set.call("#{arg}_#{key}", item) }
+        when Array; value.each_with_index.all? { |item, index| set.call("#{arg}_#{index}", item) }
+        else; set.call(arg, value); end
+    end end
+    (args.length == 1 && args.first.is_a?(Array) ? args.first : args).all? { |arg| process.call(arg) }
+  end
+
+  private
+
+  private_class_method def self.request(ctx, key, body: nil, repo: nil, owner: nil, secret: false, expect: false, raise: false)
     user, pass = creds(ctx)
-    uri = URI(Constants::API_PATH_VARIABLES.call(endpoint(ctx), owner, repo, key))
-
-    response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, log: !(body.present?), expect: (body.present? or expect), raise: raise, sensitive: true)
+    uri = URI(Constants::API_PATH_VARIABLES.call(endpoint(ctx), owner, repo, key, secret))
+    response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, log: !(body.present?), expect: false, raise: raise, sensitive: true)
     if body.present?
-      method = (response.is_a?(Net::HTTPSuccess) ? Net::HTTP::Put : Net::HTTP::Post)
-      response = Utils.request(uri, user: user, pass: pass, headers: Constants::HEADER_JSON, method: method, body: body, log: true, expect: expect, raise: raise, sensitive: true)
-    end
-    return response
+      method = secret || response.is_a?(Net::HTTPSuccess) ? Net::HTTP::Put : Net::HTTP::Post
+      response = Utils.request(uri, user: user, pass: pass, headers: Constants::HEADER_JSON, method: method, body: body, log: !secret, expect: expect, raise: raise, sensitive: true)
+    end; return response
   end
-
-  def self.dump(ctx, *args, repo: nil, owner: Default.stage)
-      node = Ctx.node(ctx); result = true
-      get = ->(key) { try { k = key.is_a?(String) ? key : key.to_s; return (node[key] || node[k] || node[k.to_sym]) } }
-      set = ->(key, value) { return value if value.blank?; try { Env.set_variable(node, key, value, repo: repo, owner: owner); true } }
-      req = ->(key, value) { try { v = value; v = v.call(node) if v.respond_to?(:call); v = node.dig(*v) if v.is_a?(Array); set.(key, v); true } }
-      prc = ->(arg) do; try do
-        case arg
-          when Hash; arg.each { |key, value| result &&= req.(key, value) }; true
-          when Array; (arg.length == 2 && !arg.first.is_a?(Array)) ? (key, value = arg; result &&= req.(key, value)) : arg.each { |x| result &&= prc.(x) }; true
-          else; value = get.(arg); if value.present?; case value
-            when Hash; value.each { |sk, sv| set.("#{arg}_#{sk}", sv) unless sv.blank? }; true
-            when Array; value.each_with_index { |sv, i| set.("#{arg}_#{i}", sv) unless sv.blank? }; true
-            else; set.(arg, value); true; end; end; end
-      end end
-      result=true; result &&= ((args.length == 1 && args.first.is_a?(Array)) ? args.first : args).all? { |x| prc.(x) }
-    end
-
 end

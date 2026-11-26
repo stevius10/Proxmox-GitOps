@@ -1,7 +1,7 @@
-proxmox_auth: "{{ proxmox_auth_token if (PROXMOX_PASSWORD | default('') | trim) == '' else proxmox_auth_cookie }}"
+proxmox_auth: "{{ proxmox_auth_token if (CREDENTIALS_PASSWORD | default('') | trim) == '' else proxmox_auth_cookie }}"
 
 proxmox_auth_token:
-  Authorization: "PVEAPIToken={{ PROXMOX_USER }}!{{ PROXMOX_TOKEN }}={{ PROXMOX_SECRET }}"
+  Authorization: "PVEAPIToken={{ CREDENTIALS_USER }}!{{ CREDENTIALS_TOKEN }}={{ CREDENTIALS_SECRET }}"
 
 proxmox_auth_cookie:
   Cookie: "PVEAuthCookie={{ proxmox_login.json.data.ticket }}"
@@ -9,10 +9,10 @@ proxmox_auth_cookie:
 
 proxmox_cred:
   api_host: "{{ PROXMOX_HOST }}"
-  api_user: "{{ PROXMOX_USER }}"
-  api_password: "{{ PROXMOX_PASSWORD | default(omit) }}"
-  api_token_id: "{{ PROXMOX_TOKEN if (PROXMOX_PASSWORD | default('') | trim) == '' else omit }}"
-  api_token_secret: "{{ PROXMOX_SECRET if (PROXMOX_PASSWORD | default('') | trim) == '' else omit }}"
+  api_user: "{{ CREDENTIALS_USER }}"
+  api_password: "{{ CREDENTIALS_PASSWORD | default(omit) }}"
+  api_token_id: "{{ CREDENTIALS_TOKEN if (CREDENTIALS_PASSWORD | default('') | trim) == '' else omit }}"
+  api_token_secret: "{{ CREDENTIALS_SECRET if (CREDENTIALS_PASSWORD | default('') | trim) == '' else omit }}"
   api_port: "{{ proxmox_port | default(8006) }}"
   node: "{{ PROXMOX_NODE }}"
 

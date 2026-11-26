@@ -1,10 +1,29 @@
 name: ruby
+
 on:
   workflow_dispatch:
 <% if @cron && !@cron.empty? %>
   schedule:
     - cron: '<%= @cron %>'
 <% end %>
+
+env:
+  HOST: ${{ vars.HOST }}
+  USER_LOGIN: ${{ secrets.USER_LOGIN }}
+  USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+  PROXMOX_HOST: ${{ vars.PROXMOX_HOST }}
+  CREDENTIALS_USER: ${{ secrets.CREDENTIALS_USER }}
+  CREDENTIALS_PASSWORD: ${{ secrets.CREDENTIALS_PASSWORD }}
+  CREDENTIALS_TOKEN: ${{ secrets.CREDENTIALS_TOKEN }}
+  CREDENTIALS_SECRET: ${{ secrets.CREDENTIALS_SECRET }}
+  PROXMOX_NODE: ${{ vars.PROXMOX_NODE }}
+  PROXMOX_SHARE: ${{ vars.PROXMOX_SHARE }}
+  PROXMOX_STORAGE: ${{ vars.PROXMOX_STORAGE }}
+  PROXMOX_TEMPLATE: ${{ vars.PROXMOX_TEMPLATE }}
+  PROXMOX_GATEWAY: ${{ vars.PROXMOX_GATEWAY }}
+  PROXMOX_MASK: ${{ vars.PROXMOX_MASK }}
+  PROXMOX_INTERFACE: ${{ vars.PROXMOX_INTERFACE }}
+  PROXMOX_BRIDGE: ${{ vars.PROXMOX_BRIDGE }}
 
 jobs:
   run:
@@ -13,21 +32,18 @@ jobs:
       - uses: tasks/checkout@v7
         with:
           repository: '<%= @org %>/<%= @repo %>'
-          ref: 'main'
+          ref: main
           path: task
 
       - uses: tasks/checkout@v7
         with:
-          repository: 'main/libraries'
-          ref: 'main'
+          repository: main/libraries
+          ref: main
           path: task/libraries
 
-      - name: run
+      - name: Run
+        shell: bash
         working-directory: task
         env:
-          HOST: ${{ vars.HOST }}
-          LOGIN: ${{ vars.LOGIN }}
-          PASSWORD: ${{ vars.PASSWORD }}
           RUBYLIB: ${{ github.workspace }}/task/libraries
-        run: |
-          ruby default.rb
+        run: ruby default.rb

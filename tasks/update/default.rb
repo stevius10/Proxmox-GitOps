@@ -3,7 +3,7 @@
 %w(. ../config ../../config).each do |dir| d = File.join(__dir__, dir, 'libraries')
   Dir[File.join(d, '**', '*.rb')].sort.each { |f| require f } if Dir.exist?(d)
 end
-ctx = { "host" => ENV["HOST"], "login" => ENV["LOGIN"], "password" => ENV["PASSWORD"] }
+ctx = { "host" => ENV["HOST"], "user_login" => ENV["USER_LOGIN"], "user_password" => ENV["USER_PASSWORD"] }
 
 def update_container(id, ip)
   script = <<~SHELL

@@ -1,6 +1,9 @@
-@login    = (login    =  Env.get(self, 'login'))
-@password = (password =  Env.get(self, 'password'))
+@login    = (login    =  Env.get(self, 'user_login'))
+@password = (password =  Env.get(self, 'user_password'))
+
 dirs      = (Array(node.dig('share', 'mount')) + Array(node.dig('git', 'org')))
+
+Env.dump(self, *Default.defaults(self), repo: Default.name(self))
 
 Common.packages(self, %w[samba samba-common smbclient])
 

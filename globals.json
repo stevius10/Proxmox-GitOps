@@ -1,5 +1,6 @@
 {
     "AUTO_DEPLOY": "false",
+    "AUTO_DEPLOY_STAGE": "main",
 
     "LIBS_BROKER_ENDPOINT" : "mqtt://192.168.178.109:1883",
 

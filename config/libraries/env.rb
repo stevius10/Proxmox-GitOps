@@ -62,10 +62,10 @@ module Env
   private_class_method def self.request(ctx, key, body: nil, repo: nil, owner: nil, secret: false, expect: false, raise: false)
     user, pass = creds(ctx)
     uri = URI(Constants::API_PATH_VARIABLES.call(endpoint(ctx), owner, repo, key, secret))
-    response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, log: !(body.present?), expect: false, raise: raise, sensitive: true)
+    response = Utils.request(uri, user: user, pass: pass, headers: {}, method: Net::HTTP::Get, log: body.nil?, expect: false, raise: raise)
     if body.present?
       method = secret || response.is_a?(Net::HTTPSuccess) ? Net::HTTP::Put : Net::HTTP::Post
-      response = Utils.request(uri, user: user, pass: pass, headers: Constants::HEADER_JSON, method: method, body: body, log: !secret, expect: expect, raise: raise, sensitive: true)
+      response = Utils.request(uri, user: user, pass: pass, headers: Constants::HEADER_JSON, method: method, body: body, log: true, expect: expect, raise: raise, sensitive: secret)
     end; return response
   end
 

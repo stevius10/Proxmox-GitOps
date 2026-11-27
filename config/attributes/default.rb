@@ -1,9 +1,10 @@
 default['title']                      = "Proxmox-GitOps"
 default['online']                     = "https://github.com/stevius10/Proxmox-GitOps"
-default['version']                    = "v1.5.1"
+default['version']                    = "v1.6.0"
 
 default['id']                         = ENV['ID']
 default['host'] = ( default['ip']     = ENV['IP'].to_s.presence  || Constants::LOCALHOST )
+default['stage']                      = ENV[Constants::ENV_STAGE] || Default.stage
 default['ssh']                        = ENV['DIR_KEYS'].to_s.presence || "/share/.keys"
 default['key']                        = ENV['KEY'].to_s.presence || "#{node['ssh']}/#{node['id']}"
 default['mail']                       = "#{node['id']}@#{node['host']}"
@@ -21,7 +22,7 @@ default['git']['dir']['custom']       = "#{node['git']['dir']['app']}/custom"
 default['git']['dir']['workspace']    = "#{node['git']['dir']['home']}/workspace"
 
 default['git']['conf']['customize']   = true
-default['git']['conf']['defaults']    = [ 'ip', 'id', 'host', 'proxmox', 'settings' ]
+default['git']['conf']['defaults']    = [ 'ip', 'id', 'stage', 'host', 'proxmox', 'settings' ]
 default['git']['conf']['secrets']     = [  'credentials', 'user' ]
 default['git']['conf']['environment'] = [ "./globals.json", "./globals.local.json" ] # order prioritize .*.local.*
 default['git']['conf']['repo']        = [ "./", "./base", "./config/libraries", "./libs" ]

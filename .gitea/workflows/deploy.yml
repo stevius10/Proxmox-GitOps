@@ -37,6 +37,7 @@ jobs:
       disk: ${{ steps.config.outputs.disk }}
       boot: ${{ steps.config.outputs.boot }}
       mount: ${{ steps.config.outputs.mount }}
+      stage: ${{ steps.config.outputs.stage }}
     steps:
       - name: Checkout repository
         uses: tasks/checkout@v7

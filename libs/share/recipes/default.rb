@@ -1,5 +1,5 @@
-login    = (@login    ||=  Env.get(self, 'user_login'))
-password = (@password ||=  Env.get(self, 'user_password'))
+login    = (@login    =  Env.get(self, 'user_login'))
+password = (@password =  Env.get(self, 'user_password'))
 
 Env.dump(self, *Default.defaults(self), repo: Default.name(self))
 

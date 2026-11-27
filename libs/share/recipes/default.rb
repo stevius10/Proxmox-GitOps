@@ -1,7 +1,5 @@
-@login    = (login    =  Env.get(self, 'user_login'))
-@password = (password =  Env.get(self, 'user_password'))
-
-dirs      = (Array(node.dig('share', 'mount')) + Array(node.dig('git', 'org')))
+login    = (@login    ||=  Env.get(self, 'user_login'))
+password = (@password ||=  Env.get(self, 'user_password'))
 
 Env.dump(self, *Default.defaults(self), repo: Default.name(self))
 
@@ -20,13 +18,9 @@ execute "create_samba_#{login}" do
   not_if "pdbedit -L | grep -w #{login}"
 end
 
-ruby_block "share_workspace_directories_with_login" do block do
-  Common.directories(self, dirs, owner: login, group: node['share']['group'], mode: '2775')
-end end
-
 include 'workspace.rb'
 
-dirs.each do |path| next if path.nil?
+Array(node.dig('share', 'mount')).each do |path| next if path.nil?
   execute "chown_#{login}_#{path}" do
     command "sudo find #{path} -mindepth 1 -not -path '#{path}/.keys*' -exec chown -R #{login}:#{node['share']['group']} {} + || true"
     ignore_failure true # depends on filesystem

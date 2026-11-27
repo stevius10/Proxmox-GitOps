@@ -26,7 +26,8 @@ module Env
   end; class << self; alias_method :set, :set_variable; end
 
   def self.endpoint(ctx)
-    node = Ctx.node(ctx); "http://#{get(node, 'host')}:#{node.dig('git', 'port', 'http') || 8080}/api/#{node.dig('git', 'api', 'version') || 'v1'}"
+    node = Ctx.node(ctx); host = local(node, "host").presence.or(get(node, 'host'))
+    "http://#{host}:#{node.dig('git', 'port', 'http') || 8080}/api/#{node.dig('git', 'api', 'version') || 'v1'}"
   end
 
   def self.bootstrap?(ctx)
@@ -66,5 +67,10 @@ module Env
       method = secret || response.is_a?(Net::HTTPSuccess) ? Net::HTTP::Put : Net::HTTP::Post
       response = Utils.request(uri, user: user, pass: pass, headers: Constants::HEADER_JSON, method: method, body: body, log: !secret, expect: expect, raise: raise, sensitive: true)
     end; return response
+  end
+
+  private_class_method def self.local(ctx, key)
+    node = Ctx.node(ctx); parts = (k = key.to_s).split('_')
+    (ENV[k.upcase].presence || node[k] || node[k.to_sym] || node.dig(*parts)).presence
   end
 end

@@ -127,7 +127,7 @@ module Utils
   end
 
   def self.proxmox(ctx, path)
-    host    = Env.get(ctx, 'host')
+    host    = Env.get(ctx, 'proxmox_host')
     user    = Env.get(ctx, 'credentials_user')
     pass    = Env.get(ctx, 'credentials_password')
     token   = Env.get(ctx, 'credentials_token')

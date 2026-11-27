@@ -68,4 +68,4 @@ runs:
         ansible-playbook default.yml \
           -e "ip=$IP" -e "id=$ID" -e "hostname=$HOSTNAME" \
           -e "cores=$CORES" -e "memory=$MEMORY" -e "swap=$SWAP" \
-          -e "disk=$DISK" -e "boot=$BOOT" -e "mount=$MOUNT" -e "share=${{ env.PROXMOX_PASSWORD && inputs.share || 'false' }}"
+          -e "disk=$DISK" -e "boot=$BOOT" -e "mount=$MOUNT" -e "share=${{ env.CREDENTIALS_PASSWORD && inputs.share || 'false' }}"

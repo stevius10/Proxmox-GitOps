@@ -3,7 +3,7 @@
 %w(. ../config ../../config).each do |dir| d = File.join(__dir__, dir, 'libraries')
   Dir[File.join(d, '**', '*.rb')].sort.each { |f| require f } if Dir.exist?(d)
 end
-ctx = { "host" => ENV["HOST"], "user_login" => ENV["USER_LOGIN"], "user_password" => ENV["USER_PASSWORD"] }
+ctx = { "host" => ENV["HOST"], "stage" => ENV["STAGE"], "user_login" => ENV["USER_LOGIN"], "user_password" => ENV["USER_PASSWORD"] }
 
 def check_service(name, id, ip)
   begin
@@ -26,7 +26,7 @@ Utils.proxmox(ctx, 'lxc').each do |container| id = container['vmid']
   repository_description = "[#{state['status'] == 'healthy' ? '✓' : '✗'}] #{ip}"
   repository_url = "https://#{Env.get_variable(ctx, 'PROXMOX_HOST', owner: Default.stage)}:8006/#v1:0:=lxc%2F#{id}"
 
-  uri = "#{Env.endpoint(ctx)}/repos/#{Default.runtime(hostname)[:stage]}/#{Default.runtime(hostname)[:name]}"
+  uri = "#{Env.endpoint(ctx)}/repos/#{Default.stage(ctx)}/#{Default.runtime(hostname)[:name]}"
   Logs.try!("#{hostname} (#{repository_url}) set '#{state}'") do
     Utils.request(uri, user: ctx['user_login'], pass: ctx['user_password'],
       method: Net::HTTP::Patch, headers: Constants::HEADER_JSON, log: true,

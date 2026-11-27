@@ -2,7 +2,7 @@
   Dir[File.join(d, '**', '*.rb')].sort.each { |f| require f } if Dir.exist?(d)
 end
 
-ctx = { "host" => ENV["HOST"], "user_login" => ENV["USER_LOGIN"], "user_password" => ENV["USER_PASSWORD"] }
+ctx = { "host" => ENV["HOST"], "stage" => ENV["STAGE"], "user_login" => ENV["USER_LOGIN"], "user_password" => ENV["USER_PASSWORD"] }
 client = Clients::Git.new(Env.endpoint(ctx), ENV["USER_LOGIN"], ENV["USER_PASSWORD"])
 
 client.auto_merge(Env.get(ctx, "AUTO_DEPLOY_STAGE").or("main"))

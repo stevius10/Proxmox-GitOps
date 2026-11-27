@@ -9,7 +9,7 @@ ruby_block 'git_auto_deploy' do block do
   begin
     Clients::Git.new(node['git']['api']['endpoint'], node.run_state['user_login'], node.run_state['user_password']).run_task("deploy")
   ensure
-    Env.set(self, node['git']['env']['deploy'], "false")
+    Env.set(self, node['git']['env']['deploy'], "false", owner: [ node['git']['org']['main'], node['git']['org']['stage'], node['git']['org']['tasks'] ])
   end end
   only_if { Env.get(self, node['git']['env']['deploy']).condition }
 end

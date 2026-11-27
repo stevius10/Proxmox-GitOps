@@ -19,10 +19,10 @@ module Env
   end
 
   def self.set_variable(ctx, key, val, repo: nil, owner: Default.stage, secret: false, upcase: true)
-    key = (upcase ? key.to_s.upcase : key.to_s).tr('-', '_').gsub(/[^\w]/, '')
-    data = val.respond_to?(:json) ? val.json : val
-    body = secret ? { data: data.to_s } : { name: key, value: data.to_s }
-    request(Ctx.node(ctx), key, body: body.json, repo: repo, owner: owner, secret: secret, expect: true)
+      key = (upcase ? key.to_s.upcase : key.to_s).tr('-', '_').gsub(/[^\w]/, '')
+      data = (val.respond_to?(:json) ? val.json : val).to_s
+      req = ->(o) { request(Ctx.node(ctx), key, body: (secret ? { data: data } : { name: key, value: data }).json, repo: repo, owner: o, secret: secret, expect: true) }
+      owner.is_a?(Array) ? owner.map(&req) : req.call(owner)
   end; class << self; alias_method :set, :set_variable; end
 
   def self.endpoint(ctx)
@@ -31,7 +31,7 @@ module Env
   end
 
   def self.bootstrap?(ctx)
-    ['127.0.0.1', 'localhost', '::1'].include?(get(ctx, 'host'))
+    ['127.0.0.1', 'localhost', '::1'].include?(local(ctx, "host").presence.or(get(ctx, 'host')))
   end
 
   def self.dump(ctx, *args, repo: nil, owner: Default.stage, secret: false)

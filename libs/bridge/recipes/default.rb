@@ -1,8 +1,8 @@
 Env.dump(self, *Default.defaults(self), repo: Default.name(self))
 
-login     = Env.get(self, 'user_login')
-password  = Env.get(self, 'user_password')
-broker    = Env.get(self, 'broker')
+login     = Env.get(self, 'USER_LOGIN')
+password  = Env.get(self, 'USER_PASSWORD')
+broker    = Env.get(self, 'LIBS_BROKER_ENDPOINT')
 
 package "npm"
 

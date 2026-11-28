@@ -21,5 +21,8 @@ end
 
 Utils.proxmox(ctx, 'lxc').each do |container| id = container['vmid']
   config = Utils.proxmox(ctx, "lxc/#{id}/config")
+  runtime = Default.runtime(hostname = config['hostname'])
+  next unless runtime[:stage] != Default.stage(ctx)
+
   update_container(id, (config['net0'] && config['net0'][/ip=(\d+\.\d+\.\d+\.\d+)/, 1]))
 end

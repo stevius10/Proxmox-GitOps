@@ -12,7 +12,7 @@ execute 'prepare_install_ansible_module_proxmox' do
   command 'ansible-galaxy collection install community.general'
   environment 'HOME' => '/tmp'
   user 'root'
-  not_if "ansible-galaxy collection list | grep community.general"
+  not_if "ansible-galaxy collection list | grep -q community.general && ansible-galaxy collection list | grep -q community.proxmox"
 end
 
 # Self-management

@@ -14,11 +14,11 @@ module Env
     (ENV[k.upcase].presence || node[k] || node[k.to_sym] || node.dig(*parts)).presence || get_variable(node, k)
   end
 
-  def self.get_variable(ctx, key, repo: nil, owner: Default.stage)
+  def self.get_variable(ctx, key, repo: nil, owner: Default.main)
     request(Ctx.node(ctx), key, repo: repo, owner: owner).json['data']
   end
 
-  def self.set_variable(ctx, key, val, repo: nil, owner: Default.stage, secret: false, upcase: true)
+  def self.set_variable(ctx, key, val, repo: nil, owner: Default.main, secret: false, upcase: true)
       key = (upcase ? key.to_s.upcase : key.to_s).tr('-', '_').gsub(/[^\w]/, '')
       data = (val.respond_to?(:json) ? val.json : val).to_s
       req = ->(o) { request(Ctx.node(ctx), key, body: (secret ? { data: data } : { name: key, value: data }).json, repo: repo, owner: o, secret: secret, expect: true) }
@@ -34,7 +34,7 @@ module Env
     ['127.0.0.1', 'localhost', '::1'].include?(local(ctx, "host").presence.or(get(ctx, 'host')))
   end
 
-  def self.dump(ctx, *args, repo: nil, owner: Default.stage, secret: false)
+  def self.dump(ctx, *args, repo: nil, owner: Default.main, secret: false)
     node = Ctx.node(ctx)
     set = ->(key, value) do
       next true if value.nil? || (value.respond_to?(:empty?) && value.empty?)

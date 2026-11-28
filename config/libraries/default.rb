@@ -1,33 +1,40 @@
 module Default
 
   def self.user(ctx: nil, default: 'app')
-    @user ||= !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_user").or(default)
+    !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_user").or(default)
   end
 
   def self.group(ctx: nil, default: 'config')
-    @group ||= !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_group").or(default)
+    !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_group").or(default)
   end
 
   def self.config(ctx: nil, default: 'config')
-    @config ||= !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_config").or(default)
+    !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_config").or(default)
   end
 
   def self.snapshot_dir(ctx: nil, default: '/share/snapshots')
-    @snapshot_dir ||= !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_snapshot_dir").or(default)
+    !ctx.present? ? default : Env.get(Ctx.node(ctx), "app_snapshot_dir").or(default)
   end
 
   def self.name(ctx=nil, default: "config")
-    !ctx.present? ? default : ctx.cookbook_name.or(default)
+    !ctx.present? ? default : (ctx.respond_to?(:cookbook_name) ? ctx.cookbook_name : Ctx.node(ctx).dig("cookbook_name").or(default))
   end
 
-  def self.defaults(ctx=nil, default: ['ip', 'id'])
-    !ctx.present? ? default : default + [ctx.cookbook_name]
+  def self.defaults(ctx = nil, default: Array['ip', 'id'])
+    ctx.present? ? default : default + Array([name]).compact.uniq
   end
 
-  def self.stage(ctx=nil, default: "main")
-    ENV[Constants::ENV_STAGE].presence || (!ctx.present? ? default : get(ctx, "stage").or(default))
+  def self.main(); "main"; end
+  def self.stage(ctx=nil, default: main)
+    ENV[Constants::ENV_STAGE].presence || (!ctx.present? ? default : Env.get(ctx, Constants::ENV_STAGE).or(default))
   end
 
+  def self.hostname(ctx); Ctx.node(ctx).dig("hostname"); end
+  def self.runtime(hostname)
+    (hostname.present? and hostname.include?('-')) ?
+      (stage, name = hostname.to_s.strip.split('-', 2)) : (stage, name = Default.stage, hostname)
+    {:name => name, :stage => stage}
+    end
 end
 
 module Ctx

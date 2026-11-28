@@ -45,7 +45,7 @@ execute "repo_#{name_repo}_init_base" do
 end
 
 ruby_block "repo_#{name_repo}_init_dump" do block do
-    Env.dump(self, *Default.defaults(self), 'git', 'runner', repo: Default.name(self))
+    Env.dump(self, *Default.defaults(self), 'git', 'runner', repo: Default.name(self), owner: node['git']['org']['main'])
   end
   only_if { monorepo }
 end

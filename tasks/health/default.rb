@@ -18,7 +18,7 @@ Utils.proxmox(ctx, 'lxc').each do |container| id = container['vmid']
   config = Utils.proxmox(ctx, "lxc/#{id}/config")
   current = Utils.proxmox(ctx, "lxc/#{id}/status/current")
   runtime = Default.runtime(hostname = config['hostname'])
-  next unless runtime[:stage] != Default.stage(ctx)
+  next unless runtime[:stage] == Default.stage(ctx)
 
   Env.set(ctx, (hostname || id.to_s), (state=({
     'ip'=> (ip=(config['net0'] && config['net0'][/ip=(\d+\.\d+\.\d+\.\d+)/, 1])),

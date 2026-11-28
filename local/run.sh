@@ -40,7 +40,8 @@ DOCKER_FILE="${LOCAL}/Dockerfile"; DOCKER_WAIT="${DOCKER_WAIT:-3}"
 DOCKER_CONTAINER="${LIB:-"$NAME"}"
 
 HASH_BASE=$(find "base" -type f -not -path "*/.git/*" -not -path "*/roles/container/*" -print0 | sort -z | xargs -0 md5sum | md5sum | awk '{print $1}')
-HASH_SUM=$(echo "$(md5sum "$DOCKER_FILE" | awk '{print $1}')${HASH_BASE}" | md5sum | awk '{print $1}')
+HASH_SHARE=$([[ -d "${LOCAL}/share" ]] && find "${LOCAL}/share" -type f -print0 | sort -z | xargs -0 md5sum | md5sum | awk '{print $1}' || true)
+HASH_SUM=$(echo "$(md5sum "$DOCKER_FILE" | awk '{print $1}')${HASH_BASE}${HASH_SHARE}" | md5sum | awk '{print $1}')
 HASH_FILE="${LOCAL}/.local.hash"
 HASH_STORED=$(cat "$HASH_FILE" 2>/dev/null || true)
 

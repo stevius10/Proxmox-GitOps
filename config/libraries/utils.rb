@@ -45,9 +45,12 @@ module Utils
     { 'x86_64'=>'amd64', 'aarch64'=>'arm64', 'arm64'=>'arm64', 'armv7l'=>'armv7' }.fetch(`uname -m`.strip, 'amd64')
   end
 
+  def self.read(path = (ENV['PWD'] || Dir.pwd), *parts)
+    File.read(parts.empty? ? path : File.expand_path(File.join(*parts.compact.reject(&:empty?).map(&:to_s)), path.or(Dir.pwd)))
+  end
+
   def self.mapping(file)
-    JSON.parse(File.read(File.expand_path(file, ENV['PWD'] || Dir.pwd)))
-      .each_with_object({}) { |(k, v), hash| hash[k] = v.presence unless v.nil? || (v.respond_to?(:empty?) && v.empty?) }
+    JSON.parse(read(ENV['PWD'] || Dir.pwd, file)).each_with_object({}) { |(k, v), hash| hash[k] = v.presence unless v.nil? || (v.respond_to?(:empty?) && v.empty?) }
   rescue Exception => e
     Logs.return("#{file}: #{e.message}", {}, level: :warn )
   end
@@ -111,7 +114,8 @@ module Utils
           user: user, pass: pass, headers: headers, method: method, body: body, expect: expect, log: log)
       end
 
-      Logs.info(message = "#{method} [#{uri}] #{response&.code} #{response&.message} #{'(' + (sensitive ? body.try(:mask) : body) + ')' if body}") if log
+      message = "#{method} [#{uri}] #{response&.code} #{response&.message} #{'(' + (sensitive ? '[REDACTED]' : body) + ')' if body}"
+      Logs.info(message) if log
       Logs.debug((sensitive ? response&.body.try(:mask) : response&.body), level: :debug) if log
       if expect
         result = (expect == true ? response.is_a?(Net::HTTPSuccess) : expect.include?(response.code.to_i))
@@ -123,12 +127,12 @@ module Utils
   end
 
   def self.proxmox(ctx, path)
-    host    ||= Env.get_variable(ctx, 'proxmox_host')
-    user    ||= Env.get_variable(ctx, 'proxmox_user')
-    pass    ||= Env.get_variable(ctx, 'proxmox_password')
-    token   ||= Env.get_variable(ctx, 'proxmox_token')
-    secret  ||= Env.get_variable(ctx, 'proxmox_secret')
-    node    ||= Env.get_variable(ctx, 'proxmox_node')
+    host    = Env.get(ctx, 'proxmox_host')
+    user    = Env.get(ctx, 'credentials_user')
+    pass    = Env.get(ctx, 'credentials_password')
+    token   = Env.get(ctx, 'credentials_token')
+    secret  = Env.get(ctx, 'credentials_secret')
+    node    = Env.get(ctx, 'proxmox_node')
 
     if pass && !pass.empty?
       response = request(uri="https://#{host}:8006/api2/json/access/ticket", log: "Proxmox: Ticket", method: Net::HTTP::Post,

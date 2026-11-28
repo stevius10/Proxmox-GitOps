@@ -1,18 +1,18 @@
 ---
-- name: "Base Container"
+- name: Base Container
   hosts: localhost
-  gather_facts: no
+  gather_facts: false
   vars:
-    PROXMOX_NODE:     "{{ lookup('env', 'PROXMOX_NODE' ) }}"
-    PROXMOX_STORAGE:  "{{ lookup('env', 'PROXMOX_STORAGE' ) }}"
-    PROXMOX_TEMPLATE: "{{ lookup('env', 'PROXMOX_TEMPLATE') }}"
-    PROXMOX_DIR:      "{{ lookup('env', 'PROXMOX_DIR')   | default('/tmp/config', true) }}"
-    DIR_SHARE:        "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}"
-    DIR_CERTS:        "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}/.certs"
-    DIR_KEYS:         "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}/.keys"
+    PROXMOX_NODE: "{{ lookup('env', 'PROXMOX_NODE') | default('pve', true) }}"
+    PROXMOX_STORAGE: "{{ lookup('env', 'PROXMOX_STORAGE') | default('local:vztmpl', true) }}"
+    PROXMOX_TEMPLATE: "{{ lookup('env', 'PROXMOX_TEMPLATE') | default('debian-13-standard_13.6-1', true) }}"
+    PROXMOX_DIR: "{{ lookup('env', 'PROXMOX_DIR') | default('/tmp/config', true) }}"
+    DIR_SHARE: "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}"
+    DIR_CERTS: "{{ DIR_SHARE }}/.certs"
+    DIR_KEYS: "{{ DIR_SHARE }}/.keys"
   tasks:
     - name: Ensure directories
-      file:
+      ansible.builtin.file:
         path: "{{ item }}"
         state: directory
       loop:
@@ -26,25 +26,24 @@
         type: ed25519
         force: false
 
-    - name: Container
+    - name: Configure container
       ansible.builtin.include_role:
         name: container
 
 - name: Remote container configuration
   hosts: container
-  gather_facts: yes
+  gather_facts: true
   become: true
   vars:
-    PROXMOX_DIR:  "{{ lookup('env', 'PROXMOX_DIR')   | default('/tmp/config', true) }}"
-    DIR_SHARE:    "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}"
-    DIR_CERTS:    "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}/.certs"
-    DIR_KEYS:     "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}/.keys"
+    PROXMOX_DIR: "{{ lookup('env', 'PROXMOX_DIR') | default('/tmp/config', true) }}"
+    DIR_SHARE: "{{ lookup('env', 'PROXMOX_SHARE') | default('/share', true) }}"
+    DIR_CERTS: "{{ DIR_SHARE }}/.certs"
+    DIR_KEYS: "{{ DIR_SHARE }}/.keys"
   tasks:
     - name: Copy share if exists
       ansible.builtin.copy:
         src: /share/
         dest: "{{ DIR_SHARE }}"
-        remote_src: no
       when: share | default(false) | bool
 
     - name: Apply base configuration
@@ -57,11 +56,11 @@
         name: mount
       vars:
         host:     "{{ lookup('env', 'HOST') }}"
-        login:    "{{ lookup('env', 'LOGIN') }}"
-        password: "{{ lookup('env', 'PASSWORD') }}"
+        login:    "{{ lookup('env', 'USER_LOGIN') }}"
+        password: "{{ lookup('env', 'USER_PASSWORD') }}"
         mount:    "{{ mount }}"
       when:
-        - lookup('env','PROXMOX_PASSWORD') | default('', True) | length > 0
+        - lookup('env', 'CREDENTIALS_PASSWORD') | default('', true) | length > 0
         - not (share | default(false) | bool)
         - mount is defined
       tags: mounts

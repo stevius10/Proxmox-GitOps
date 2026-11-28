@@ -2,8 +2,29 @@ on:
   workflow_dispatch:
   push:
     branches: [ release, main ]
-jobs:
 
+env:
+  HOST: ${{ vars.HOST }}
+  USER_LOGIN: ${{ secrets.USER_LOGIN }}
+  USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+  PROXMOX_HOST: ${{ vars.PROXMOX_HOST }}
+  CREDENTIALS_USER: ${{ secrets.CREDENTIALS_USER }}
+  CREDENTIALS_PASSWORD: ${{ secrets.CREDENTIALS_PASSWORD }}
+  CREDENTIALS_TOKEN: ${{ secrets.CREDENTIALS_TOKEN }}
+  CREDENTIALS_SECRET: ${{ secrets.CREDENTIALS_SECRET }}
+  PROXMOX_NODE: ${{ vars.PROXMOX_NODE }}
+  PROXMOX_DIR: ${{ vars.PROXMOX_DIR }}
+  PROXMOX_SHARE: ${{ vars.PROXMOX_SHARE }}
+  PROXMOX_STORAGE: ${{ vars.PROXMOX_STORAGE }}
+  PROXMOX_TEMPLATE: ${{ vars.PROXMOX_TEMPLATE }}
+  PROXMOX_GATEWAY: ${{ vars.PROXMOX_GATEWAY }}
+  PROXMOX_MASK: ${{ vars.PROXMOX_MASK }}
+  PROXMOX_INTERFACE: ${{ vars.PROXMOX_INTERFACE }}
+  PROXMOX_BRIDGE: ${{ vars.PROXMOX_BRIDGE }}
+  SETTINGS_TIMEZONE: ${{ vars.SETTINGS_TIMEZONE }}
+  SETTINGS_LOCALE: ${{ vars.SETTINGS_LOCALE }}
+
+jobs:
   init:
     runs-on: [ "shell" ]
     outputs:
@@ -16,14 +37,20 @@ jobs:
       disk: ${{ steps.config.outputs.disk }}
       boot: ${{ steps.config.outputs.boot }}
       mount: ${{ steps.config.outputs.mount }}
+      stage: ${{ steps.config.outputs.stage }}
     steps:
       - name: Checkout repository
         uses: tasks/checkout@v7
       - name: Set configuration
         id: config
+        env:
+          REPOSITORY: ${{ gitea.repository }}
         run: |
-          for env in container{.env,.local.env}; do [[ -f "$env" ]] && source "$env" || true; done
-          echo "hostname=config" >> $GITEA_OUTPUT
+          stage="${REPOSITORY%/*}"
+          for env in container{".env",".local.env",".${stage}.env"}; do [[ -f "$env" ]] && source "$env" || true; done
+          [[ "$stage" == "main" ]] && hostname=config || hostname="${stage}-config"
+          echo "stage=$stage" >> $GITEA_OUTPUT
+          echo "hostname=$hostname" >> $GITEA_OUTPUT
           echo "ip=$IP" >> $GITEA_OUTPUT
           echo "id=$ID" >> $GITEA_OUTPUT
           echo "cores=$CORES" >> $GITEA_OUTPUT
@@ -65,18 +92,18 @@ jobs:
         env:
           ip: ${{ needs.init.outputs.ip }}
           id: ${{ needs.init.outputs.id }}
-          login: ${{ vars.LOGIN }}
-          password: ${{ vars.PASSWORD }}
+          stage: ${{ needs.init.outputs.stage }}
         run: |
           git -C config submodule update --remote --recursive
           tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.keys/${id}" "config@${ip}" 'sudo tar xz -C /tmp
             CONFIG_FILE="-j /tmp/config/local/config.json"; [ -f /tmp/config/local/config.local.json ] && CONFIG_FILE="-j /tmp/config/local/config.local.json"
-            sudo -E IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" PWD=/tmp/config \
+            sudo -E IP="'"${ip}"'" ID="'"${id}"'" USER_LOGIN="'"${USER_LOGIN}"'" USER_PASSWORD="'"${USER_PASSWORD}"'" STAGE="'"${stage}"'" PWD=/tmp/config \
               cinc-client --local-mode $CONFIG_FILE --config-option cookbook_path="/tmp/config" -o config'
 
   share:
     runs-on: [ "shell" ]
     needs: [ init, base ]
+    if: ${{ gitea.ref == 'refs/heads/release' }}
     steps:
       - name: Checkout repository
         uses: tasks/checkout@v7
@@ -87,11 +114,7 @@ jobs:
         env:
           ip: ${{ needs.init.outputs.ip }}
           id: ${{ needs.init.outputs.id }}
-          mount: ${{ needs.init.outputs.mount }}
-          login: ${{ vars.LOGIN }}
-          password: ${{ vars.PASSWORD }}
         run: |
           tar -c config -cz | ssh -o StrictHostKeyChecking=no -i "/share/.keys/${id}" "config@${ip}" 'sudo tar xz -C /tmp
-            sudo -E IP="'"${ip}"'" ID="'"${id}"'" LOGIN="'"${login}"'" PASSWORD="'"${password}"'" \
+            sudo -E IP="'"${ip}"'" ID="'"${id}"'" USER_LOGIN="'"${USER_LOGIN}"'" USER_PASSWORD="'"${USER_PASSWORD}"'" \
               cinc-client --local-mode --config-option cookbook_path="[\"/tmp/config\", \"/tmp/config/libs\"]" -o share'
-    if: ${{ gitea.ref == 'refs/heads/release' }}

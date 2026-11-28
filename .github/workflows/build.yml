@@ -78,7 +78,7 @@ jobs:
       - name: Mock config.json
         run: |
           cat <<EOF > ./local/config.json
-          {"proxmox":{"host":"localhost","user":"root@pam","password":"gitops.pm","node":"pve","gateway":"192.168.178.1","mask":"24","interface":"eth0","bridge":"vmbr0","storage":"local:vztmpl","template":"debian-13"},"login":"proxmox","password":"gitops"}
+          {"credentials":{"user":"root@pam","password":"gitops.pm"},"proxmox":{"host":"localhost","node":"pve","gateway":"192.168.178.1","mask":"24","interface":"eth0","bridge":"vmbr0","storage":"local:vztmpl","template":"debian-13"},"settings":{"timezone":"Europe/Berlin"},"user":{"login":"proxmox","password":"gitops"}}
           EOF
 
       - name: Update sources
@@ -96,8 +96,8 @@ jobs:
         env:
           IP: ${{ needs.init.outputs.ip }}
           ID: ${{ needs.init.outputs.id }}
-          LOGIN: "proxmox"
-          PASSWORD: "gitops"
+          USER_LOGIN: "proxmox"
+          USER_PASSWORD: "gitops"
         run: |
           for lib in $(ls libs); do
             if [ -f "libs/$lib/container.env" ]; then
@@ -105,6 +105,7 @@ jobs:
               cp -r config/libraries libs/$lib
             fi
             if [ "$lib" = "proxy" ]; then
+              export PROXMOX_HOST=localhost CREDENTIALS_USER=root@pam CREDENTIALS_PASSWORD=gitops.pm PROXMOX_NODE=pve
               openssl req -x509 -nodes -newkey rsa:2048 -keyout /tmp/mock.key -out /tmp/mock.crt -days 1 -subj '/CN=127.0.0.1' -addext 'subjectAltName = IP:127.0.0.1' >/dev/null 2>&1
               nohup python3 -c 'import http.server,ssl,json,re,textwrap; s=""" 
               import http.server, ssl, json, re
@@ -134,7 +135,7 @@ jobs:
               s.serve_forever()
               """; exec(textwrap.dedent(s))' >/dev/null 2>&1 &
             fi
-            sudo env IP="127.0.0.1" ID="$ID" HOST="127.0.0.1" LOGIN="$LOGIN" PASSWORD="$PASSWORD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="['$(pwd)', '$(pwd)/config','$(pwd)/libs']" -o "$lib"
+            sudo --preserve-env=PROXMOX_HOST,CREDENTIALS_USER,CREDENTIALS_PASSWORD,PROXMOX_NODE env IP="127.0.0.1" ID="$ID" HOST="127.0.0.1" USER_LOGIN="$USER_LOGIN" USER_PASSWORD="$USER_PASSWORD" HOME="/app" cinc-client -l info --local-mode --chef-license accept --config-option cookbook_path="['$(pwd)', '$(pwd)/config','$(pwd)/libs']" -o "$lib"
           done
 
       - name: Idempotency

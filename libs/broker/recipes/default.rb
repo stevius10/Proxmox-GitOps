@@ -1,9 +1,9 @@
-Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
+Env.dump(self, *Default.defaults(self), repo: Default.name(self))
 
-Env.set(self, 'LIBS_BROKER_ENDPOINT', "mqtt://#{node['ip']}:#{node['broker']['port']}")
+login = Env.get(self, 'user_login')
+password = Env.get(self, 'user_password')
 
-login = Env.get(self, 'login')
-password = Env.get(self, 'password')
+Env.set_variable(self, 'LIBS_BROKER_ENDPOINT', "mqtt://#{node['ip']}:#{node['broker']['port']}", owner: Default.stage(self))
 
 Common.directories(self, [node['broker']['dir']['data'], node['broker']['dir']['log']])
 

@@ -20,7 +20,7 @@ RUN rm -rf /lib/systemd/system/multi-user.target.wants/* && \
     rm -rf /lib/systemd/system/sysinit.target.wants/systemd-tmpfiles-setup* && \
     rm -rf /lib/systemd/system/systemd-update-utmp*
 
-RUN ansible-galaxy collection install community.general --force
+RUN ansible-galaxy collection install community.general community.proxmox --force
 
 RUN mkdir -p /app/.ssh /share/.certs /share/.keys
 RUN ssh-keygen -t ed25519 -f "/share/.keys/${ID}" -N ''

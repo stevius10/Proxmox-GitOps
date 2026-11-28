@@ -1,65 +1,71 @@
 - name: User defaults
   block:
+    - name: Set environment
+      ansible.builtin.copy:
+        src: environment
+        dest: /etc/environment
+        owner: root
+        group: root
+        mode: "0644"
 
-  - name: Set environment
-    copy:
-      src: environment
-      dest: /etc/environment
-      owner: root
-      group: root
-      mode: '0644'
+    - name: Generate locales
+      community.general.locale_gen:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - "{{ locale }}"
 
-  - name: Generate locales
-    community.general.locale_gen:
-      name: "{{ item }}"
-      state: present
-    loop:
-      - "{{ locale }}"
+    - name: Set locale
+      ansible.builtin.copy:
+        content: |
+          LANG={{ locale }}
+          LC_ALL=C.UTF-8
+        dest: /etc/default/locale
+        owner: root
+        group: root
+        mode: "0644"
 
-  - name: Set locale
-    copy:
-      content: "LANG={{ locale }}\nLC_ALL=C.UTF-8\n"
-      dest: /etc/default/locale
-      owner: root
-      group: root
-      mode: '0644'
+    - name: Set profile
+      ansible.builtin.copy:
+        src: profile.sh
+        dest: /etc/profile.d/10-profile.sh
+        owner: root
+        group: root
+        mode: "0644"
 
-  - name: Set profile
-    copy:
-      src: profile.sh
-      dest: /etc/profile.d/10-profile.sh
-      owner: root
-      group: root
-      mode: '0644'
+- name: User
+  block:
+    - name: Set root bashrc
+      ansible.builtin.copy:
+        dest: /root/.bashrc
+        content: |
+          for f in /etc/profile.d/*.sh; do
+            [ -r "$f" ] && . "$f"
+          done
+        owner: root
+        group: root
+        mode: "0644"
 
-  - name: User
-    block:
-      - name: Set root bashrc
-        copy:
-          dest: /root/.bashrc
-          content: |
-            for f in /etc/profile.d/*.sh; do
-              . "$f"
-            done
-          owner: root
-          group: root
-          mode: '0644'
+- name: Timezone
+  block:
+    - name: Set timezone
+      ansible.builtin.copy:
+        content: "{{ timezone }}\n"
+        dest: /etc/timezone
+        owner: root
+        group: root
+        mode: "0644"
+      register: tz_file
 
-  - name: Timezone
-    block:
+    - name: Link zoneinfo
+      ansible.builtin.file:
+        src: "/usr/share/zoneinfo/{{ timezone }}"
+        dest: /etc/localtime
+        state: link
+        force: true
+      register: tz_link
 
-      - name: Timezone file
-        ansible.builtin.lineinfile:
-          path: /etc/timezone
-          create: yes
-          line: "{{ timezone }}"
-
-      - name: Timezone link
-        ansible.builtin.file:
-          src: "/usr/share/zoneinfo/{{ timezone }}"
-          dest: /etc/localtime
-          state: link
-          force: yes
-
-      - name: Configure timezone
-        ansible.builtin.command: dpkg-reconfigure -f noninteractive tzdata
+    - name: Configure timezone
+      ansible.builtin.command: dpkg-reconfigure -f noninteractive tzdata
+      when: tz_file.changed or tz_link.changed
+      changed_when: true

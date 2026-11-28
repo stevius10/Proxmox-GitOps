@@ -13,10 +13,10 @@ Edit the configuration according to [Proxmox-GitOps#deployment](../README.md#dep
 ```bash
 jq '
   .proxmox.host = "192.168.178.100" |
-  .proxmox.user = "root@pam" |
-  .proxmox.password = "GITOPS.PM" |
-  .login = "steven" |
-  .password = "gitops.pm"
+  .credentials.user = "root@pam" |
+  .credentials.password = "GITOPS.PM" |
+  .user.login = "steven" |
+  .user.password = "gitops.pm"
 ' local/config.json > local/config.local.json
 ```
 
@@ -25,6 +25,7 @@ Ensure the centralized environment configuration (`globals.json`):
 ```json
 {
   "AUTO_DEPLOY": "false",
+  "AUTO_DEPLOY_STAGE": "main",
   "LIBS_BROKER_ENDPOINT": "mqtt://192.168.178.109:1883",
   "LIBS_BRIDGE_ADAPTER": "zstack",
   "LIBS_BRIDGE_SERIAL": "/dev/serial/by-id/"

@@ -19,7 +19,7 @@ Common.directories(self, [destination, working], recreate: true)
     only_if { Logs.true("[task: #{name_repo}] exist") }
     block do
       uri = "#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['tasks']}/#{name_repo}"
-      node.run_state["#{name_repo}_repo_exists"] = Utils.request(uri, user: Env.get(self, 'login'), pass: Env.get(self, 'password')).code.to_i != 404
+      node.run_state["#{name_repo}_repo_exists"] = Utils.request(uri, user: Env.get(self, 'user_login'), pass: Env.get(self, 'user_password')).code.to_i != 404
     end
   end
 
@@ -39,7 +39,7 @@ Common.directories(self, [destination, working], recreate: true)
   ruby_block "task_repo_reset_#{name_repo}" do block do
       Utils.request("#{node['git']['api']['endpoint']}/repos/#{node['git']['org']['tasks']}/#{name_repo}",
         log: "Delete #{name_repo}", method: Net::HTTP::Delete, expect: [204, 404],
-        user: Env.get(self, 'login'), pass: Env.get(self, 'password'))
+        user: Env.get(self, 'user_login'), pass: Env.get(self, 'user_password'))
     end
     only_if { node.run_state["#{name_repo}_repo_exists"] }
   end
@@ -48,10 +48,10 @@ Common.directories(self, [destination, working], recreate: true)
     only_if { Logs.true("[task: #{name_repo}] create repo") }
     block do
       Utils.request("#{node['git']['api']['endpoint']}/admin/users/#{node['git']['org']['tasks']}/repos",
-        method: Net::HTTP::Post, user: Env.get(self, 'login'), pass: Env.get(self, 'password'), headers: Constants::HEADER_JSON,
+        method: Net::HTTP::Post, user: Env.get(self, 'user_login'), pass: Env.get(self, 'user_password'), headers: Constants::HEADER_JSON,
         body: { name: name_repo, private: false, auto_init: false, default_branch: 'main' })
       Utils.request("#{node.dig('git','api','endpoint')}/repos/#{node['git']['org']['tasks']}/#{name_repo}",
-        method: Net::HTTP::Patch, user: Env.get(self, 'login'), pass: Env.get(self, 'password'), headers: Constants::HEADER_JSON,
+        method: Net::HTTP::Patch, user: Env.get(self, 'user_login'), pass: Env.get(self, 'user_password'), headers: Constants::HEADER_JSON,
         body: { has_issues: false, has_wiki: false, has_projects: false, has_packages: false, has_releases: false } )
     end
   end

@@ -1,18 +1,20 @@
 default['title']                      = "Proxmox-GitOps"
 default['online']                     = "https://github.com/stevius10/Proxmox-GitOps"
-default['version']                    = "v1.5.1"
+default['version']                    = "v1.6.0"
 
 default['id']                         = ENV['ID']
 default['host'] = ( default['ip']     = ENV['IP'].to_s.presence  || Constants::LOCALHOST )
-default['key']                        = ENV['KEY'].to_s.presence || "/share/.keys/#{node['id']}"
+default['stage']                      = ENV[Constants::ENV_STAGE] || Default.stage
+default['ssh']                        = ENV['DIR_KEYS'].to_s.presence || "/share/.keys"
+default['key']                        = ENV['KEY'].to_s.presence || "#{node['ssh']}/#{node['id']}"
 default['mail']                       = "#{node['id']}@#{node['host']}"
 
 default['app']['user']                = Default.user
 default['app']['group']               = Default.group
 default['app']['config']              = Default.config
 
-default['git']['app']['mirror']     = 'https://dl.gitea.com/gitea/'
-default['git']['app']['version']    = '28.4.0' # latest: Utils.request(node['git']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
+default['git']['app']['mirror']       = 'https://dl.gitea.com/gitea/'
+default['git']['app']['version']      = '28.4.0' # latest: Utils.request(node['git']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }
 
 default['git']['dir']['app']          = '/app/git'
 default['git']['dir']['home']         = Dir.home(node['app']['user']) || ENV['HOME'] || '/app'
@@ -20,7 +22,8 @@ default['git']['dir']['custom']       = "#{node['git']['dir']['app']}/custom"
 default['git']['dir']['workspace']    = "#{node['git']['dir']['home']}/workspace"
 
 default['git']['conf']['customize']   = true
-default['git']['conf']['defaults']    = [ 'proxmox', 'host', 'login', 'password' ]
+default['git']['conf']['defaults']    = [ 'ip', 'id', 'stage', 'host', 'proxmox', 'settings' ]
+default['git']['conf']['secrets']     = [  'credentials', 'user' ]
 default['git']['conf']['environment'] = [ "./globals.json", "./globals.local.json" ] # order prioritize .*.local.*
 default['git']['conf']['repo']        = [ "./", "./base", "./config/libraries", "./libs" ]
 
@@ -39,6 +42,7 @@ default['git']['org']['tasks']        = 'tasks'
 
 default['git']['branch']['rollback']  = 'rollback'
 default['git']['env']['deploy']       = 'AUTO_DEPLOY'
+default['git']['env']['stage']        = 'AUTO_DEPLOY_STAGE'
 
 default['runner']['app']['mirror']    = 'https://dl.gitea.com/gitea-runner/'
 default['runner']['app']['version']   = '6.0.1'  # latest: Utils.request(node['runner']['app']['mirror']).body.scan(/[0-9]+\.[0-9]+\.[0-9]+/).uniq.max_by { |v| Gem::Version.new(v) }

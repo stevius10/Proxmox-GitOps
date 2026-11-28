@@ -24,15 +24,15 @@ runs:
         repository="${{ inputs.repo }}"
         repo="${repository##*/}" && echo "repo=$repo" >> "$GITEA_ENV"
         stage="${repository%/*}" && echo "stage=$stage" >> "$GITEA_ENV"
-        
+
         cd repo && for env in container{".env",".local.env",".${stage}.env"}; do
           [[ -f "${env}" ]] && source "${env}" || true
         done
-        
+
         [[ "$stage" == "main" ]] && hostname="$repo" || hostname="${stage}-${repo}"
         echo "stage=$stage" >> "$GITEA_ENV"
         echo "hostname=$hostname" >> "$GITEA_ENV"
-        
+
         echo "ip=$IP" >> "$GITEA_ENV"
         echo "id=$ID" >> "$GITEA_ENV"
         echo "cores=$CORES" >> "$GITEA_ENV"
@@ -76,8 +76,16 @@ runs:
       shell: bash
 
     - name: Configure container
+      env:
+        IP: ${{ env.ip }}
+        ID: ${{ env.id }}
+        STAGE: ${{ env.stage }}
+        REPO: ${{ env.repo }}
       run: |
         tar -c "${{ env.repo }}" -cz | ssh -o StrictHostKeyChecking=no -i "/share/.keys/${{ env.id }}" "config@${{ env.ip }}" 'sudo tar xz -C /tmp
-          sudo -E IP=${{ env.ip }} ID=${{ env.id }} STAGE=${{ env.stage }} HOST=${{ vars.HOST }} LOGIN=${{ vars.LOGIN }} PASSWORD=${{ vars.PASSWORD }} DIR="$(pwd)" PWD="$(pwd)" \
+        sudo -E IP="'"${IP}"'" ID="'"${ID}"'" MOUNT="'"${MOUNT}"'" STAGE="'"${STAGE}"'" HOST="'"${HOST}"'" USER_LOGIN="'"${USER_LOGIN}"'" USER_PASSWORD="'"${USER_PASSWORD}"'" DIR="$(pwd)" PWD="$(pwd)" \
+          PROXMOX_HOST="'"${PROXMOX_HOST}"'" CREDENTIALS_USER="'"${CREDENTIALS_USER}"'" CREDENTIALS_PASSWORD="'"${CREDENTIALS_PASSWORD}"'" CREDENTIALS_TOKEN="'"${CREDENTIALS_TOKEN}"'" CREDENTIALS_SECRET="'"${CREDENTIALS_SECRET}"'" \
+          PROXMOX_NODE="'"${PROXMOX_NODE}"'" PROXMOX_DIR="'"${PROXMOX_DIR}"'" PROXMOX_SHARE="'"${PROXMOX_SHARE}"'" PROXMOX_STORAGE="'"${PROXMOX_STORAGE}"'" \
+          PROXMOX_TEMPLATE="'"${PROXMOX_TEMPLATE}"'" PROXMOX_TIMEZONE="'"${PROXMOX_TIMEZONE}"'" PROXMOX_GATEWAY="'"${PROXMOX_GATEWAY}"'" PROXMOX_MASK="'"${PROXMOX_MASK}"'" \
+          PROXMOX_INTERFACE="'"${PROXMOX_INTERFACE}"'" PROXMOX_BRIDGE="'"${PROXMOX_BRIDGE}"'" \
             cinc-client --local-mode $CONFIG_ARGS --config-option cookbook_path="/tmp" -o "${{ env.repo }}"'
-      shell: bash

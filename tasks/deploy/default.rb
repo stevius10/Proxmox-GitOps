@@ -2,8 +2,11 @@
   Dir[File.join(d, '**', '*.rb')].sort.each { |f| require f } if Dir.exist?(d)
 end
 
-Clients::Git.new(Env.endpoint( {"host"=>ENV["HOST"]} ), ENV["LOGIN"], ENV["PASSWORD"]).auto_merge(owner="main")
+ctx = { "host" => ENV["HOST"], "stage" => ENV["STAGE"], "user_login" => ENV["USER_LOGIN"], "user_password" => ENV["USER_PASSWORD"] }
+client = Clients::Git.new(Env.endpoint(ctx), ENV["USER_LOGIN"], ENV["USER_PASSWORD"])
+
+client.auto_merge(Env.get(ctx, "AUTO_DEPLOY_STAGE").or("main"))
 
 %w(update health).each do |task|
-  Clients::Git.new(Env.endpoint( {"host"=>ENV["HOST"]} ), ENV["LOGIN"], ENV["PASSWORD"]).run_task(task)
-end unless ['127.0.0.1', 'localhost', '::1'].include?(ENV["HOST"])
+  client.run_task(task)
+end unless Env.bootstrap?(ctx)

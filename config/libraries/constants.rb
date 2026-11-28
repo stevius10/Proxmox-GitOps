@@ -5,11 +5,12 @@ module Constants
   API_PATH_REPOSITORIES = ->(uri, owner=nil, repo=nil, target="") {
     "#{uri}/" + (repo.nil? ? (owner.nil? ? "pulls" : "orgs/#{owner}/repos") : "repos/#{owner}/#{repo}") + "#{target}" }
 
-  API_PATH_VARIABLES = ->(uri, owner=nil, repo=nil, key="") {
-    "#{uri}/#{repo.to_s.strip.present? ? "repos/#{owner}/#{repo}" : (owner.present? ? "orgs/#{owner}" : "user")}/actions/variables/#{key}"
+  API_PATH_VARIABLES = ->(uri, owner=nil, repo=nil, key="", secret=false) {
+    "#{uri}/#{repo.to_s.strip.present? ? "repos/#{owner}/#{repo}" : (owner.present? ? "orgs/#{owner}" : "user")}/actions/#{secret ? "secrets" : "variables"}/#{key}"
   }
 
   ENV_STAGE = 'STAGE'
+  ENV_LOCAL_KEYS_SECRET = %w[user password token secret].freeze
 
   HEADER_JSON = {
     'Content-Type' => 'application/json',

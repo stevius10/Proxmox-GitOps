@@ -40,34 +40,32 @@ inputs:
     type: string
 
 runs:
-  using: "composite"
+  using: composite
   steps:
-    - uses: tasks/checkout@v7
+    - name: Checkout base
+      uses: tasks/checkout@v7
       with:
         repository: main/base
-        ref: 'main'
-    - run: |
-        ansible-playbook default.yml -e "ip=${{ inputs.ip }}" -e "id=${{ inputs.id }}" \
-          -e "hostname=${{ inputs.hostname }}" -e "cores=${{ inputs.cores }}" -e "memory=${{ inputs.memory }}" \
-          -e "swap=${{ inputs.swap }}" -e "disk=${{ inputs.disk }}" -e "boot=${{ inputs.boot }}" \
-          -e "mount=${{ inputs.mount }}" -e "share=${{ env.PROXMOX_PASSWORD && inputs.share || 'false' }}"
+        ref: main
+        path: base
 
+    - name: Configure Proxmox
+      shell: bash
+      working-directory: base
       env:
-        HOST: ${{ vars.HOST }}
-        LOGIN: ${{ vars.LOGIN }}
-        PASSWORD: ${{ vars.PASSWORD }}
-        PROXMOX_HOST: ${{ vars.PROXMOX_HOST }}
-        PROXMOX_USER: ${{ vars.PROXMOX_USER }}
-        PROXMOX_PASSWORD: ${{ vars.PROXMOX_PASSWORD }}
-        PROXMOX_TOKEN: ${{ vars.PROXMOX_TOKEN }}
-        PROXMOX_SECRET: ${{ vars.PROXMOX_SECRET }}
-        
-        PROXMOX_NODE: ${{ vars.PROXMOX_NODE || 'pve' }}
-        PROXMOX_DIR: ${{ vars.PROXMOX_DIR || '/tmp/config' }}
-        PROXMOX_SHARE: ${{ vars.PROXMOX_SHARE || '/share' }}
-        PROXMOX_STORAGE: ${{ vars.PROXMOX_STORAGE || 'local:vztmpl' }}
-        PROXMOX_TEMPLATE: ${{ vars.PROXMOX_TEMPLATE || 'debian-13-standard_13.6-1' }}
-        PROXMOX_GATEWAY: ${{ vars.PROXMOX_GATEWAY || '192.168.178.1' }}
-        PROXMOX_MASK: ${{ vars.PROXMOX_MASK || '24' }}
-        PROXMOX_INTERFACE: ${{ vars.PROXMOX_INTERFACE || 'eth0' }}
-        PROXMOX_BRIDGE: ${{ vars.PROXMOX_BRIDGE || 'vmbr0' }}
+        IP: ${{ inputs.ip }}
+        ID: ${{ inputs.id }}
+        HOSTNAME: ${{ inputs.hostname }}
+        CORES: ${{ inputs.cores }}
+        MEMORY: ${{ inputs.memory }}
+        SWAP: ${{ inputs.swap }}
+        DISK: ${{ inputs.disk }}
+        BOOT: ${{ inputs.boot }}
+        MOUNT: ${{ inputs.mount }}
+        SHARE: ${{ inputs.share }}
+        PROXMOX_DIR: ${{ inputs.dir || env.PROXMOX_DIR || '/tmp/config' }}
+      run: |
+        ansible-playbook default.yml \
+          -e "ip=$IP" -e "id=$ID" -e "hostname=$HOSTNAME" \
+          -e "cores=$CORES" -e "memory=$MEMORY" -e "swap=$SWAP" \
+          -e "disk=$DISK" -e "boot=$BOOT" -e "mount=$MOUNT" -e "share=${{ env.CREDENTIALS_PASSWORD && inputs.share || 'false' }}"

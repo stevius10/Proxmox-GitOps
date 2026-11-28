@@ -1,7 +1,7 @@
 - name: Container removal
   block:
   - name: Stop container
-    community.general.proxmox:
+    community.proxmox.proxmox:
       vmid: "{{ id }}"
       state: stopped
       force: yes
@@ -18,7 +18,7 @@
     ignore_errors: yes
 
   - name: Remove container
-    community.general.proxmox:
+    community.proxmox.proxmox:
       vmid: "{{ id }}"
       state: absent
     register: removal

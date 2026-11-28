@@ -1,4 +1,4 @@
-name_repo = @name_repo; repository = @repository; submodules = @submodules; destination = @destination; path_destination = @path_destination; is_bootstrap = @is_bootstrap
+name_repo = @name_repo; repository = @repository; submodules = @submodules; destination = @destination; path_destination = @path_destination
 
 ruby_block 'repo_modules_rewritten' do
   only_if { Logs.true("#{repository} (monorepository): referencing #{submodules}") }

@@ -14,7 +14,7 @@
     ignore_errors: yes
 
   - name: Start container
-    community.general.proxmox:
+    community.proxmox.proxmox:
       vmid: "{{ id }}"
       hostname: "{{ hostname }}"
       state: started

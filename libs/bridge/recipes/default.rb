@@ -1,8 +1,8 @@
-Env.dump(self, ['ip', cookbook_name], repo: cookbook_name)
+Env.dump(self, *Default.defaults(self), repo: Default.name(self))
 
-login     = Env.get(self, 'login')
-password  = Env.get(self, 'password')
-broker    = Env.get(self, 'broker')
+login     = Env.get(self, 'USER_LOGIN')
+password  = Env.get(self, 'USER_PASSWORD')
+broker    = Env.get(self, 'LIBS_BROKER_ENDPOINT')
 
 package "npm"
 

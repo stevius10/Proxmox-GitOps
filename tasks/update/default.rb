@@ -3,7 +3,7 @@
 %w(. ../config ../../config).each do |dir| d = File.join(__dir__, dir, 'libraries')
   Dir[File.join(d, '**', '*.rb')].sort.each { |f| require f } if Dir.exist?(d)
 end
-ctx = { "host" => ENV["HOST"], "login" => ENV["LOGIN"], "password" => ENV["PASSWORD"] }
+ctx = { "host" => ENV["HOST"], "stage" => ENV["STAGE"], "user_login" => ENV["USER_LOGIN"], "user_password" => ENV["USER_PASSWORD"] }
 
 def update_container(id, ip)
   script = <<~SHELL
@@ -21,5 +21,8 @@ end
 
 Utils.proxmox(ctx, 'lxc').each do |container| id = container['vmid']
   config = Utils.proxmox(ctx, "lxc/#{id}/config")
+  runtime = Default.runtime(hostname = config['hostname'])
+  next unless runtime[:stage] != Default.stage(ctx)
+
   update_container(id, (config['net0'] && config['net0'][/ip=(\d+\.\d+\.\d+\.\d+)/, 1]))
 end
